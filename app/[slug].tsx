@@ -391,12 +391,12 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     downloadsSection: {
-        marginBottom: 20,
+        marginBottom: 16,
     },
     downloadTitle: {
-        color: Colors.dark.text,
         fontSize: 18,
         fontWeight: 'bold',
+        color: Colors.dark.text,
         marginBottom: 12,
     },
     downloadButton: {
@@ -408,17 +408,22 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
+    downloadButtonVIP: {
+        backgroundColor: '#FFD700',
+    },
     downloadButtonText: {
         color: Colors.dark.background,
         fontSize: 14,
         fontWeight: 'bold',
     },
     vipBadge: {
-        backgroundColor: '#FFD700',
-        color: Colors.dark.background,
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 3,
+    },
+    vipBadgeText: {
+        color: '#FFD700',
         fontSize: 11,
         fontWeight: 'bold',
     },

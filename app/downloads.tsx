@@ -27,7 +27,7 @@ function getStatusColor(status: Download['status']): string {
         case 'completed': return '#4CAF50';
         case 'downloading': return Colors.dark.accent;
         case 'failed': return '#f44336';
-        case 'paused': return '#FF9800';
+        case 'cancelled': return '#FF9800';
         default: return Colors.dark.textSecondary;
     }
 }
@@ -37,9 +37,8 @@ function getStatusText(status: Download['status']): string {
         case 'completed': return 'เสร็จสิ้น';
         case 'downloading': return 'กำลังดาวน์โหลด';
         case 'failed': return 'ล้มเหลว';
-        case 'paused': return 'หยุดชั่วคราว';
-        case 'pending': return 'กำลังเตรียม';
-        default: return status;
+        case 'cancelled': return 'ยกเลิกแล้ว';
+        default: return 'รอดำเนินการ';
     }
 }
 
@@ -129,11 +128,11 @@ export default function DownloadsScreen() {
     const { downloads, clearCompleted, clearAll } = useDownloads();
 
     const activeDownloads = downloads.filter(d =>
-        d.status === 'downloading' || d.status === 'pending' || d.status === 'paused'
+        d.status === 'downloading' || d.status === 'pending'
     );
 
     const completedDownloads = downloads.filter(d =>
-        d.status === 'completed' || d.status === 'failed'
+        d.status === 'completed' || d.status === 'failed' || d.status === 'cancelled'
     );
 
     return (

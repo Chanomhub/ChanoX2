@@ -59,6 +59,7 @@
       "preload.js",
       "package.json"
     ],
+    "publish": null,
     "win": {
       "target": [
         {
