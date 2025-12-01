@@ -27,6 +27,13 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, 'dist', 'web', 'index.html'));
   }
 
+  // F12 shortcut to toggle DevTools (works in both dev and production)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' && input.type === 'keyDown') {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
+
   // Intercept ALL downloads (from any source including iframes)
   mainWindow.webContents.session.on('will-download', (event, item, webContents) => {
     const id = downloadId++;
