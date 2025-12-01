@@ -2,7 +2,10 @@
   "name": "chanox2",
   "version": "1.0.0",
   "description": "Desktop application for ChanomHub - Game mods and downloads platform",
-  "author": "ChanomHub",
+  "author": {
+    "name": "ChanomHub",
+    "email": "contact@chanomhub.com"
+  },
   "main": "electron-main.js",
   "scripts": {
     "start": "expo start",
@@ -35,6 +38,7 @@
     "@types/react": "~19.1.0",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
+    "dmg-license": "^1.0.11",
     "electron": "^39.2.4",
     "electron-builder": "^26.0.12",
     "typescript": "~5.9.2",
