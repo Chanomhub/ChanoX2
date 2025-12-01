@@ -1,0 +1,1400 @@
+{
+  "__schema": {
+    "queryType": {
+      "name": "Query",
+      "fields": [
+        {
+          "name": "article",
+          "description": null,
+          "args": [
+            {
+              "name": "id",
+              "type": {
+                "name": "Int",
+                "kind": "SCALAR"
+              }
+            },
+            {
+              "name": "slug",
+              "type": {
+                "name": "String",
+                "kind": "SCALAR"
+              }
+            }
+          ],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "articles",
+          "description": null,
+          "args": [
+            {
+              "name": "filter",
+              "type": {
+                "name": "ArticleFilterInput",
+                "kind": "INPUT_OBJECT"
+              }
+            },
+            {
+              "name": "limit",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL"
+              }
+            },
+            {
+              "name": "offset",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL"
+              }
+            },
+            {
+              "name": "status",
+              "type": {
+                "name": "ArticleStatus",
+                "kind": "ENUM"
+              }
+            }
+          ],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "downloads",
+          "description": null,
+          "args": [
+            {
+              "name": "articleId",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL"
+              }
+            }
+          ],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "officialDownloadSources",
+          "description": null,
+          "args": [
+            {
+              "name": "articleId",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL"
+              }
+            }
+          ],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "categories",
+          "description": null,
+          "args": [],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "platforms",
+          "description": null,
+          "args": [],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "tags",
+          "description": null,
+          "args": [],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "hello",
+          "description": null,
+          "args": [],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "moderate",
+          "description": null,
+          "args": [],
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        }
+      ]
+    },
+    "types": [
+      {
+        "name": "ArticleAuthorGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "image",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "following",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ID",
+        "kind": "SCALAR",
+        "description": "The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `\"4\"`) or integer (such as `4`) input value will be accepted as an ID.",
+        "fields": null
+      },
+      {
+        "name": "String",
+        "kind": "SCALAR",
+        "description": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
+        "fields": null
+      },
+      {
+        "name": "Boolean",
+        "kind": "SCALAR",
+        "description": "The `Boolean` scalar type represents `true` or `false`.",
+        "fields": null
+      },
+      {
+        "name": "ArticleCategoryGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleCreatorGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleDownloadGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "isActive",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "url",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "vipOnly",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleFilterInput",
+        "kind": "INPUT_OBJECT",
+        "description": null,
+        "fields": null
+      },
+      {
+        "name": "ArticleGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "author",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "backgroundImage",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "body",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "categories",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "coverImage",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "createdAt",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "creators",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "favorited",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "favoritesCount",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "images",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "mainImage",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "mods",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "platforms",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "slug",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "tags",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "title",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updatedAt",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "ver",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "sequentialCode",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "engine",
+            "type": {
+              "name": "EngineTypeGraphQLDTO",
+              "kind": "OBJECT"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Int",
+        "kind": "SCALAR",
+        "description": "The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.",
+        "fields": null
+      },
+      {
+        "name": "EngineTypeGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleImageGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "url",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleModCategoryGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleModGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "categories",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "creditTo",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "downloadLink",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "images",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "version",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleModImageGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "url",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleOfficialDownloadSourceGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "reviewNote",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "url",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticlePlatformGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ArticleStatus",
+        "kind": "ENUM",
+        "description": null,
+        "fields": null
+      },
+      {
+        "name": "ArticleTagGraphQLDTO",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "DateTime",
+        "kind": "SCALAR",
+        "description": "A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.",
+        "fields": null
+      },
+      {
+        "name": "Mutation",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "updateModerationStatus",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "UpdateModerationStatusInput",
+        "kind": "INPUT_OBJECT",
+        "description": null,
+        "fields": null
+      },
+      {
+        "name": "Query",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "article",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "articles",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "downloads",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "officialDownloadSources",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "categories",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "platforms",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "tags",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "hello",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "moderate",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ModerateQuery",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "moderationRequests",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ModerationRequest",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "entityId",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "entityType",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "requestNote",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "reviewNote",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "createdAt",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updatedAt",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "requester",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "reviewer",
+            "type": {
+              "name": "User",
+              "kind": "OBJECT"
+            }
+          },
+          {
+            "name": "entityDetails",
+            "type": {
+              "name": "EntityDetails",
+              "kind": "UNION"
+            }
+          }
+        ]
+      },
+      {
+        "name": "EntityDetails",
+        "kind": "UNION",
+        "description": null,
+        "fields": null
+      },
+      {
+        "name": "ArticleDetails",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "title",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "slug",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "DownloadLinkDetails",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "url",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "articleId",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "OfficialDownloadSourceDetails",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "url",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "articleId",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "OtherDetails",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "RequestStatus",
+        "kind": "ENUM",
+        "description": null,
+        "fields": null
+      },
+      {
+        "name": "User",
+        "kind": "OBJECT",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "image",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        ]
+      },
+      {
+        "name": "__Schema",
+        "kind": "OBJECT",
+        "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
+        "fields": [
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "types",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "queryType",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "mutationType",
+            "type": {
+              "name": "__Type",
+              "kind": "OBJECT"
+            }
+          },
+          {
+            "name": "subscriptionType",
+            "type": {
+              "name": "__Type",
+              "kind": "OBJECT"
+            }
+          },
+          {
+            "name": "directives",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "__Type",
+        "kind": "OBJECT",
+        "description": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name, description and optional `specifiedByURL`, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
+        "fields": [
+          {
+            "name": "kind",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "specifiedByURL",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "fields",
+            "type": {
+              "name": null,
+              "kind": "LIST"
+            }
+          },
+          {
+            "name": "interfaces",
+            "type": {
+              "name": null,
+              "kind": "LIST"
+            }
+          },
+          {
+            "name": "possibleTypes",
+            "type": {
+              "name": null,
+              "kind": "LIST"
+            }
+          },
+          {
+            "name": "enumValues",
+            "type": {
+              "name": null,
+              "kind": "LIST"
+            }
+          },
+          {
+            "name": "inputFields",
+            "type": {
+              "name": null,
+              "kind": "LIST"
+            }
+          },
+          {
+            "name": "ofType",
+            "type": {
+              "name": "__Type",
+              "kind": "OBJECT"
+            }
+          },
+          {
+            "name": "isOneOf",
+            "type": {
+              "name": "Boolean",
+              "kind": "SCALAR"
+            }
+          }
+        ]
+      },
+      {
+        "name": "__TypeKind",
+        "kind": "ENUM",
+        "description": "An enum describing what kind of type a given `__Type` is.",
+        "fields": null
+      },
+      {
+        "name": "__Field",
+        "kind": "OBJECT",
+        "description": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
+        "fields": [
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "args",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "type",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "isDeprecated",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deprecationReason",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        ]
+      },
+      {
+        "name": "__InputValue",
+        "kind": "OBJECT",
+        "description": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
+        "fields": [
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "type",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "defaultValue",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "isDeprecated",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deprecationReason",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        ]
+      },
+      {
+        "name": "__EnumValue",
+        "kind": "OBJECT",
+        "description": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
+        "fields": [
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "isDeprecated",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deprecationReason",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        ]
+      },
+      {
+        "name": "__Directive",
+        "kind": "OBJECT",
+        "description": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
+        "fields": [
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "isRepeatable",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "locations",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "args",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "__DirectiveLocation",
+        "kind": "ENUM",
+        "description": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
+        "fields": null
+      }
+    ]
+  }
+}

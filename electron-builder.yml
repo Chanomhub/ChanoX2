@@ -1,0 +1,59 @@
+# Electron Builder Configuration
+
+appId: com.chanomhub.chanox2
+productName: ChanoX2
+copyright: Copyright © 2024 ChanomHub
+
+directories:
+  output: dist
+  buildResources: assets
+
+files:
+  - dist/**/*
+  - electron-main.js
+  - package.json
+  - node_modules/**/*
+
+# Windows Configuration
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - ia32
+  icon: assets/icon.png
+  artifactName: ChanoX2-${version}-${arch}-setup.${ext}
+
+# Linux Configuration
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Game
+  icon: assets/icon.png
+  artifactName: ChanoX2-${version}-${arch}.${ext}
+
+# macOS Configuration
+mac:
+  target: dmg
+  category: public.app-category.games
+  icon: assets/icon.png
+  artifactName: ChanoX2-${version}.${ext}
+
+# NSIS (Windows Installer) Configuration
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: ChanoX2
+
+# AppImage Configuration (Linux)
+appImage:
+  license: LICENSE
+
+# Publish Configuration (for auto-updates)
+publish:
+  provider: github
+  owner: your-github-username
+  repo: ChanoX2
