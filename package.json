@@ -1,7 +1,9 @@
 {
   "name": "chanox2",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "description": "Desktop application for ChanomHub - Game mods and downloads platform",
+  "author": "ChanomHub",
+  "main": "electron-main.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
