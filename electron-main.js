@@ -38,17 +38,40 @@ function createWindow() {
     }
   });
 
-  // Intercept ALL downloads (from any source including iframes)
+  // Handle new window creation
+  ipcMain.on('open-new-window', (event, url) => {
+    const newWindow = new BrowserWindow({
+      width: 1024,
+      height: 768,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: false, // Needed for some sites
+        webSecurity: false,
+        preload: path.join(__dirname, 'preload.js')
+      },
+      autoHideMenuBar: true
+    });
+
+    newWindow.loadURL(url);
+
+    // Optional: Add custom menu or toolbar here if needed
+  });
+
+  // Intercept ALL downloads (from any source including iframes and new windows)
+  // We attach this to the session so it covers all windows sharing the session
   mainWindow.webContents.session.on('will-download', (event, item, webContents) => {
     const id = downloadId++;
     const filename = item.getFilename();
 
-    // Notify renderer about new download
-    webContents.send('download-started', {
-      id,
-      filename,
-      totalBytes: item.getTotalBytes()
-    });
+    // ALWAYS send to mainWindow, regardless of where the download started
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('download-started', {
+        id,
+        filename,
+        totalBytes: item.getTotalBytes()
+      });
+    }
 
     activeDownloads.set(id, item);
 
@@ -56,40 +79,44 @@ function createWindow() {
     let lastTime = Date.now();
 
     item.on('updated', (event, state) => {
-      if (state === 'interrupted') {
-        webContents.send('download-error', { id, error: 'Download interrupted' });
-      } else if (state === 'progressing') {
-        const currentTime = Date.now();
-        const currentBytes = item.getReceivedBytes();
-        const timeDiff = (currentTime - lastTime) / 1000;
-        const bytesDiff = currentBytes - lastReceivedBytes;
-        const speed = timeDiff > 0 ? bytesDiff / timeDiff : 0;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (state === 'interrupted') {
+          mainWindow.webContents.send('download-error', { id, error: 'Download interrupted' });
+        } else if (state === 'progressing') {
+          const currentTime = Date.now();
+          const currentBytes = item.getReceivedBytes();
+          const timeDiff = (currentTime - lastTime) / 1000;
+          const bytesDiff = currentBytes - lastReceivedBytes;
+          const speed = timeDiff > 0 ? bytesDiff / timeDiff : 0;
 
-        webContents.send('download-progress', {
-          id,
-          receivedBytes: currentBytes,
-          totalBytes: item.getTotalBytes(),
-          speed: Math.round(speed)
-        });
+          mainWindow.webContents.send('download-progress', {
+            id,
+            receivedBytes: currentBytes,
+            totalBytes: item.getTotalBytes(),
+            speed: Math.round(speed)
+          });
 
-        lastReceivedBytes = currentBytes;
-        lastTime = currentTime;
+          lastReceivedBytes = currentBytes;
+          lastTime = currentTime;
+        }
       }
     });
 
     item.once('done', (event, state) => {
       activeDownloads.delete(id);
-      if (state === 'completed') {
-        webContents.send('download-complete', {
-          id,
-          path: item.getSavePath(),
-          filename: filename
-        });
-      } else {
-        webContents.send('download-error', {
-          id,
-          error: state === 'cancelled' ? 'Download cancelled' : 'Download failed'
-        });
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (state === 'completed') {
+          mainWindow.webContents.send('download-complete', {
+            id,
+            path: item.getSavePath(),
+            filename: filename
+          });
+        } else {
+          mainWindow.webContents.send('download-error', {
+            id,
+            error: state === 'cancelled' ? 'Download cancelled' : 'Download failed'
+          });
+        }
       }
     });
   });

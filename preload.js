@@ -5,6 +5,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
     // Download control
     cancelDownload: (id) => ipcRenderer.send('cancel-download', id),
+    openNewWindow: (url) => ipcRenderer.send('open-new-window', url),
 
     // Download event listeners (auto-captured from browser/iframes)
     onDownloadStarted: (callback) => {

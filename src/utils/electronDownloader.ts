@@ -13,8 +13,13 @@ export class ElectronDownloader {
      * Opens in WebView for upload service links
      */
     static openDownloadLink(url: string, router: any) {
-        // Navigate to webview screen with the URL
-        router.push(`/webview?url=${encodeURIComponent(url)}`);
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+            // Open in new Electron window
+            (window as any).electronAPI.openNewWindow(url);
+        } else {
+            // Fallback for web/dev
+            router.push(`/webview?url=${encodeURIComponent(url)}`);
+        }
     }
 
     /**

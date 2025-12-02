@@ -6,11 +6,13 @@ import { client } from '../src/api/client';
 import { GET_ARTICLE, GET_DOWNLOADS } from '../src/api/queries';
 import { ArticleDetail, ArticleResponse, Download, DownloadsResponse } from '../src/types/graphql';
 import { useDownloads } from '../src/contexts/DownloadContext';
+import { ArticleDownloadDialog } from '../src/components/ArticleDownloadDialog';
 
 export default function ArticleDetailPage() {
     const { slug } = useLocalSearchParams<{ slug: string }>();
     const [article, setArticle] = useState<ArticleDetail | null>(null);
     const [downloads, setDownloads] = useState<Download[]>([]);
+    const [selectedDownload, setSelectedDownload] = useState<Download | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { openDownloadLink } = useDownloads();
@@ -166,8 +168,7 @@ export default function ArticleDetailPage() {
                                                     download.vipOnly && styles.downloadButtonVIP
                                                 ]}
                                                 onPress={() => {
-                                                    // Open download link (goes to upload service)
-                                                    openDownloadLink(download.url, article?.title);
+                                                    setSelectedDownload(download);
                                                 }}
                                             >
                                                 <Text style={styles.downloadButtonText}>
@@ -182,6 +183,17 @@ export default function ArticleDetailPage() {
                                         ))}
                                     </View>
                                 )}
+
+                                <ArticleDownloadDialog
+                                    visible={!!selectedDownload}
+                                    onClose={() => setSelectedDownload(null)}
+                                    download={selectedDownload}
+                                    onDownload={(url) => {
+                                        openDownloadLink(url, article?.title);
+                                    }}
+                                    articleTitle={article?.title}
+                                />
+
                                 {/* Categories */}
                                 {article.categories.length > 0 && (
                                     <View style={styles.metadataRow}>
@@ -261,8 +273,8 @@ export default function ArticleDetailPage() {
                         </View>
                     </View>
                 </View>
-            </ScrollView>
-        </View>
+            </ScrollView >
+        </View >
     );
 }
 
