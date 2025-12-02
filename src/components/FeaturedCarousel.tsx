@@ -18,7 +18,7 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
         if (articles.length > 0) {
             intervalRef.current = setInterval(() => {
                 setCurrentIndex((prev) => (prev + 1) % articles.length);
-            }, 5000); // Auto-play every 5 seconds
+            }, 5000) as unknown as NodeJS.Timeout; // Auto-play every 5 seconds
         }
 
         return () => {

@@ -18,7 +18,8 @@ function createWindow() {
       contextIsolation: true,
       sandbox: false,
       webSecurity: false, // Allow iframes to load external sites
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      partition: 'persist:chanox2' // Explicitly persist session data
     },
   });
 

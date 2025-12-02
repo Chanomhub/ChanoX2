@@ -8,12 +8,13 @@ import { Article, ArticlesResponse } from '../src/types/graphql';
 import FeaturedCarousel from '../src/components/FeaturedCarousel';
 import HorizontalScroll from '../src/components/HorizontalScroll';
 import GameListSection from '../src/components/GameListSection';
+import AccountSwitcher from '../src/components/AccountSwitcher';
 import { useAuth } from '../src/contexts/AuthContext';
 
 export default function Home() {
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
-    const { user, logout, isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
 
     useEffect(() => {
         fetchArticles();
@@ -71,15 +72,7 @@ export default function Home() {
                             </TouchableOpacity>
 
                             {isAuthenticated ? (
-                                <View style={styles.userMenu}>
-                                    <Text style={styles.username}>{user?.username}</Text>
-                                    <TouchableOpacity
-                                        onPress={logout}
-                                        style={styles.logoutButton}
-                                    >
-                                        <Text style={styles.logoutText}>Logout</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                <AccountSwitcher />
                             ) : (
                                 <TouchableOpacity
                                     onPress={() => router.push('/login')}
@@ -133,27 +126,7 @@ const styles = StyleSheet.create({
     iconButtonText: {
         fontSize: 20,
     },
-    userMenu: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    username: {
-        color: Colors.dark.text,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    logoutButton: {
-        backgroundColor: Colors.dark.border,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 4,
-    },
-    logoutText: {
-        color: Colors.dark.text,
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
+
     loginButton: {
         backgroundColor: Colors.dark.accent,
         paddingHorizontal: 16,
