@@ -1,6 +1,10 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
+const serve = require('electron-serve');
+const loadURL = serve.default || serve;
+const appServe = loadURL({ directory: 'dist' });
+
 let mainWindow;
 const activeDownloads = new Map();
 let downloadId = 0;
@@ -24,7 +28,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:8081');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, 'dist', 'web', 'index.html'));
+    appServe(mainWindow);
   }
 
   // F12 shortcut to toggle DevTools (works in both dev and production)
