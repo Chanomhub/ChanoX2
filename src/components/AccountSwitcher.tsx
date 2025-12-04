@@ -1,12 +1,122 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, FlatList } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { Colors } from '../constants/Colors';
+import { useFestival } from '../contexts/FestivalContext';
 import { router } from 'expo-router';
 
 export default function AccountSwitcher() {
     const { user, accounts, switchAccount, logout } = useAuth();
+    const { theme } = useFestival();
     const [visible, setVisible] = useState(false);
+
+    const styles = useMemo(() => StyleSheet.create({
+        trigger: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 8,
+            backgroundColor: theme.surface,
+            borderRadius: 4,
+            borderWidth: 1,
+            borderColor: theme.border,
+        },
+        username: {
+            color: theme.text,
+            fontSize: 14,
+            fontWeight: '600',
+            marginRight: 8,
+        },
+        arrow: {
+            color: theme.textSecondary,
+            fontSize: 12,
+        },
+        overlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'flex-start',
+            alignItems: 'flex-end',
+            paddingTop: 60,
+            paddingRight: 16,
+        },
+        menu: {
+            backgroundColor: theme.surface,
+            borderRadius: 8,
+            width: 250,
+            padding: 8,
+            shadowColor: "#000",
+            shadowOffset: {
+                width: 0,
+                height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+            borderWidth: 1,
+            borderColor: theme.border,
+        },
+        menuTitle: {
+            color: theme.textSecondary,
+            fontSize: 12,
+            fontWeight: 'bold',
+            marginBottom: 8,
+            paddingHorizontal: 8,
+            textTransform: 'uppercase',
+        },
+        list: {
+            maxHeight: 200,
+        },
+        accountItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 8,
+            borderRadius: 4,
+        },
+        activeAccount: {
+            backgroundColor: 'rgba(102, 192, 244, 0.1)',
+        },
+        avatarPlaceholder: {
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: theme.accent,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 8,
+        },
+        avatarText: {
+            color: theme.background,
+            fontSize: 12,
+            fontWeight: 'bold',
+        },
+        accountName: {
+            color: theme.text,
+            fontSize: 14,
+            flex: 1,
+        },
+        activeAccountText: {
+            fontWeight: 'bold',
+            color: theme.accent,
+        },
+        activeIndicator: {
+            color: theme.accent,
+            fontWeight: 'bold',
+        },
+        divider: {
+            height: 1,
+            backgroundColor: theme.border,
+            marginVertical: 8,
+        },
+        menuItem: {
+            padding: 8,
+            borderRadius: 4,
+        },
+        menuItemText: {
+            color: theme.text,
+            fontSize: 14,
+        },
+        logoutText: {
+            color: theme.error,
+        },
+    }), [theme]);
 
     const handleSwitch = async (userId: number) => {
         await switchAccount(userId);
@@ -16,6 +126,11 @@ export default function AccountSwitcher() {
     const handleAddAccount = () => {
         setVisible(false);
         router.push('/login');
+    };
+
+    const handleSettings = () => {
+        setVisible(false);
+        router.push('/settings');
     };
 
     const handleLogout = async () => {
@@ -89,6 +204,10 @@ export default function AccountSwitcher() {
                             <Text style={styles.menuItemText}>+ Add Account</Text>
                         </TouchableOpacity>
 
+                        <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+                            <Text style={styles.menuItemText}>Settings</Text>
+                        </TouchableOpacity>
+
                         <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
                             <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
                         </TouchableOpacity>
@@ -98,112 +217,3 @@ export default function AccountSwitcher() {
         </>
     );
 }
-
-const styles = StyleSheet.create({
-    trigger: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 8,
-        backgroundColor: Colors.dark.surface,
-        borderRadius: 4,
-        borderWidth: 1,
-        borderColor: Colors.dark.border,
-    },
-    username: {
-        color: Colors.dark.text,
-        fontSize: 14,
-        fontWeight: '600',
-        marginRight: 8,
-    },
-    arrow: {
-        color: Colors.dark.textSecondary,
-        fontSize: 12,
-    },
-    overlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-start',
-        alignItems: 'flex-end',
-        paddingTop: 60,
-        paddingRight: 16,
-    },
-    menu: {
-        backgroundColor: Colors.dark.surface,
-        borderRadius: 8,
-        width: 250,
-        padding: 8,
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
-        borderWidth: 1,
-        borderColor: Colors.dark.border,
-    },
-    menuTitle: {
-        color: Colors.dark.textSecondary,
-        fontSize: 12,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        paddingHorizontal: 8,
-        textTransform: 'uppercase',
-    },
-    list: {
-        maxHeight: 200,
-    },
-    accountItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 8,
-        borderRadius: 4,
-    },
-    activeAccount: {
-        backgroundColor: 'rgba(102, 192, 244, 0.1)',
-    },
-    avatarPlaceholder: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: Colors.dark.accent,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 8,
-    },
-    avatarText: {
-        color: Colors.dark.background,
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    accountName: {
-        color: Colors.dark.text,
-        fontSize: 14,
-        flex: 1,
-    },
-    activeAccountText: {
-        fontWeight: 'bold',
-        color: Colors.dark.accent,
-    },
-    activeIndicator: {
-        color: Colors.dark.accent,
-        fontWeight: 'bold',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: Colors.dark.border,
-        marginVertical: 8,
-    },
-    menuItem: {
-        padding: 8,
-        borderRadius: 4,
-    },
-    menuItemText: {
-        color: Colors.dark.text,
-        fontSize: 14,
-    },
-    logoutText: {
-        color: Colors.dark.error,
-    },
-});
