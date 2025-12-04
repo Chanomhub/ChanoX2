@@ -36,8 +36,8 @@ export const GET_ARTICLES = gql`
 
 // Get single article by ID or slug
 export const GET_ARTICLE = gql`
-  query GetArticle($id: Int, $slug: String) {
-    article(id: $id, slug: $slug) {
+  query GetArticle($id: Int, $slug: String, $language: String) {
+    article(id: $id, slug: $slug, language: $language) {
       id
       title
       slug

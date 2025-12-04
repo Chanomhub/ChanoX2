@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, ScrollView } from 'react-native';
 import { useFestival } from '@/contexts/FestivalContext';
+import { useLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
 import Constants from 'expo-constants';
 import packageJson from '../package.json';
 
@@ -12,6 +13,7 @@ interface GitHubRelease {
 
 export default function SettingsPage() {
     const { theme } = useFestival();
+    const { language, setLanguage } = useLanguage();
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -48,6 +50,33 @@ export default function SettingsPage() {
 
     return (
         <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Language</Text>
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                        <TouchableOpacity
+                            key={lang.code}
+                            style={[
+                                styles.languageOption,
+                                language === lang.code && { backgroundColor: theme.accent + '20' }
+                            ]}
+                            onPress={() => setLanguage(lang.code)}
+                        >
+                            <Text style={[
+                                styles.languageText,
+                                { color: theme.text },
+                                language === lang.code && { color: theme.accent, fontWeight: 'bold' }
+                            ]}>
+                                {lang.label}
+                            </Text>
+                            {language === lang.code && (
+                                <Text style={{ color: theme.accent }}>✓</Text>
+                            )}
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>General</Text>
 
@@ -147,5 +176,17 @@ const styles = StyleSheet.create({
     updateButtonText: {
         fontSize: 12,
         fontWeight: 'bold',
+    },
+    languageOption: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#ffffff20',
+    },
+    languageText: {
+        fontSize: 16,
     },
 });

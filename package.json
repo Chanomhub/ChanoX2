@@ -1,6 +1,6 @@
 {
   "name": "chanox2",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Desktop application for ChanomHub - Game mods and downloads platform",
   "author": {
     "name": "ChanomHub",
@@ -21,10 +21,10 @@
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "electron-serve": "^3.0.0",
-    "expo": "~54.0.25",
+    "expo": "~54.0.26",
     "expo-constants": "~18.0.10",
     "expo-linking": "~8.0.9",
-    "expo-router": "~6.0.15",
+    "expo-router": "~6.0.16",
     "expo-secure-store": "^15.0.7",
     "expo-status-bar": "~3.0.8",
     "graphql": "^16.12.0",
@@ -32,18 +32,19 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-safe-area-context": "~5.6.0",
+    "react-native-localize": "^3.6.0",
+    "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.16.0",
-    "react-native-web": "^0.21.0"
+    "react-native-web": "^0.21.2"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
+    "@types/react": "~19.1.17",
     "babel-plugin-module-resolver": "^5.0.2",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^39.2.4",
+    "electron": "^39.2.5",
     "electron-builder": "^26.0.12",
-    "typescript": "~5.9.2",
+    "typescript": "~5.9.3",
     "wait-on": "^9.0.3"
   },
   "optionalDependencies": {

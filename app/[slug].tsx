@@ -7,6 +7,7 @@ import { GET_ARTICLE, GET_DOWNLOADS } from '../src/api/queries';
 import { ArticleDetail, ArticleResponse, Download, DownloadsResponse } from '../src/types/graphql';
 import { useDownloads } from '../src/contexts/DownloadContext';
 import { ArticleDownloadDialog } from '../src/components/ArticleDownloadDialog';
+import { useLanguage } from '../src/contexts/LanguageContext';
 
 export default function ArticleDetailPage() {
     const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -16,20 +17,33 @@ export default function ArticleDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { openDownloadLink } = useDownloads();
+    const { language, isLoading: isLanguageLoading } = useLanguage();
 
     useEffect(() => {
-        if (slug) {
-            console.log('Fetching article with slug:', slug);
-            fetchArticle();
-        }
-    }, [slug]);
+        let isMounted = true;
 
-    const fetchArticle = async () => {
+        if (slug && !isLanguageLoading) {
+            console.log('Fetching article with slug:', slug, 'language:', language);
+            fetchArticle(isMounted);
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }, [slug, language, isLanguageLoading]);
+
+    const fetchArticle = async (isMounted: boolean) => {
         try {
+            if (!isMounted) return;
+            setLoading(true);
             console.log('Making GraphQL request for slug:', slug);
             const data = await client.request<ArticleResponse>(GET_ARTICLE, {
                 slug: slug,
+                language: language,
             });
+
+            if (!isMounted) return;
+
             console.log('Received data:', data);
 
             if (data && data.article) {
@@ -42,6 +56,7 @@ export default function ArticleDetailPage() {
             }
             setLoading(false);
         } catch (err) {
+            if (!isMounted) return;
             console.error('Error fetching article:', err);
             setError(err instanceof Error ? err.message : 'Unknown error');
             setLoading(false);

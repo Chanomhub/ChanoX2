@@ -8,6 +8,7 @@ import { FestivalProvider } from '@/contexts/FestivalContext';
 import { FestivalOverlay } from '@/components/FestivalOverlay';
 
 import { useFestival } from '@/contexts/FestivalContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 
 function AppNavigator() {
     const { theme } = useFestival();
@@ -50,7 +51,9 @@ export default function RootLayout() {
         <AuthProvider>
             <DownloadProvider>
                 <FestivalProvider>
-                    <AppNavigator />
+                    <LanguageProvider>
+                        <AppNavigator />
+                    </LanguageProvider>
                 </FestivalProvider>
             </DownloadProvider>
         </AuthProvider>
