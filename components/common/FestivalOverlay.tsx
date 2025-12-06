@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated, Easing, Platform } from 'react-native';
-import { useFestival } from '../contexts/FestivalContext';
+import { useFestival } from '@/contexts/FestivalContext';
 
 const NUM_SNOWFLAKES = 50;
 

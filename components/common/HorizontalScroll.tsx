@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
 import { Link } from 'expo-router';
-import { Colors } from '../constants/Colors';
-import { Article } from '../types/graphql';
+import { Colors } from '@/constants/Colors';
+import { Article } from '@/types/graphql';
 
 interface HorizontalScrollProps {
     title: string;
@@ -88,14 +88,24 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         overflow: 'hidden',
         // Add shadow/elevation
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
+
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: {
+                    width: 0,
+                    height: 2,
+                },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
+            web: {
+                boxShadow: '0px 2px 3.84px rgba(0,0,0,0.25)',
+            }
+        }),
     },
     image: {
         width: '100%',

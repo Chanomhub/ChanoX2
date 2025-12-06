@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { Stack } from 'expo-router';
-import { Colors } from '../src/constants/Colors';
-import { useDownloads, Download } from '../src/contexts/DownloadContext';
+import { Colors } from '@/constants/Colors';
+import { useDownloads, Download } from '@/contexts/DownloadContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';

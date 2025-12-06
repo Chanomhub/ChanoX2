@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'expo-router';
-import { Colors } from '../constants/Colors';
-import { Article } from '../types/graphql';
+import { Colors } from '@/constants/Colors';
+import { Article } from '@/types/graphql';
 
 const { width } = Dimensions.get('window');
 

@@ -19,9 +19,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "7zip-bin": "^5.2.0",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
-    "7zip-bin": "^5.2.0",
+    "@react-navigation/native": "^7.1.24",
+    "@react-navigation/native-stack": "^7.8.5",
+    "@tanstack/react-query": "^5.90.12",
     "electron-serve": "^3.0.0",
     "expo": "~54.0.27",
     "expo-constants": "~18.0.11",
@@ -36,10 +39,17 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
     "react-native-localize": "^3.6.0",
+    "react-native-mmkv": "^4.1.0",
+    "react-native-paper": "^5.14.5",
+    "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.16.0",
-    "react-native-web": "^0.21.2"
+    "react-native-svg": "15.12.1",
+    "react-native-svg-transformer": "^1.5.2",
+    "react-native-web": "^0.21.2",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",

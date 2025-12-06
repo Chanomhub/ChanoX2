@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Platform, View, Text, TouchableOpacity, Modal, StyleSheet, FlatList } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { useFestival } from '../contexts/FestivalContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useFestival } from '@/contexts/FestivalContext';
 import { router } from 'expo-router';
 
 export default function AccountSwitcher({ compact = false }: { compact?: boolean }) {

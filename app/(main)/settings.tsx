@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, S
 import { useFestival } from '@/contexts/FestivalContext';
 import { useLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
 import Constants from 'expo-constants';
-import packageJson from '../package.json';
+import packageJson from '../../package.json';
 
 interface GitHubRelease {
     tag_name: string;

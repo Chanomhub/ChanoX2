@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { Colors } from '../src/constants/Colors';
+import { Colors } from '@/constants/Colors';
 import { useEffect, useRef } from 'react';
 
 export default function WebViewScreen() {

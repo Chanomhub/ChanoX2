@@ -1,15 +1,15 @@
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Colors } from '../src/constants/Colors';
-import { client } from '../src/api/client';
-import { GET_ARTICLES } from '../src/api/queries';
-import { Article, ArticlesResponse } from '../src/types/graphql';
-import FeaturedCarousel from '../src/components/FeaturedCarousel';
-import HorizontalScroll from '../src/components/HorizontalScroll';
-import GameListSection from '../src/components/GameListSection';
-// import AccountSwitcher from '../src/components/AccountSwitcher'; // Moved to TitleBar
-import { useAuth } from '../src/contexts/AuthContext';
+import { Colors } from '@/constants/Colors';
+import { client } from '@/libs/api/client';
+import { GET_ARTICLES } from '@/libs/api/queries';
+import { Article, ArticlesResponse } from '@/types/graphql';
+import FeaturedCarousel from '@/components/common/FeaturedCarousel';
+import HorizontalScroll from '@/components/common/HorizontalScroll';
+import GameListSection from '@/components/common/GameListSection';
+// import AccountSwitcher from '@/components/common/AccountSwitcher'; // Moved to TitleBar
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
     const [articles, setArticles] = useState<Article[]>([]);

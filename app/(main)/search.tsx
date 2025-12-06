@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView } from 'react-native';
 import { Stack, Link } from 'expo-router';
-import { Colors } from '../src/constants/Colors';
 import { useState, useEffect, useCallback } from 'react';
-import { client } from '../src/api/client';
-import { GET_ARTICLES } from '../src/api/queries';
-import { Article, ArticlesResponse } from '../src/types/graphql';
+import { Colors } from '@/constants/Colors';
+import { client } from '@/libs/api/client';
+import { GET_ARTICLES } from '@/libs/api/queries';
+import { Article, ArticlesResponse } from '@/types/graphql';
 
 // Debounce hook
 function useDebounce(value: string, delay: number) {

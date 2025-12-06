@@ -1,13 +1,13 @@
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Colors } from '../src/constants/Colors';
-import { client } from '../src/api/client';
-import { GET_ARTICLE, GET_DOWNLOADS } from '../src/api/queries';
-import { ArticleDetail, ArticleResponse, Download, DownloadsResponse } from '../src/types/graphql';
-import { useDownloads } from '../src/contexts/DownloadContext';
-import { ArticleDownloadDialog } from '../src/components/ArticleDownloadDialog';
-import { useLanguage } from '../src/contexts/LanguageContext';
+import { Colors } from '@/constants/Colors';
+import { client } from '@/libs/api/client';
+import { GET_ARTICLE, GET_DOWNLOADS } from '@/libs/api/queries';
+import { ArticleDetail, ArticleResponse, Download, DownloadsResponse } from '@/types/graphql';
+import { useDownloads } from '@/contexts/DownloadContext';
+import { ArticleDownloadDialog } from '@/components/common/ArticleDownloadDialog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ArticleDetailPage() {
     const { slug } = useLocalSearchParams<{ slug: string }>();

@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, Platform } from 'react-native';
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'expo-router';
-import { Colors } from '../constants/Colors';
-import { Article } from '../types/graphql';
+import { Colors } from '@/constants/Colors';
+import { Article } from '@/types/graphql';
 
 interface GameListSectionProps {
     articles: Article[];
@@ -222,8 +222,11 @@ const styles = StyleSheet.create({
         fontSize: 12,
         padding: 0, // Remove default padding
         flex: 1,
-        // @ts-ignore - Web specific
-        outlineStyle: 'none',
+        ...Platform.select({
+            web: {
+                outlineStyle: 'none',
+            }
+        }) as any
     },
     emptyState: {
         padding: 24,

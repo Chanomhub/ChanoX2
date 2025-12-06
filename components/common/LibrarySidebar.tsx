@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
-import { Colors } from '../constants/Colors';
-import { Download } from '../contexts/DownloadContext';
+import { Colors } from '@/constants/Colors';
+import { Download } from '@/contexts/DownloadContext';
 
 interface LibrarySidebarProps {
     downloads: Download[];

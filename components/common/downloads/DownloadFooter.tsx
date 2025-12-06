@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useDownloads } from '@/contexts/DownloadContext';
 import { useRouter, usePathname } from 'expo-router';
@@ -65,11 +65,21 @@ const styles = StyleSheet.create({
         borderTopColor: '#3d4450',
         height: 40,
         zIndex: 1000,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 10,
+
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 10,
+            },
+            web: {
+                boxShadow: '0px -2px 4px rgba(0,0,0,0.3)',
+            }
+        }),
     },
     content: {
         flex: 1,

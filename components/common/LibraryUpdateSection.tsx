@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import { Colors } from '../constants/Colors';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform } from 'react-native';
+import { Colors } from '@/constants/Colors';
 
 // Mock data for "What's New" shelf since we don't have a real API for this yet
 const MOCK_NEWS = [
@@ -106,11 +106,21 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         overflow: 'hidden',
         // Shadow
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
+
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 5,
+            },
+            web: {
+                boxShadow: '0px 2px 4px rgba(0,0,0,0.3)',
+            }
+        }),
     },
     imageContainer: {
         height: 180,

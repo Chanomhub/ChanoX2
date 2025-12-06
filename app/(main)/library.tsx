@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { Stack, Link } from 'expo-router';
-import { Colors } from '../src/constants/Colors';
-import { useDownloads } from '../src/contexts/DownloadContext';
-import LibrarySidebar from '../src/components/LibrarySidebar';
-import LibraryUpdateSection from '../src/components/LibraryUpdateSection';
-import HorizontalScroll from '../src/components/HorizontalScroll';
-import { Article } from '../src/types/graphql';
+import { Colors } from '@/constants/Colors';
+import { useDownloads } from '@/contexts/DownloadContext';
+import LibrarySidebar from '@/components/common/LibrarySidebar';
+import LibraryUpdateSection from '@/components/common/LibraryUpdateSection';
+import HorizontalScroll from '@/components/common/HorizontalScroll';
+import { Article } from '@/types/graphql';
 
 export default function Library() {
     const { downloads, openFile, showInFolder } = useDownloads();
@@ -183,10 +183,21 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         marginBottom: 8,
         // Shadow
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 4,
+
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.5,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 4,
+            },
+            web: {
+                boxShadow: '0px 2px 4px rgba(0,0,0,0.5)',
+            }
+        }),
     },
     gridIcon: {
         fontSize: 48,

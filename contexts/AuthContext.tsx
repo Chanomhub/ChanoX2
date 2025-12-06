@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { Platform } from 'react-native';
-import { login as apiLogin, register as apiRegister, getCurrentUser, User, LoginCredentials, RegisterData } from '../api/auth';
+import { login as apiLogin, register as apiRegister, getCurrentUser, User, LoginCredentials, RegisterData } from '@/libs/api/auth';
 
 interface AuthContextType {
     user: User | null;

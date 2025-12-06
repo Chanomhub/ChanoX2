@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Linking, Platform } from 'react-native';
-import { Colors } from '../constants/Colors';
-import { Download } from '../types/graphql';
-import { useFestival } from '../contexts/FestivalContext';
+import { Colors } from '@/constants/Colors';
+import { Download } from '@/types/graphql';
+import { useFestival } from '@/contexts/FestivalContext';
 
 interface ArticleDownloadDialogProps {
     visible: boolean;
