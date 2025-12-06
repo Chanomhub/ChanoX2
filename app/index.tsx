@@ -58,13 +58,6 @@ export default function Home() {
                     headerRight: () => (
                         <View style={styles.headerButtons}>
                             <TouchableOpacity
-                                onPress={() => router.push('/downloads')}
-                                style={styles.iconButton}
-                            >
-                                <Text style={styles.iconButtonText}>📥</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
                                 onPress={() => router.push('/search')}
                                 style={styles.iconButton}
                             >
@@ -86,26 +79,26 @@ export default function Home() {
                 }}
             />
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            < ScrollView contentContainerStyle={styles.scrollContent} >
                 {/* Featured Carousel */}
-                <FeaturedCarousel articles={featuredArticles} />
+                < FeaturedCarousel articles={featuredArticles} />
 
                 {/* From Developers Section */}
-                <HorizontalScroll
+                < HorizontalScroll
                     title="FROM DEVELOPERS AND PUBLISHERS YOU KNOW"
                     articles={developersSection}
                 />
 
                 {/* Budget Section */}
-                <HorizontalScroll
+                < HorizontalScroll
                     title="UNDER ฿350"
                     articles={budgetSection}
                 />
 
                 {/* Tabbed List Section */}
-                <GameListSection articles={listSection} />
-            </ScrollView>
-        </View>
+                < GameListSection articles={listSection} />
+            </ScrollView >
+        </View >
     );
 }
 

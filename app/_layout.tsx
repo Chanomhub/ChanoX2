@@ -9,6 +9,7 @@ import { FestivalOverlay } from '@/components/FestivalOverlay';
 
 import { useFestival } from '@/contexts/FestivalContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import DownloadButton from '@/components/downloads/DownloadButton';
 
 function AppNavigator() {
     const { theme } = useFestival();
@@ -28,6 +29,7 @@ function AppNavigator() {
                     contentStyle: {
                         backgroundColor: theme.background,
                     },
+                    headerRight: () => <DownloadButton />,
                 }}
             >
                 <Stack.Screen name="index" options={{ title: 'Home', headerShown: true }} />

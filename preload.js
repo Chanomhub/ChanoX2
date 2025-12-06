@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Download control
     cancelDownload: (id) => ipcRenderer.send('cancel-download', id),
     openNewWindow: (url) => ipcRenderer.send('open-new-window', url),
+    showItemInFolder: (path) => ipcRenderer.send('show-item-in-folder', path),
+    openPath: (path) => ipcRenderer.send('open-path', path),
 
     // Download event listeners (auto-captured from browser/iframes)
     onDownloadStarted: (callback) => {

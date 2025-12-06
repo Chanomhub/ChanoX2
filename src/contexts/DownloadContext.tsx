@@ -25,13 +25,45 @@ interface DownloadContextType {
     removeDownload: (id: number) => void;
     clearCompleted: () => void;
     clearAll: () => void;
+    showInFolder: (id: number) => void;
+    openFile: (id: number) => void;
 }
 
 const DownloadContext = createContext<DownloadContextType | undefined>(undefined);
 
 export function DownloadProvider({ children }: { children: React.ReactNode }) {
-    const [downloads, setDownloads] = useState<Download[]>([]);
+    const [downloads, setDownloads] = useState<Download[]>(() => {
+        // Load from localStorage on initial render
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('downloads');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    // Convert date strings back to Date objects
+                    return parsed.map((d: any) => ({
+                        ...d,
+                        startTime: new Date(d.startTime),
+                        endTime: d.endTime ? new Date(d.endTime) : undefined,
+                        // If app was closed while downloading, mark as failed/interrupted
+                        status: d.status === 'downloading' ? 'failed' : d.status,
+                        error: d.status === 'downloading' ? 'Download interrupted by app close' : d.error
+                    }));
+                } catch (e) {
+                    console.error('Failed to parse active downloads', e);
+                    return [];
+                }
+            }
+        }
+        return [];
+    });
     const router = useRouter();
+
+    // Persist to localStorage whenever downloads change
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('downloads', JSON.stringify(downloads));
+        }
+    }, [downloads]);
 
     // Setup auto-capture of all downloads
     useEffect(() => {
@@ -135,6 +167,20 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
         setDownloads([]);
     };
 
+    const showInFolder = (id: number) => {
+        const download = downloads.find(d => d.id === id);
+        if (download && download.savePath) {
+            ElectronDownloader.showItemInFolder(download.savePath);
+        }
+    };
+
+    const openFile = (id: number) => {
+        const download = downloads.find(d => d.id === id);
+        if (download && download.savePath) {
+            ElectronDownloader.openPath(download.savePath);
+        }
+    };
+
     return (
         <DownloadContext.Provider
             value={{
@@ -144,6 +190,8 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
                 removeDownload,
                 clearCompleted,
                 clearAll,
+                showInFolder,
+                openFile,
             }}
         >
             {children}

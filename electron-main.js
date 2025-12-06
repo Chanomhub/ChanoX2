@@ -49,7 +49,8 @@ function createWindow() {
         contextIsolation: true,
         sandbox: false, // Needed for some sites
         webSecurity: false,
-        preload: path.join(__dirname, 'preload.js')
+        preload: path.join(__dirname, 'preload.js'),
+        partition: 'persist:chanox2' // Share session with main window
       },
       autoHideMenuBar: true
     });
@@ -133,6 +134,20 @@ ipcMain.on('cancel-download', (event, id) => {
   if (item && !item.isPaused()) {
     item.cancel();
     activeDownloads.delete(id);
+  }
+});
+
+// File system actions
+ipcMain.on('show-item-in-folder', (event, fullPath) => {
+  const { shell } = require('electron');
+  shell.showItemInFolder(fullPath);
+});
+
+ipcMain.on('open-path', async (event, fullPath) => {
+  const { shell } = require('electron');
+  const error = await shell.openPath(fullPath);
+  if (error) {
+    console.error('Error opening path:', error);
   }
 });
 

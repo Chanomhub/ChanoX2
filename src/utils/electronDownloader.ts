@@ -64,4 +64,16 @@ export class ElectronDownloader {
             (window as any).electronAPI.cancelDownload(id);
         }
     }
+
+    static showItemInFolder(path: string) {
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+            (window as any).electronAPI.showItemInFolder(path);
+        }
+    }
+
+    static openPath(path: string) {
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+            (window as any).electronAPI.openPath(path);
+        }
+    }
 }
