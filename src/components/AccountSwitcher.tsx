@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, FlatList } from 'react-native';
+import { Platform, View, Text, TouchableOpacity, Modal, StyleSheet, FlatList } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useFestival } from '../contexts/FestivalContext';
 import { router } from 'expo-router';
@@ -42,14 +42,23 @@ export default function AccountSwitcher({ compact = false }: { compact?: boolean
             borderRadius: 8,
             width: 250,
             padding: 8,
-            shadowColor: "#000",
-            shadowOffset: {
-                width: 0,
-                height: 2,
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
+            ...Platform.select({
+                ios: {
+                    shadowColor: "#000",
+                    shadowOffset: {
+                        width: 0,
+                        height: 2,
+                    },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                },
+                android: {
+                    elevation: 5,
+                },
+                web: {
+                    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
+                },
+            }),
             borderWidth: 1,
             borderColor: theme.border,
         },

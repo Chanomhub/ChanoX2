@@ -16,6 +16,8 @@ export interface Download {
     endTime?: Date;
     error?: string;
     savePath?: string;
+    isExtracting?: boolean;
+    extractedPath?: string;
 }
 
 interface DownloadContextType {
@@ -27,6 +29,7 @@ interface DownloadContextType {
     clearAll: () => void;
     showInFolder: (id: number) => void;
     openFile: (id: number) => void;
+    extractDownload: (id: number) => Promise<void>;
 }
 
 const DownloadContext = createContext<DownloadContextType | undefined>(undefined);
@@ -39,15 +42,27 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
-                    // Convert date strings back to Date objects
-                    return parsed.map((d: any) => ({
-                        ...d,
-                        startTime: new Date(d.startTime),
-                        endTime: d.endTime ? new Date(d.endTime) : undefined,
-                        // If app was closed while downloading, mark as failed/interrupted
-                        status: d.status === 'downloading' ? 'failed' : d.status,
-                        error: d.status === 'downloading' ? 'Download interrupted by app close' : d.error
-                    }));
+                    const seenIds = new Set<number>();
+
+                    // Convert date strings back to Date objects and ensure unique IDs
+                    return parsed.map((d: any) => {
+                        let id = d.id;
+                        // If ID collision detected (e.g. multiple 0s from legacy bug), assign new unique ID
+                        if (seenIds.has(id)) {
+                            id = Date.now() + Math.floor(Math.random() * 100000);
+                        }
+                        seenIds.add(id);
+
+                        return {
+                            ...d,
+                            id,
+                            startTime: new Date(d.startTime),
+                            endTime: d.endTime ? new Date(d.endTime) : undefined,
+                            // If app was closed while downloading, mark as failed/interrupted
+                            status: d.status === 'downloading' ? 'failed' : d.status,
+                            error: d.status === 'downloading' ? 'Download interrupted by app close' : d.error
+                        };
+                    });
                 } catch (e) {
                     console.error('Failed to parse active downloads', e);
                     return [];
@@ -111,11 +126,42 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
                                 endTime: new Date(),
                                 savePath,
                                 filename,
-                                speed: 0
+                                speed: 0,
+                                isExtracting: true // Auto-extract
                             }
                             : d
                     )
                 );
+
+                // Perform auto-extraction
+                // Handle .tar.xz, .tar.gz, etc. by stripping extensions more aggressively
+                // tailored for common archive types
+                let destPath = savePath.replace(/\.[^/.]+$/, ""); // strip last extension
+                if (destPath.endsWith('.tar')) {
+                    destPath = destPath.substring(0, destPath.length - 4);
+                }
+
+                ElectronDownloader.extractFile(savePath, destPath)
+                    .then(() => {
+                        console.log('Auto-extraction successful', destPath);
+                        setDownloads(prev =>
+                            prev.map(d =>
+                                d.id === id
+                                    ? { ...d, isExtracting: false, extractedPath: destPath }
+                                    : d
+                            )
+                        );
+                    })
+                    .catch(err => {
+                        console.error('Auto-extraction failed', err);
+                        setDownloads(prev =>
+                            prev.map(d =>
+                                d.id === id
+                                    ? { ...d, isExtracting: false, error: 'Extraction failed' } // Don't fail the download, just extraction
+                                    : d
+                            )
+                        );
+                    });
             },
             // On error
             (id, error) => {
@@ -176,8 +222,41 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
 
     const openFile = (id: number) => {
         const download = downloads.find(d => d.id === id);
-        if (download && download.savePath) {
-            ElectronDownloader.openPath(download.savePath);
+        if (download) {
+            if (download.extractedPath) {
+                ElectronDownloader.openPath(download.extractedPath);
+            } else if (download.savePath) {
+                ElectronDownloader.openPath(download.savePath);
+            }
+        }
+    };
+
+    const extractDownload = async (id: number) => {
+        const download = downloads.find(d => d.id === id);
+        // Allow common compressed formats
+        const supportedExtensions = ['.zip', '.tar.xz', '.7z', '.rar', '.tar', '.gz'];
+        const isSupported = download?.filename && supportedExtensions.some(ext => download.filename.endsWith(ext));
+
+        if (!download || !download.savePath || !isSupported) {
+            return;
+        }
+
+        setDownloads(prev => prev.map(d => d.id === id ? { ...d, isExtracting: true } : d));
+
+        try {
+            // Extract to a folder with the same name as the file (minus extension)
+            let destPath = download.savePath.replace(/\.[^/.]+$/, "");
+            if (destPath.endsWith('.tar')) {
+                destPath = destPath.substring(0, destPath.length - 4);
+            }
+            await ElectronDownloader.extractFile(download.savePath, destPath);
+            // Optionally open the folder after extraction
+            ElectronDownloader.showItemInFolder(destPath);
+        } catch (error) {
+            console.error('Extraction failed', error);
+            // You might want to update state to show error
+        } finally {
+            setDownloads(prev => prev.map(d => d.id === id ? { ...d, isExtracting: false } : d));
         }
     };
 
@@ -192,6 +271,7 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
                 clearAll,
                 showInFolder,
                 openFile,
+                extractDownload,
             }}
         >
             {children}

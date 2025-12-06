@@ -1,13 +1,80 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
+const fs = require('fs');
+
 const serve = require('electron-serve');
 const loadURL = serve.default || serve;
 const appServe = loadURL({ directory: 'dist' });
 
 let mainWindow;
 const activeDownloads = new Map();
-let downloadId = 0;
+let downloadId = Date.now();
+const pathTo7zip = require('7zip-bin').path7za;
+
+// Fix 7zip permissions on Linux
+if (process.platform === 'linux') {
+  try {
+    if (fs.existsSync(pathTo7zip)) {
+      fs.chmodSync(pathTo7zip, '755');
+      console.log('Set 7zip permissions to 755');
+    }
+  } catch (err) {
+    console.error('Failed to set 7zip permissions:', err);
+  }
+}
+
+const Seven = require('node-7z');
+
+ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
+  const runExtraction = (file, dest) => {
+    return new Promise((resolve, reject) => {
+      // Fix permissions lazy check
+      if (process.platform === 'linux') {
+        try {
+          if (fs.existsSync(pathTo7zip)) fs.chmodSync(pathTo7zip, '755');
+        } catch (e) { /* ignore */ }
+      }
+
+      const stream = Seven.extractFull(file, dest, {
+        $bin: pathTo7zip,
+        $progress: true
+      });
+      stream.on('end', () => resolve());
+      stream.on('error', (err) => reject(err));
+    });
+  };
+
+  try {
+    await runExtraction(filePath, destPath);
+
+    // Handle double-extraction for .tar.gz / .tar.xz
+    const lowerPath = filePath.toLowerCase();
+    if (lowerPath.endsWith('.tar.gz') || lowerPath.endsWith('.tar.xz') || lowerPath.endsWith('.tgz')) {
+      // Check if a .tar file exists in the destination
+      // Usually it has the same base name, but let's look for any .tar if we want to be aggressive, 
+      // or just strict name matching. 
+      // Strict: original name "file.tar.xz" -> extracts "file.tar" usually.
+      const baseName = path.basename(filePath);
+      // Remove the last extension (.xz, .gz) to guess the tar name
+      const tarNameGuess = baseName.replace(/\.[^.]+$/, "");
+      const tarPath = path.join(destPath, tarNameGuess);
+
+      if (fs.existsSync(tarPath) && tarPath.toLowerCase().endsWith('.tar')) {
+        console.log('Detected intermediate tar file, extracting:', tarPath);
+        await runExtraction(tarPath, destPath);
+        // Cleanup the .tar file
+        fs.unlinkSync(tarPath);
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Extraction failed:', error);
+    throw error;
+  }
+});
+
 
 function createWindow() {
   mainWindow = new BrowserWindow({

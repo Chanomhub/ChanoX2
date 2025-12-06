@@ -76,4 +76,11 @@ export class ElectronDownloader {
             (window as any).electronAPI.openPath(path);
         }
     }
+
+    static async extractFile(filePath: string, destPath: string) {
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+            return await (window as any).electronAPI.extractFile(filePath, destPath);
+        }
+        throw new Error('Extraction not supported in this environment');
+    }
 }

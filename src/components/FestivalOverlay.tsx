@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Dimensions, Animated, Easing, Platform } from 'react-native';
 import { useFestival } from '../contexts/FestivalContext';
 
 const NUM_SNOWFLAKES = 50;
@@ -28,7 +28,7 @@ const Snowflake = () => {
                     toValue: endY,
                     duration: duration,
                     easing: Easing.linear,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
             ]).start(() => {
                 animate();
@@ -59,7 +59,7 @@ export const FestivalOverlay = () => {
     if (currentFestival !== 'christmas') return null;
 
     return (
-        <View style={styles.container} pointerEvents="none">
+        <View style={[styles.container, { pointerEvents: 'none' } as any]}>
             {Array.from({ length: NUM_SNOWFLAKES }).map((_, i) => (
                 <Snowflake key={i} />
             ))}

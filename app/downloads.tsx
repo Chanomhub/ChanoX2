@@ -1,7 +1,10 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { Stack } from 'expo-router';
 import { Colors } from '../src/constants/Colors';
 import { useDownloads, Download } from '../src/contexts/DownloadContext';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useRef } from 'react';
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -15,192 +18,173 @@ function formatSpeed(bytesPerSec: number): string {
     return formatBytes(bytesPerSec) + '/s';
 }
 
-function formatTime(date: Date): string {
-    return date.toLocaleTimeString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+function calculateTimeRemaining(remainingBytes: number, speed: number): string {
+    if (speed === 0) return '--:--';
+    const seconds = remainingBytes / speed;
+    if (seconds < 60) return `${Math.ceil(seconds)}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.ceil(seconds % 60)}s`;
+    return `${Math.floor(seconds / 3600)}h ${Math.ceil((seconds % 3600) / 60)}m`;
 }
 
-function getStatusColor(status: Download['status']): string {
-    switch (status) {
-        case 'completed': return '#4CAF50';
-        case 'downloading': return Colors.dark.accent;
-        case 'failed': return '#f44336';
-        case 'cancelled': return '#FF9800';
-        default: return Colors.dark.textSecondary;
-    }
-}
+// Mock Component for Line Chart (Simplified for now)
+const MetricsHeader = ({ currentSpeed, peakSpeed, diskUsage }: { currentSpeed: number, peakSpeed: number, diskUsage: number }) => (
+    <View style={styles.metricsHeader}>
+        <View style={styles.metricItem}>
+            <Ionicons name="stats-chart" size={16} color={Colors.dark.accent} />
+            <Text style={styles.metricLabel}>NETWORK</Text>
+            <Text style={styles.metricValue}>{formatSpeed(currentSpeed)}</Text>
+        </View>
+        <View style={styles.metricItem}>
+            <Ionicons name="trending-up" size={16} color={Colors.dark.accent} />
+            <Text style={styles.metricLabel}>PEAK</Text>
+            <Text style={styles.metricValue}>{formatSpeed(peakSpeed)}</Text>
+        </View>
+        <View style={styles.metricItem}>
+            <Ionicons name="hardware-chip-outline" size={16} color={Colors.dark.accent} />{/* Using hardware-chip as proxy for disk */}
+            <Text style={styles.metricLabel}>DISK USAGE</Text>
+            <Text style={styles.metricValue}>{formatSpeed(diskUsage)}</Text>
+        </View>
+        <TouchableOpacity style={styles.settingsButton}>
+            <Ionicons name="settings-sharp" size={20} color={Colors.dark.textSecondary} />
+        </TouchableOpacity>
+    </View>
+);
 
-function getStatusText(status: Download['status']): string {
-    switch (status) {
-        case 'completed': return 'เสร็จสิ้น';
-        case 'downloading': return 'กำลังดาวน์โหลด';
-        case 'failed': return 'ล้มเหลว';
-        case 'cancelled': return 'ยกเลิกแล้ว';
-        default: return 'รอดำเนินการ';
-    }
-}
-
-function DownloadItem({ download }: { download: Download }) {
-    const { removeDownload } = useDownloads();
+const DownloadItem = ({ download, isCompleted }: { download: Download, isCompleted?: boolean }) => {
+    const { removeDownload, extractDownload } = useDownloads();
 
     return (
-        <View style={styles.downloadItem}>
-            {/* Header */}
-            <View style={styles.downloadHeader}>
-                <View style={styles.downloadInfo}>
-                    <Text style={styles.filename} numberOfLines={1}>
-                        {download.filename}
-                    </Text>
-                    {download.articleTitle && (
-                        <Text style={styles.articleTitle} numberOfLines={1}>
-                            จาก: {download.articleTitle}
+        <View style={styles.itemContainer}>
+            {/* Game Cover (Placeholder) */}
+            <View style={styles.gameCover}>
+                <LinearGradient
+                    colors={[Colors.dark.accent, '#2c3e50']}
+                    style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+                >
+                    <Text style={styles.coverText}>{download.filename.substring(0, 2).toUpperCase()}</Text>
+                </LinearGradient>
+            </View>
+
+            <View style={styles.itemContent}>
+                <View style={styles.itemHeader}>
+                    <Text style={styles.gameTitle} numberOfLines={1}>{download.articleTitle || download.filename}</Text>
+                    {isCompleted && (
+                        <Text style={styles.completedDate}>
+                            {download.endTime ? new Date(download.endTime).toLocaleDateString() + ' ' + new Date(download.endTime).toLocaleTimeString() : ''}
                         </Text>
                     )}
                 </View>
-                <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => removeDownload(download.id)}
-                >
-                    <Text style={styles.removeButtonText}>✕</Text>
-                </TouchableOpacity>
-            </View>
 
-            {/* Progress Bar */}
-            {download.status === 'downloading' && (
-                <View style={styles.progressContainer}>
-                    <View
-                        style={[
-                            styles.progressBar,
-                            { width: `${download.progress}%` }
-                        ]}
-                    />
+                {isCompleted ? (
+                    <View style={styles.completedActions}>
+                        <View style={styles.fileInfo}>
+                            <Text style={styles.fileSize}>{formatBytes(download.totalBytes)}</Text>
+                            <Text style={styles.patchNotes}>PATCH NOTES</Text>
+                        </View>
+                        <View style={styles.actionButtons}>
+                            {/* Check common compressed extensions */}
+                            {['.zip', '.tar.xz', '.7z', '.rar', '.tar', '.gz'].some(ext => download.filename.endsWith(ext)) && (
+                                <TouchableOpacity
+                                    style={[styles.actionButton, download.isExtracting && styles.disabledButton]}
+                                    onPress={() => extractDownload(download.id)}
+                                    disabled={download.isExtracting}
+                                >
+                                    <Ionicons name="cube-outline" size={18} color="#fff" />
+                                    <Text style={styles.actionButtonText}>
+                                        {download.isExtracting ? 'EXTRACTING...' : 'EXTRACT'}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity style={styles.iconButton} onPress={() => removeDownload(download.id)}>
+                                <Ionicons name="download-outline" size={20} color={Colors.dark.text} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.downloadingInfo}>
+                        <View style={styles.progressBarContainer}>
+                            <View style={[styles.progressBar, { width: `${download.progress}%` }]} />
+                        </View>
+                        <View style={styles.statsRow}>
+                            <Text style={styles.statText}>{formatBytes(download.downloadedBytes)} / {formatBytes(download.totalBytes)}</Text>
+                            <Text style={styles.statText}>Peak: {formatSpeed(download.speed)}</Text>
+                            {/* Peak speed calculation handles in parent usually, just showing current speed labeled as desired or adding peak tracking to context */}
+
+                            <View style={styles.rightStats}>
+                                <Text style={styles.statTextHighlight}>{formatSpeed(download.speed)}</Text>
+                                <Text style={styles.statText}>Time remaining: {calculateTimeRemaining(download.totalBytes - download.downloadedBytes, download.speed)}</Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
+            </View>
+            {!isCompleted && (
+                <View style={styles.controlButtons}>
+                    <TouchableOpacity onPress={() => removeDownload(download.id)}>
+                        <Ionicons name="close" size={24} color={Colors.dark.textSecondary} />
+                    </TouchableOpacity>
                 </View>
             )}
-
-            {/* Status and Details */}
-            <View style={styles.downloadDetails}>
-                <View style={styles.statusRow}>
-                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(download.status) }]} />
-                    <Text style={[styles.statusText, { color: getStatusColor(download.status) }]}>
-                        {getStatusText(download.status)}
-                    </Text>
-                    {download.status === 'downloading' && (
-                        <Text style={styles.progressText}>
-                            {download.progress.toFixed(1)}%
-                        </Text>
-                    )}
-                </View>
-
-                <View style={styles.detailsRow}>
-                    {download.status === 'downloading' && (
-                        <>
-                            <Text style={styles.detailText}>
-                                {formatBytes(download.downloadedBytes)} / {formatBytes(download.totalBytes)}
-                            </Text>
-                            {download.speed > 0 && (
-                                <Text style={styles.detailText}>
-                                    • {formatSpeed(download.speed)}
-                                </Text>
-                            )}
-                        </>
-                    )}
-
-                    {download.status === 'completed' && download.endTime && (
-                        <Text style={styles.detailText}>
-                            เสร็จเมื่อ {formatTime(download.endTime)}
-                        </Text>
-                    )}
-
-                    {download.status === 'failed' && download.error && (
-                        <Text style={styles.errorText}>
-                            {download.error}
-                        </Text>
-                    )}
-                </View>
-            </View>
         </View>
     );
-}
+};
 
 export default function DownloadsScreen() {
-    const { downloads, clearCompleted, clearAll } = useDownloads();
+    const { downloads } = useDownloads();
+    // Simple state for peak speed tracking (in memory for this screen)
+    const [peakSpeed, setPeakSpeed] = React.useState(0);
 
-    const activeDownloads = downloads.filter(d =>
-        d.status === 'downloading' || d.status === 'pending'
-    );
+    const activeDownloads = downloads.filter(d => d.status === 'downloading' || d.status === 'pending');
+    const completedDownloads = downloads.filter(d => d.status === 'completed' || d.status === 'failed' || d.status === 'cancelled');
 
-    const completedDownloads = downloads.filter(d =>
-        d.status === 'completed' || d.status === 'failed' || d.status === 'cancelled'
-    );
+    const totalSpeed = activeDownloads.reduce((acc, d) => acc + (d.speed || 0), 0);
+
+    // Derived disk usage (naive assumption: disk write speed ~= download speed)
+    const diskUsage = totalSpeed;
+
+    useEffect(() => {
+        if (totalSpeed > peakSpeed) {
+            setPeakSpeed(totalSpeed);
+        }
+    }, [totalSpeed]);
+
 
     return (
         <View style={styles.container}>
             <Stack.Screen
                 options={{
-                    title: 'DOWNLOADS',
-                    headerStyle: { backgroundColor: Colors.dark.surface },
-                    headerTintColor: Colors.dark.text,
+                    headerShown: false, // We build our own header-like area
                 }}
             />
 
-            {/* Summary Bar */}
-            <View style={styles.summaryBar}>
-                <Text style={styles.summaryText}>
-                    การดาวน์โหลดทั้งหมด: {downloads.length}
-                </Text>
-                <View style={styles.summaryActions}>
-                    {completedDownloads.length > 0 && (
-                        <TouchableOpacity
-                            style={styles.clearButton}
-                            onPress={clearCompleted}
-                        >
-                            <Text style={styles.clearButtonText}>ล้างที่เสร็จแล้ว</Text>
-                        </TouchableOpacity>
-                    )}
-                    {downloads.length > 0 && (
-                        <TouchableOpacity
-                            style={[styles.clearButton, styles.clearAllButton]}
-                            onPress={clearAll}
-                        >
-                            <Text style={styles.clearButtonText}>ล้างทั้งหมด</Text>
-                        </TouchableOpacity>
+            {/* Top Metrics Area */}
+            <LinearGradient
+                colors={['#1a2a3a', Colors.dark.background]}
+                style={styles.headerBackground}
+            >
+                <MetricsHeader currentSpeed={totalSpeed} peakSpeed={peakSpeed} diskUsage={diskUsage} />
+            </LinearGradient>
+
+            <ScrollView style={styles.content}>
+                {/* Active Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Up Next ({activeDownloads.length})</Text>
+                    {activeDownloads.length === 0 ? (
+                        <Text style={styles.emptyText}>There are no downloads in the queue</Text>
+                    ) : (
+                        activeDownloads.map(d => <DownloadItem key={d.id} download={d} />)
                     )}
                 </View>
-            </View>
 
-            <ScrollView style={styles.scrollView}>
-                {/* Active Downloads */}
-                {activeDownloads.length > 0 && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>กำลังดาวน์โหลด</Text>
-                        {activeDownloads.map(download => (
-                            <DownloadItem key={download.id} download={download} />
-                        ))}
-                    </View>
-                )}
-
-                {/* Completed Downloads */}
-                {completedDownloads.length > 0 && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>ประวัติการดาวน์โหลด</Text>
-                        {completedDownloads.map(download => (
-                            <DownloadItem key={download.id} download={download} />
-                        ))}
-                    </View>
-                )}
-
-                {/* Empty State */}
-                {downloads.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>📥</Text>
-                        <Text style={styles.emptyTitle}>ไม่มีการดาวน์โหลด</Text>
-                        <Text style={styles.emptyText}>
-                            การดาวน์โหลดของคุณจะแสดงที่นี่
-                        </Text>
-                    </View>
-                )}
+                {/* Completed Section (Scheduled/History) */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Completed ({completedDownloads.length})</Text>
+                    {completedDownloads.length === 0 ? (
+                        <Text style={styles.emptyText}>No completed downloads</Text>
+                    ) : (
+                        completedDownloads.map(d => <DownloadItem key={d.id} download={d} isCompleted />)
+                    )}
+                </View>
             </ScrollView>
         </View>
     );
@@ -209,156 +193,174 @@ export default function DownloadsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.dark.background,
+        backgroundColor: '#1b2838', // darker blue-ish background like steam
     },
-    summaryBar: {
+    headerBackground: {
+        paddingTop: 40,
+        paddingBottom: 20,
+    },
+    metricsHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
-        padding: 16,
-        backgroundColor: Colors.dark.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.dark.border,
+        paddingHorizontal: 20,
+        gap: 30,
     },
-    summaryText: {
-        color: Colors.dark.text,
-        fontSize: 14,
-        fontWeight: '600',
+    metricItem: {
+        alignItems: 'flex-start',
     },
-    summaryActions: {
-        flexDirection: 'row',
-        gap: 8,
+    metricLabel: {
+        color: Colors.dark.textSecondary,
+        fontSize: 10,
+        fontWeight: 'bold',
+        marginBottom: 2,
     },
-    clearButton: {
-        backgroundColor: Colors.dark.border,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 4,
-    },
-    demoButton: {
-        backgroundColor: Colors.dark.accent,
-    },
-    clearAllButton: {
-        backgroundColor: '#ff4444',
-    },
-    clearButtonText: {
+    metricValue: {
         color: Colors.dark.text,
         fontSize: 12,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
-    scrollView: {
+    settingsButton: {
+        marginLeft: 10,
+        padding: 5,
+        backgroundColor: '#2a3f55',
+        borderRadius: 4,
+    },
+    content: {
         flex: 1,
+        padding: 20,
     },
     section: {
-        padding: 16,
+        marginBottom: 30,
     },
     sectionTitle: {
         color: Colors.dark.text,
         fontSize: 16,
         fontWeight: 'bold',
-        marginBottom: 12,
+        marginBottom: 10,
+        opacity: 0.8,
     },
-    downloadItem: {
-        backgroundColor: Colors.dark.surface,
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: Colors.dark.border,
+    emptyText: {
+        color: Colors.dark.textSecondary,
+        fontSize: 14,
+        fontStyle: 'italic',
+        marginTop: 5,
     },
-    downloadHeader: {
+    itemContainer: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        marginBottom: 10,
+        height: 80,
+    },
+    gameCover: {
+        width: 150,
+        height: '100%',
+        backgroundColor: '#2c3e50',
+    },
+    coverText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 20,
+    },
+    itemContent: {
+        flex: 1,
+        padding: 12,
+        justifyContent: 'center',
+    },
+    itemHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 12,
+        marginBottom: 8,
     },
-    downloadInfo: {
-        flex: 1,
-        marginRight: 12,
-    },
-    filename: {
+    gameTitle: {
         color: Colors.dark.text,
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: '600',
-        marginBottom: 4,
     },
-    articleTitle: {
+    completedActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    fileInfo: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    fileSize: {
         color: Colors.dark.textSecondary,
         fontSize: 12,
     },
-    removeButton: {
-        padding: 4,
+    patchNotes: {
+        color: Colors.dark.accent,
+        fontSize: 12,
+        fontWeight: '600',
     },
-    removeButtonText: {
-        color: Colors.dark.textSecondary,
-        fontSize: 18,
+    actionButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
     },
-    progressContainer: {
-        height: 4,
-        backgroundColor: Colors.dark.border,
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#2a3f55',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         borderRadius: 2,
-        marginBottom: 12,
+        gap: 6,
+    },
+    disabledButton: {
+        opacity: 0.5,
+    },
+    actionButtonText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    iconButton: {
+        padding: 5,
+        backgroundColor: '#2a3f55',
+        borderRadius: 2,
+    },
+    completedDate: {
+        color: Colors.dark.textSecondary,
+        fontSize: 11,
+    },
+    downloadingInfo: {
+        gap: 6,
+    },
+    progressBarContainer: {
+        height: 4,
+        backgroundColor: '#000',
+        borderRadius: 2,
         overflow: 'hidden',
     },
     progressBar: {
         height: '100%',
         backgroundColor: Colors.dark.accent,
-        borderRadius: 2,
     },
-    downloadDetails: {
-        gap: 6,
-    },
-    statusRow: {
+    statsRow: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 8,
     },
-    statusDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+    statText: {
+        color: Colors.dark.textSecondary,
+        fontSize: 11,
     },
-    statusText: {
-        fontSize: 13,
+    statTextHighlight: {
+        color: Colors.dark.text,
+        fontSize: 11,
         fontWeight: '600',
     },
-    progressText: {
-        color: Colors.dark.textSecondary,
-        fontSize: 12,
-        marginLeft: 'auto',
-    },
-    detailsRow: {
+    rightStats: {
         flexDirection: 'row',
-        gap: 8,
+        gap: 15,
     },
-    detailText: {
-        color: Colors.dark.textSecondary,
-        fontSize: 12,
-    },
-    errorText: {
-        color: '#f44336',
-        fontSize: 12,
-    },
-    emptyState: {
-        flex: 1,
+    controlButtons: {
+        width: 40,
+        height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 48,
-        marginTop: 100,
-    },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
-    emptyTitle: {
-        color: Colors.dark.text,
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    emptyText: {
-        color: Colors.dark.textSecondary,
-        fontSize: 14,
-        textAlign: 'center',
     },
 });

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openNewWindow: (url) => ipcRenderer.send('open-new-window', url),
     showItemInFolder: (path) => ipcRenderer.send('show-item-in-folder', path),
     openPath: (path) => ipcRenderer.send('open-path', path),
+    extractFile: (filePath, destPath) => ipcRenderer.invoke('extract-file', { filePath, destPath }),
 
     // Download event listeners (auto-captured from browser/iframes)
     onDownloadStarted: (callback) => {
