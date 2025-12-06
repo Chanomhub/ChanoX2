@@ -8,12 +8,14 @@ import { Article, ArticlesResponse } from '../src/types/graphql';
 import FeaturedCarousel from '../src/components/FeaturedCarousel';
 import HorizontalScroll from '../src/components/HorizontalScroll';
 import GameListSection from '../src/components/GameListSection';
-import AccountSwitcher from '../src/components/AccountSwitcher';
+// import AccountSwitcher from '../src/components/AccountSwitcher'; // Moved to TitleBar
 import { useAuth } from '../src/contexts/AuthContext';
 
 export default function Home() {
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
     const { user, isAuthenticated } = useAuth();
 
     useEffect(() => {
@@ -27,10 +29,37 @@ export default function Home() {
                 offset: 0,
             });
             setArticles(data.articles);
+            setHasMore(data.articles.length === 20);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching articles:', error);
             setLoading(false);
+        }
+    };
+
+    const handleLoadMore = async () => {
+        if (loadingMore || !hasMore) return;
+
+        setLoadingMore(true);
+        try {
+            const currentCount = articles.length;
+            const data = await client.request<ArticlesResponse>(GET_ARTICLES, {
+                limit: 10,
+                offset: currentCount,
+            });
+
+            if (data.articles.length > 0) {
+                setArticles(prev => [...prev, ...data.articles]);
+                if (data.articles.length < 10) {
+                    setHasMore(false);
+                }
+            } else {
+                setHasMore(false);
+            }
+        } catch (error) {
+            console.error('Error loading more articles:', error);
+        } finally {
+            setLoadingMore(false);
         }
     };
 
@@ -43,39 +72,21 @@ export default function Home() {
     }
 
     // Split articles for different sections
+    // Note: We might want the list to contain ALL articles or just the ones after featured?
+    // For now, let's pass all articles to the list section so users can find everything there.
     const featuredArticles = articles.slice(0, 5);
     const developersSection = articles.slice(5, 13);
-    const budgetSection = articles.slice(13, 21);
-    const listSection = articles.slice(0, 15);
+    const listSection = articles;
 
     return (
         <View style={styles.container}>
             <Stack.Screen
                 options={{
                     title: 'STORE',
+                    headerShown: false,
                     headerStyle: { backgroundColor: Colors.dark.surface },
                     headerTintColor: Colors.dark.text,
-                    headerRight: () => (
-                        <View style={styles.headerButtons}>
-                            <TouchableOpacity
-                                onPress={() => router.push('/search')}
-                                style={styles.iconButton}
-                            >
-                                <Text style={styles.iconButtonText}>🔍</Text>
-                            </TouchableOpacity>
-
-                            {isAuthenticated ? (
-                                <AccountSwitcher />
-                            ) : (
-                                <TouchableOpacity
-                                    onPress={() => router.push('/login')}
-                                    style={styles.loginButton}
-                                >
-                                    <Text style={styles.loginText}>LOGIN</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    ),
+                    // Remove headerRight as it's now in TitleBar
                 }}
             />
 
@@ -89,14 +100,13 @@ export default function Home() {
                     articles={developersSection}
                 />
 
-                {/* Budget Section */}
-                < HorizontalScroll
-                    title="UNDER ฿350"
-                    articles={budgetSection}
-                />
-
                 {/* Tabbed List Section */}
-                < GameListSection articles={listSection} />
+                < GameListSection
+                    articles={listSection}
+                    onLoadMore={handleLoadMore}
+                    hasMore={hasMore}
+                    loadingMore={loadingMore}
+                />
             </ScrollView >
         </View >
     );

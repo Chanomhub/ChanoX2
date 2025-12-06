@@ -107,6 +107,10 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
 const styles = StyleSheet.create({
     container: {
         marginBottom: 32,
+        paddingHorizontal: 16,
+        maxWidth: 1200,
+        alignSelf: 'center',
+        width: '100%',
     },
     title: {
         color: Colors.dark.text,

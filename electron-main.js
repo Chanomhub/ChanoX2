@@ -21,6 +21,9 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       partition: 'persist:chanox2' // Explicitly persist session data
     },
+    frame: false, // Frameless window
+    // titleBarStyle: 'hidden', // Optional: MacOS specific style
+
   });
 
   const isDev = process.env.NODE_ENV === 'development';
@@ -52,6 +55,7 @@ function createWindow() {
         preload: path.join(__dirname, 'preload.js'),
         partition: 'persist:chanox2' // Share session with main window
       },
+      frame: false,
       autoHideMenuBar: true
     });
 
@@ -149,6 +153,25 @@ ipcMain.on('open-path', async (event, fullPath) => {
   if (error) {
     console.error('Error opening path:', error);
   }
+});
+
+// Window controls
+ipcMain.on('window-minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.on('window-maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+ipcMain.on('window-close', () => {
+  if (mainWindow) mainWindow.close();
 });
 
 app.whenReady().then(createWindow);

@@ -9,13 +9,19 @@ import { FestivalOverlay } from '@/components/FestivalOverlay';
 
 import { useFestival } from '@/contexts/FestivalContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
-import DownloadButton from '@/components/downloads/DownloadButton';
+import DownloadFooter from '@/components/downloads/DownloadFooter';
+import TitleBar from '@/components/TitleBar';
+import MenuBar from '@/components/MenuBar';
+import { ThemeScrollbar } from '@/components/ThemeScrollbar';
 
 function AppNavigator() {
     const { theme } = useFestival();
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
+            <ThemeScrollbar />
+            <TitleBar />
+            <MenuBar />
             <StatusBar style="light" backgroundColor={theme.surface} />
             <Stack
                 screenOptions={{
@@ -28,11 +34,12 @@ function AppNavigator() {
                     },
                     contentStyle: {
                         backgroundColor: theme.background,
+                        paddingBottom: 40, // Add padding to avoid content being hidden by footer
                     },
-                    headerRight: () => <DownloadButton />,
+                    // headerRight removed
                 }}
             >
-                <Stack.Screen name="index" options={{ title: 'Home', headerShown: true }} />
+                <Stack.Screen name="index" options={{ title: 'Store', headerShown: false }} />
                 <Stack.Screen name="library" options={{ title: 'Library', headerShown: true }} />
                 <Stack.Screen name="search" options={{ title: 'Search', headerShown: true }} />
                 <Stack.Screen name="downloads" options={{ title: 'Downloads', headerShown: true }} />
@@ -42,6 +49,7 @@ function AppNavigator() {
                 <Stack.Screen name="settings" options={{ title: 'Settings', headerShown: true }} />
                 <Stack.Screen name="[slug]" options={{ headerShown: true }} />
             </Stack>
+            <DownloadFooter />
             <FestivalOverlay />
         </View>
     );

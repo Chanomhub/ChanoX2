@@ -21,5 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     onDownloadError: (callback) => {
         ipcRenderer.on('download-error', (event, data) => callback(data));
-    }
+    },
+
+    // Window controls
+    minimizeWindow: () => ipcRenderer.send('window-minimize'),
+    maximizeWindow: () => ipcRenderer.send('window-maximize'),
+    closeWindow: () => ipcRenderer.send('window-close'),
 });

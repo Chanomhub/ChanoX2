@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useFestival } from '../contexts/FestivalContext';
 import { router } from 'expo-router';
 
-export default function AccountSwitcher() {
+export default function AccountSwitcher({ compact = false }: { compact?: boolean }) {
     const { user, accounts, switchAccount, logout } = useAuth();
     const { theme } = useFestival();
     const [visible, setVisible] = useState(false);
@@ -13,21 +13,21 @@ export default function AccountSwitcher() {
         trigger: {
             flexDirection: 'row',
             alignItems: 'center',
-            padding: 8,
-            backgroundColor: theme.surface,
+            padding: compact ? 4 : 8,
+            backgroundColor: compact ? 'transparent' : theme.surface,
             borderRadius: 4,
-            borderWidth: 1,
+            borderWidth: compact ? 0 : 1,
             borderColor: theme.border,
         },
         username: {
             color: theme.text,
-            fontSize: 14,
+            fontSize: compact ? 12 : 14,
             fontWeight: '600',
-            marginRight: 8,
+            marginRight: compact ? 4 : 8,
         },
         arrow: {
             color: theme.textSecondary,
-            fontSize: 12,
+            fontSize: compact ? 10 : 12,
         },
         overlay: {
             flex: 1,

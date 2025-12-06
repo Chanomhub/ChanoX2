@@ -8,16 +8,24 @@ interface DownloadPopoverProps {
     visible: boolean;
     onClose: () => void;
     anchorLayout?: { x: number; y: number; width: number; height: number } | null;
+    placement?: 'top' | 'bottom';
 }
 
-export default function DownloadPopover({ visible, onClose, anchorLayout }: DownloadPopoverProps) {
+export default function DownloadPopover({ visible, onClose, anchorLayout, placement = 'top' }: DownloadPopoverProps) {
     const { downloads, cancelDownload, removeDownload, clearAll, showInFolder, openFile } = useDownloads();
 
     if (!visible) return null;
 
-    // Calculate position based on anchor if available, otherwise default to top right
-    const top = anchorLayout ? anchorLayout.y + anchorLayout.height + 10 : 60;
-    const right = anchorLayout ? 16 : 16; // Right margin
+    // Calculate position
+    let top: number | undefined;
+    let bottom: number | undefined;
+    const right = 16;
+
+    if (placement === 'bottom') {
+        bottom = 50; // Footer height (40) + margin (10)
+    } else {
+        top = anchorLayout ? anchorLayout.y + anchorLayout.height + 10 : 60;
+    }
 
     // Prevent clicks inside the content from closing the modal
     const handleContentPress = (e: any) => {
@@ -34,7 +42,7 @@ export default function DownloadPopover({ visible, onClose, anchorLayout }: Down
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.overlay}>
                     <TouchableWithoutFeedback onPress={handleContentPress}>
-                        <View style={[styles.popover, { top, right: 16 }]}>
+                        <View style={[styles.popover, { top, bottom, right }]}>
                             <View style={styles.header}>
                                 <Text style={styles.title}>Downloads</Text>
                                 <TouchableOpacity onPress={clearAll}>
