@@ -11,6 +11,7 @@ interface LaunchOption {
 interface GameLaunchConfig {
     executablePath: string;
     useWine: boolean;
+    args?: string[];
 }
 
 interface GameLaunchDialogProps {
@@ -32,11 +33,13 @@ export default function GameLaunchDialog({
 }: GameLaunchDialogProps) {
     const [selectedPath, setSelectedPath] = useState<string | null>(null);
     const [useWine, setUseWine] = useState(false);
+    const [args, setArgs] = useState('');
 
     useEffect(() => {
         if (initialConfig) {
             setSelectedPath(initialConfig.executablePath);
             setUseWine(initialConfig.useWine);
+            setArgs(initialConfig.args ? initialConfig.args.join(' ') : '');
         } else if (scanResults.length > 0) {
             // Default to first result
             setSelectedPath(scanResults[0].path);
@@ -59,7 +62,8 @@ export default function GameLaunchDialog({
         if (selectedPath) {
             onSaveAndPlay({
                 executablePath: selectedPath,
-                useWine: useWine
+                useWine: useWine,
+                args: args.trim().length > 0 ? args.trim().split(' ') : []
             });
         }
     };
