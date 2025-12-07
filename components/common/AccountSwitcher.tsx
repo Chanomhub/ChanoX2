@@ -4,11 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFestival } from '@/contexts/FestivalContext';
 import { router } from 'expo-router';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useTranslation } from 'react-i18next';
 
 export default function AccountSwitcher({ compact = false }: { compact?: boolean }) {
     const { user, accounts, switchAccount, logout } = useAuth();
     const { theme } = useFestival();
     const { openSettings } = useSettingsStore();
+    const { t } = useTranslation(['common', 'auth']);
     const [visible, setVisible] = useState(false);
 
     const styles = useMemo(() => StyleSheet.create({
@@ -174,7 +176,7 @@ export default function AccountSwitcher({ compact = false }: { compact?: boolean
                     onPress={() => setVisible(false)}
                 >
                     <View style={styles.menu}>
-                        <Text style={styles.menuTitle}>Accounts</Text>
+                        <Text style={styles.menuTitle}>{t('accounts', { ns: 'auth' })}</Text>
 
                         <FlatList
                             data={accounts}
@@ -212,15 +214,15 @@ export default function AccountSwitcher({ compact = false }: { compact?: boolean
                         <View style={styles.divider} />
 
                         <TouchableOpacity style={styles.menuItem} onPress={handleAddAccount}>
-                            <Text style={styles.menuItemText}>+ Add Account</Text>
+                            <Text style={styles.menuItemText}>+ {t('add_account', { ns: 'auth' })}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
-                            <Text style={styles.menuItemText}>Settings</Text>
+                            <Text style={styles.menuItemText}>{t('settings')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-                            <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
+                            <Text style={[styles.menuItemText, styles.logoutText]}>{t('logout', { ns: 'auth' })}</Text>
                         </TouchableOpacity>
                     </View>
                 </TouchableOpacity>

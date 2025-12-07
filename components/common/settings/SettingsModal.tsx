@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import Constants from 'expo-constants';
 import packageJson from '../../../package.json';
 import { Ionicons } from '@expo/vector-icons'; // แนะนำให้ใช้ Icon set ถ้ามี
+import { useTranslation } from 'react-i18next';
 
 interface GitHubRelease {
     tag_name: string;
@@ -53,6 +54,7 @@ export default function SettingsModal() {
     const { theme } = useFestival();
     const { language, setLanguage } = useLanguage();
     const { user } = useAuth();
+    const { t } = useTranslation('common');
 
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -90,7 +92,7 @@ export default function SettingsModal() {
             case 'account':
                 return (
                     <View style={styles.contentContainer}>
-                        <SectionHeader title="Account Details" theme={theme} />
+                        <SectionHeader title={t('account_details')} theme={theme} />
 
                         {/* Profile Card */}
                         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -106,23 +108,23 @@ export default function SettingsModal() {
 
                                 <View style={styles.profileInfo}>
                                     <Text style={[styles.profileName, { color: theme.text }]}>
-                                        {user?.username || 'Guest User'}
+                                        {user?.username || t('guest_user')}
                                     </Text>
                                     <Text style={[styles.profileStatus, { color: theme.success }]}>
-                                        ● Online
+                                        ● {t('online')}
                                     </Text>
                                     <Text style={[styles.profileId, { color: theme.textSecondary }]}>
-                                        ID: {user?.id || 'Unknown'}
+                                        ID: {user?.id || t('unknown')}
                                     </Text>
                                 </View>
 
                                 <TouchableOpacity style={[styles.buttonOutline, { borderColor: theme.textSecondary }]}>
-                                    <Text style={{ color: theme.text }}>Edit Profile</Text>
+                                    <Text style={{ color: theme.text }}>{t('edit_profile')}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
 
-                        <Text style={[styles.subHeader, { color: theme.textSecondary }]}>Security & Privacy</Text>
+                        <Text style={[styles.subHeader, { color: theme.textSecondary }]}>{t('security_privacy')}</Text>
                         <View style={[styles.infoBox, { backgroundColor: theme.surface + '80' }]}>
                             <Text style={{ color: theme.textSecondary }}>
                                 Two-factor authentication is currently <Text style={{ fontWeight: 'bold', color: theme.error }}>Disabled</Text>.
@@ -134,19 +136,19 @@ export default function SettingsModal() {
             case 'general':
                 return (
                     <View style={styles.contentContainer}>
-                        <SectionHeader title="System & Updates" theme={theme} />
+                        <SectionHeader title={t('system_updates')} theme={theme} />
 
                         {/* Update Card */}
                         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                             <View style={styles.rowBetween}>
                                 <View>
-                                    <Text style={[styles.label, { color: theme.text }]}>Client Version</Text>
+                                    <Text style={[styles.label, { color: theme.text }]}>{t('client_version')}</Text>
                                     <View style={styles.versionBadgeContainer}>
                                         <Text style={[styles.versionBadge, { backgroundColor: theme.border, color: theme.text }]}>
                                             v{currentVersion}
                                         </Text>
                                         <Text style={[styles.buildText, { color: theme.textSecondary }]}>
-                                            (Stable Channel)
+                                            ({t('stable_channel')})
                                         </Text>
                                     </View>
                                 </View>
@@ -159,23 +161,23 @@ export default function SettingsModal() {
                                             style={[styles.primaryButton, { backgroundColor: theme.success }]}
                                             onPress={() => releaseUrl && Linking.openURL(releaseUrl)}
                                         >
-                                            <Text style={styles.primaryButtonText}>Update to v{latestVersion}</Text>
+                                            <Text style={styles.primaryButtonText}>{t('update_available', { version: latestVersion })}</Text>
                                         </TouchableOpacity>
                                     ) : (
                                         <View style={[styles.statusPill, { backgroundColor: theme.success + '20' }]}>
-                                            <Text style={[styles.statusPillText, { color: theme.success }]}>Up to Date</Text>
+                                            <Text style={[styles.statusPillText, { color: theme.success }]}>{t('up_to_date')}</Text>
                                         </View>
                                     )}
                                     {error && (
                                         <TouchableOpacity onPress={checkVersion}>
-                                            <Text style={[styles.linkText, { color: theme.error }]}>Retry Check</Text>
+                                            <Text style={[styles.linkText, { color: theme.error }]}>{t('retry_check')}</Text>
                                         </TouchableOpacity>
                                     )}
                                 </View>
                             </View>
                         </View>
 
-                        <SectionHeader title="Language / ภาษา" theme={theme} />
+                        <SectionHeader title={t('language')} theme={theme} />
                         <View style={styles.gridContainer}>
                             {SUPPORTED_LANGUAGES.map((lang) => (
                                 <TouchableOpacity
@@ -208,7 +210,7 @@ export default function SettingsModal() {
                 return (
                     <View style={[styles.centerContent, { opacity: 0.5 }]}>
                         <Text style={{ fontSize: 40, marginBottom: 10 }}>🚧</Text>
-                        <Text style={{ color: theme.textSecondary }}>Work in Progress</Text>
+                        <Text style={{ color: theme.textSecondary }}>{t('work_in_progress')}</Text>
                     </View>
                 );
         }
@@ -227,7 +229,7 @@ export default function SettingsModal() {
                 <View style={[styles.container, { backgroundColor: theme.background, borderColor: theme.border }]}>
                     {/* Header Bar */}
                     <View style={[styles.titleBar, { backgroundColor: theme.surface }]}>
-                        <Text style={[styles.windowTitle, { color: theme.textSecondary }]}>SETTINGS</Text>
+                        <Text style={[styles.windowTitle, { color: theme.textSecondary }]}>{t('settings').toUpperCase()}</Text>
                         <TouchableOpacity onPress={closeSettings} style={styles.closeBtn}>
                             <Text style={[styles.closeText, { color: theme.text }]}>✕</Text>
                         </TouchableOpacity>
@@ -237,16 +239,16 @@ export default function SettingsModal() {
                         {/* Sidebar */}
                         <View style={[styles.sidebar, { backgroundColor: theme.background }]}>
                             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sidebarContent}>
-                                <Text style={[styles.sidebarHeader, { color: theme.textSecondary }]}>PREFERENCES</Text>
-                                <SidebarItem id="account" label="Account" icon="👤" isActive={activeSection === 'account'} theme={theme} onPress={() => setActiveSection('account')} />
-                                <SidebarItem id="general" label="General" icon="⚙️" isActive={activeSection === 'general'} theme={theme} onPress={() => setActiveSection('general')} />
+                                <Text style={[styles.sidebarHeader, { color: theme.textSecondary }]}>{t('preferences').toUpperCase()}</Text>
+                                <SidebarItem id="account" label={t('account')} icon="👤" isActive={activeSection === 'account'} theme={theme} onPress={() => setActiveSection('account')} />
+                                <SidebarItem id="general" label={t('general')} icon="⚙️" isActive={activeSection === 'general'} theme={theme} onPress={() => setActiveSection('general')} />
 
                                 <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-                                <Text style={[styles.sidebarHeader, { color: theme.textSecondary }]}>APPLICATION</Text>
-                                <SidebarItem id="friends" label="Friends & Chat" icon="💬" isActive={activeSection === 'friends'} theme={theme} onPress={() => setActiveSection('friends')} />
-                                <SidebarItem id="security" label="Security" icon="🛡️" isActive={activeSection === 'security'} theme={theme} onPress={() => setActiveSection('security')} />
-                                <SidebarItem id="notifications" label="Notifications" icon="🔔" isActive={activeSection === 'notifications'} theme={theme} onPress={() => setActiveSection('notifications')} />
+                                <Text style={[styles.sidebarHeader, { color: theme.textSecondary }]}>{t('application').toUpperCase()}</Text>
+                                <SidebarItem id="friends" label={t('friends_chat')} icon="💬" isActive={activeSection === 'friends'} theme={theme} onPress={() => setActiveSection('friends')} />
+                                <SidebarItem id="security" label={t('security')} icon="🛡️" isActive={activeSection === 'security'} theme={theme} onPress={() => setActiveSection('security')} />
+                                <SidebarItem id="notifications" label={t('notifications')} icon="🔔" isActive={activeSection === 'notifications'} theme={theme} onPress={() => setActiveSection('notifications')} />
                             </ScrollView>
                         </View>
 

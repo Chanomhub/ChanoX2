@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Localization from 'react-native-localize';
+import '@/libs/i18n'; // Initialize i18n
+import i18n from '@/libs/i18n';
 
 type Language = 'en' | 'th' | 'jp' | 'zh';
 
@@ -30,6 +32,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         loadLanguage();
     }, []);
 
+    // ... existing code ...
+
     const loadLanguage = async () => {
         try {
             let savedLanguage: string | null = null;
@@ -42,6 +46,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
             if (savedLanguage && isSupportedLanguage(savedLanguage)) {
                 setLanguageState(savedLanguage as Language);
+                await i18n.changeLanguage(savedLanguage);
             } else {
                 // Detect device language
                 const locales = Localization.getLocales();
@@ -49,6 +54,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
                     const deviceLanguage = locales[0].languageCode;
                     if (isSupportedLanguage(deviceLanguage)) {
                         setLanguageState(deviceLanguage as Language);
+                        await i18n.changeLanguage(deviceLanguage);
                     }
                 }
             }
@@ -67,6 +73,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
                 await SecureStore.setItemAsync(LANGUAGE_KEY, lang);
             }
             setLanguageState(lang);
+            await i18n.changeLanguage(lang);
         } catch (error) {
             console.error('Failed to save language preference:', error);
         }
