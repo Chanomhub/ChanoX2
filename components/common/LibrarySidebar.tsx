@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform, Image } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { Download } from '@/contexts/DownloadContext';
 
@@ -23,7 +23,7 @@ export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId
     if (collapsed) {
         return (
             <View style={[styles.container, styles.collapsed]}>
-                <TouchableOpacity style={styles.iconButton}>
+                <TouchableOpacity style={styles.iconButton} onPress={() => onSelectGame(-1)}>
                     <Text style={styles.icon}>🏠</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.iconButton}>
@@ -40,9 +40,17 @@ export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId
                         >
                             {/* In a real app we would use game icons here */}
                             <View style={styles.collapsedIconPlaceholder}>
-                                <Text style={styles.collapsedIconText}>
-                                    {(game.articleTitle || game.filename).substring(0, 1).toUpperCase()}
-                                </Text>
+                                {game.coverImage ? (
+                                    <Image
+                                        source={{ uri: game.coverImage }}
+                                        style={styles.collapsedIconImage}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <Text style={styles.collapsedIconText}>
+                                        {(game.articleTitle || game.filename).substring(0, 1).toUpperCase()}
+                                    </Text>
+                                )}
                             </View>
                         </TouchableOpacity>
                     ))}
@@ -54,7 +62,7 @@ export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId
     return (
         <View style={styles.container}>
             {/* Header: Home */}
-            <TouchableOpacity style={styles.navItemActive}>
+            <TouchableOpacity style={styles.navItemActive} onPress={() => onSelectGame(-1)}>
                 <Text style={styles.navIcon}>🏠</Text>
                 <Text style={styles.navText}>Home</Text>
             </TouchableOpacity>
@@ -103,7 +111,15 @@ export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId
                             resizeMode="contain"
                         />
                         */}
-                        <View style={styles.gameIconPlaceholder} />
+                        <View style={styles.gameIconPlaceholder}>
+                            {game.coverImage ? (
+                                <Image
+                                    source={{ uri: game.coverImage }}
+                                    style={styles.gameIconImage}
+                                    resizeMode="cover"
+                                />
+                            ) : null}
+                        </View>
                         <Text style={[styles.gameName, selectedGameId === game.id && styles.gameNameSelected]} numberOfLines={1}>
                             {game.articleTitle || game.filename}
                         </Text>
@@ -310,5 +326,15 @@ const styles = StyleSheet.create({
     collapsedIconText: {
         color: '#fff',
         fontWeight: 'bold',
+    },
+    collapsedIconImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 2,
+    },
+    gameIconImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 2,
     },
 });

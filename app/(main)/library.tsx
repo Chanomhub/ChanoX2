@@ -7,6 +7,7 @@ import LibrarySidebar from '@/components/common/LibrarySidebar';
 import LibraryUpdateSection from '@/components/common/LibraryUpdateSection';
 import HorizontalScroll from '@/components/common/HorizontalScroll';
 import { Article } from '@/types/graphql';
+import LibraryGameDetail from '@/components/common/LibraryGameDetail';
 
 export default function Library() {
     const { downloads, openFile, showInFolder } = useDownloads();
@@ -42,10 +43,80 @@ export default function Library() {
     const recentArticles = recentGames.map(downloadToArticle);
 
     const handleSelectGame = (id: number) => {
-        setSelectedGameId(id);
-        // Scroll to game or show details?
-        // For now just highlight
+        if (id === -1) {
+            setSelectedGameId(undefined);
+        } else {
+            setSelectedGameId(id);
+        }
     };
+
+
+    // Find the selected game object
+    const selectedGame = downloads.find(d => d.id === selectedGameId);
+
+    const renderLibraryHome = () => (
+        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+
+            {/* What's New Section */}
+            <LibraryUpdateSection />
+
+            {/* Recent Games Shelf */}
+            {recentArticles.length > 0 && (
+                <View style={styles.shelfContainer}>
+                    <View style={styles.shelfHeader}>
+                        <Text style={styles.shelfTitle}>Recent Games</Text>
+                        <Text style={styles.shelfDate}>November</Text>
+                    </View>
+                    <HorizontalScroll
+                        title=""
+                        articles={recentArticles}
+                    />
+                </View>
+            )}
+
+            {/* All Games Grid (if needed, or just more shelves) */}
+            <View style={styles.shelfContainer}>
+                <View style={styles.shelfHeader}>
+                    <Text style={styles.shelfTitle}>All Games</Text>
+                    <Text style={styles.shelfCount}>({installedGames.length})</Text>
+                </View>
+
+                <View style={styles.grid}>
+                    {installedGames.map(d => (
+                        <TouchableOpacity
+                            key={d.id}
+                            style={styles.gridItem}
+                            onPress={() => setSelectedGameId(d.id)}
+                        >
+                            <View style={styles.gridImagePlaceholder}>
+                                {d.coverImage ? (
+                                    <Image
+                                        source={{ uri: d.coverImage }}
+                                        style={{ width: '100%', height: '100%', borderRadius: 2 }}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <Text style={styles.gridIcon}>🎮</Text>
+                                )}
+                            </View>
+                            <Text style={styles.gridTitle} numberOfLines={1}>
+                                {d.articleTitle || d.filename}
+                            </Text>
+                            <View style={styles.playOverlay}>
+                                <Text style={styles.playButton}>▶</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+
+                    {/* Empty State / Add Shelf */}
+                    <TouchableOpacity style={styles.addShelfButton}>
+                        <Text style={styles.addShelfText}>+ Add shelf</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+        </ScrollView>
+    );
 
     return (
         <View style={styles.container}>
@@ -65,72 +136,14 @@ export default function Library() {
 
             {/* Main Content */}
             <View style={styles.mainContent}>
-                {/* Top Bar for Main Content (optional, if we want breadcrumbs or filters) */}
-                {/* <View style={styles.mainHeader}>
-                     <Text style={styles.headerTitle}>HOME</Text>
-                 </View> */}
-
-                <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-
-                    {/* What's New Section */}
-                    <LibraryUpdateSection />
-
-                    {/* Recent Games Shelf */}
-                    {recentArticles.length > 0 && (
-                        <View style={styles.shelfContainer}>
-                            <View style={styles.shelfHeader}>
-                                <Text style={styles.shelfTitle}>Recent Games</Text>
-                                <Text style={styles.shelfDate}>November</Text>
-                            </View>
-                            <HorizontalScroll
-                                title=""
-                                articles={recentArticles}
-                            />
-                        </View>
-                    )}
-
-                    {/* All Games Grid (if needed, or just more shelves) */}
-                    <View style={styles.shelfContainer}>
-                        <View style={styles.shelfHeader}>
-                            <Text style={styles.shelfTitle}>All Games</Text>
-                            <Text style={styles.shelfCount}>({installedGames.length})</Text>
-                        </View>
-
-                        <View style={styles.grid}>
-                            {installedGames.map(d => (
-                                <TouchableOpacity
-                                    key={d.id}
-                                    style={styles.gridItem}
-                                    onPress={() => openFile(d.id)}
-                                >
-                                    <View style={styles.gridImagePlaceholder}>
-                                        {d.coverImage ? (
-                                            <Image
-                                                source={{ uri: d.coverImage }}
-                                                style={{ width: '100%', height: '100%', borderRadius: 2 }}
-                                                resizeMode="cover"
-                                            />
-                                        ) : (
-                                            <Text style={styles.gridIcon}>🎮</Text>
-                                        )}
-                                    </View>
-                                    <Text style={styles.gridTitle} numberOfLines={1}>
-                                        {d.articleTitle || d.filename}
-                                    </Text>
-                                    <View style={styles.playOverlay}>
-                                        <Text style={styles.playButton}>▶</Text>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-
-                            {/* Empty State / Add Shelf */}
-                            <TouchableOpacity style={styles.addShelfButton}>
-                                <Text style={styles.addShelfText}>+ Add shelf</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                </ScrollView>
+                {selectedGame ? (
+                    <LibraryGameDetail
+                        download={selectedGame}
+                        onPlay={(id) => openFile(id)}
+                    />
+                ) : (
+                    renderLibraryHome()
+                )}
             </View>
         </View>
     );

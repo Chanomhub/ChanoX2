@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Animated, Image } from 'react-native';
 import { Stack } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useDownloads, Download } from '@/contexts/DownloadContext';
@@ -55,14 +55,22 @@ const DownloadItem = ({ download, isCompleted }: { download: Download, isComplet
 
     return (
         <View style={styles.itemContainer}>
-            {/* Game Cover (Placeholder) */}
+            {/* Game Cover */}
             <View style={styles.gameCover}>
-                <LinearGradient
-                    colors={[Colors.dark.accent, '#2c3e50']}
-                    style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-                >
-                    <Text style={styles.coverText}>{download.filename.substring(0, 2).toUpperCase()}</Text>
-                </LinearGradient>
+                {download.coverImage ? (
+                    <Image
+                        source={{ uri: download.coverImage }}
+                        style={styles.coverImage}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <LinearGradient
+                        colors={[Colors.dark.accent, '#2c3e50']}
+                        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+                    >
+                        <Text style={styles.coverText}>{download.filename.substring(0, 2).toUpperCase()}</Text>
+                    </LinearGradient>
+                )}
             </View>
 
             <View style={styles.itemContent}>
@@ -261,6 +269,10 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 20,
+    },
+    coverImage: {
+        width: '100%',
+        height: '100%',
     },
     itemContent: {
         flex: 1,
