@@ -1,6 +1,6 @@
 {
   "name": "chanox2",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Desktop application for ChanomHub",
   "author": {
     "name": "ChanomHub",
@@ -96,6 +96,12 @@
         }
       ],
       "icon": "assets/icon.png"
+    },
+    "protocols": {
+      "name": "ChanoX2 URL",
+      "schemes": [
+        "chanox2"
+      ]
     },
     "linux": {
       "target": [

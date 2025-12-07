@@ -6,15 +6,48 @@ app.name = 'ChanoX2';
 
 const fs = require('fs');
 
-const { protocol } = require('electron');
-const serve = require('electron-serve');
-const loadURL = serve.default || serve;
-const appServe = loadURL({ scheme: 'chanox2', directory: 'dist' });
+const { protocol, net } = require('electron');
+const { pathToFileURL } = require('url');
 
+const appServe = async (win) => {
+  const distPath = path.join(__dirname, 'dist');
+
+  if (!protocol.isProtocolHandled('chanox2')) {
+    protocol.handle('chanox2', (request) => {
+      let urlPath = request.url.slice('chanox2://'.length);
+      // Remove 'domain' part if present
+      if (urlPath.startsWith('-/')) {
+        urlPath = urlPath.slice(2);
+      } else if (urlPath === '-') {
+        urlPath = '';
+      }
+
+      const filePath = path.join(distPath, decodeURIComponent(urlPath));
+
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        return net.fetch(pathToFileURL(filePath).toString());
+      }
+      // SPA Fallback
+      return net.fetch(pathToFileURL(path.join(distPath, 'index.html')).toString());
+    });
+  }
+
+  await win.loadURL('chanox2://-/index.html');
+};
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'chanox2', privileges: { secure: true, standard: true } }
+  {
+    scheme: 'chanox2',
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      corsEnabled: true
+    }
+  }
 ]);
+
 
 
 let mainWindow;
