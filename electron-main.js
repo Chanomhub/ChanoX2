@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 
+// Set app name to ensure userData path is correct (and not default 'Electron')
+app.name = 'ChanoX2';
+
 const fs = require('fs');
 
 const serve = require('electron-serve');
@@ -38,7 +41,8 @@ ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
 
       const stream = Seven.extractFull(file, dest, {
         $bin: pathTo7zip,
-        $progress: true
+        $progress: true,
+        $default: ['-aoa'] // Overwrite all existing files without prompt
       });
       stream.on('end', () => resolve());
       stream.on('error', (err) => reject(err));
@@ -76,7 +80,7 @@ ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
 
 });
 
-// Storage & Download Management
+
 // Storage & Download Management
 const HOME_DIR = app.getPath('home');
 const DEFAULT_DIR = path.join(HOME_DIR, 'ChanoX2Library');
@@ -311,4 +315,148 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+// --- Game Launching Logic ---
+
+const GAME_CONFIG_FILE = path.join(app.getPath('userData'), 'games-config.json');
+
+// Helper to load game config
+function loadGameConfig() {
+  try {
+    if (fs.existsSync(GAME_CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(GAME_CONFIG_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to load game config:', e);
+  }
+  return {};
+}
+
+// Helper to save game config
+function saveGameConfig(config) {
+  try {
+    fs.writeFileSync(GAME_CONFIG_FILE, JSON.stringify(config, null, 2));
+  } catch (e) {
+    console.error('Failed to save game config:', e);
+  }
+}
+
+ipcMain.handle('get-game-config', (event, gameId) => {
+  const config = loadGameConfig();
+  return config[gameId] || null;
+});
+
+ipcMain.handle('save-game-config', (event, { gameId, config }) => {
+  const fullConfig = loadGameConfig();
+  fullConfig[gameId] = config;
+  saveGameConfig(fullConfig);
+  return true;
+});
+
+// Recursive scan for executables
+function scanDir(dir, depth = 0, maxDepth = 3) {
+  if (depth > maxDepth) return [];
+  let updateFiles = [];
+  try {
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+      // Filter out system/metadata folders
+      if (file === 'PaxHeader' || file === '__MACOSX' || file.startsWith('.')) continue;
+
+      const fullPath = path.join(dir, file);
+      try {
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) {
+          // MacOS .app is a directory but treated as an executable
+          if (process.platform === 'darwin' && file.endsWith('.app')) {
+            updateFiles.push({ path: fullPath, type: 'mac-app' });
+          } else {
+            updateFiles = updateFiles.concat(scanDir(fullPath, depth + 1, maxDepth));
+          }
+        } else {
+          // Check extensions
+          const lower = file.toLowerCase();
+          if (lower.endsWith('.exe')) {
+            updateFiles.push({ path: fullPath, type: 'windows-exe' });
+          } else if (process.platform !== 'win32') {
+            // Check for executable bit on Linux/Mac
+            // constants.S_IXUSR = 0o100
+            if (!!(stats.mode & 0o100) && !lower.endsWith('.sh') && !lower.endsWith('.so') && !lower.includes('.')) {
+              // Heuristic: generic binary (no extension usually, or specifically trusted)
+              updateFiles.push({ path: fullPath, type: 'native-binary' });
+            }
+            // Also include .sh if we want? Maybe risky. Let's stick to binaries or strict extensions.
+            if (lower.endsWith('.x86_64') || lower.endsWith('.x86')) {
+              updateFiles.push({ path: fullPath, type: 'native-binary' });
+            }
+          }
+        }
+      } catch (e) {
+        // ignore access errors
+      }
+    }
+  } catch (e) {
+    // ignore dir errors
+  }
+  return updateFiles;
+}
+
+ipcMain.handle('scan-game-executables', (event, directory) => {
+  if (!directory || !fs.existsSync(directory)) return [];
+  return scanDir(directory);
+});
+
+ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = [] }) => {
+  const { spawn } = require('child_process');
+
+  console.log('Launching game:', executablePath, 'Use Wine:', useWine);
+
+  let command = executablePath;
+  let finalArgs = args;
+
+  if (useWine) {
+    command = 'wine';
+    finalArgs = [executablePath, ...args];
+  } else if (process.platform === 'darwin' && executablePath.endsWith('.app')) {
+    command = 'open';
+    finalArgs = ['-a', executablePath, ...args];
+  }
+
+  const gameDir = path.dirname(executablePath);
+
+  return new Promise((resolve) => {
+    try {
+      const logsDir = app.getPath('userData');
+      const outLog = path.join(logsDir, 'game-launch.log');
+      const errLog = path.join(logsDir, 'game-error.log');
+
+      console.log('Redirecting game output to:', outLog);
+
+      const out = fs.openSync(outLog, 'a');
+      const err = fs.openSync(errLog, 'a');
+
+      const subprocess = spawn(command, finalArgs, {
+        cwd: gameDir, // Run from game directory
+        detached: true,
+        stdio: ['ignore', out, err]
+      });
+
+      subprocess.on('error', (err) => {
+        console.error('Failed to start subprocess:', err);
+        resolve({ success: false, error: err.message });
+      });
+
+      subprocess.unref();
+
+      // Give it a tiny moment to fail synchronously-ish
+      setTimeout(() => {
+        resolve({ success: true, logsPath: outLog });
+      }, 500);
+
+    } catch (error) {
+      console.error('Launch failed catch:', error);
+      resolve({ success: false, error: error.message });
+    }
+  });
 });

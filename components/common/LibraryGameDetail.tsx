@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, Alert, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Download } from '@/contexts/DownloadContext';
 import { Colors } from '@/constants/Colors';
+import GameLaunchDialog from './GameLaunchDialog';
 
 interface LibraryGameDetailProps {
     download: Download;
@@ -15,6 +16,92 @@ export default function LibraryGameDetail({ download, onPlay }: LibraryGameDetai
     const timePlayed = "12.5 hrs"; // Mock
     const lastPlayed = "Today"; // Mock
     const achievementProgress = 11; // Mock 11/25
+
+    const [launchDialogVisible, setLaunchDialogVisible] = useState(false);
+    const [scanResults, setScanResults] = useState<any[]>([]);
+    const [savedConfig, setSavedConfig] = useState<any>(null);
+    const [gameTitle, setGameTitle] = useState(download.articleTitle || download.filename);
+
+    useEffect(() => {
+        loadConfig();
+    }, [download.id]);
+
+    const loadConfig = async () => {
+        try {
+            const config = await window.electronAPI.getGameConfig(download.id);
+            setSavedConfig(config);
+        } catch (e) {
+            console.error('Failed to load game config', e);
+        }
+    };
+
+    const handlePlayPress = async () => {
+        // Try to load config again just in case
+        const config = await window.electronAPI.getGameConfig(download.id);
+
+        if (config && config.executablePath) {
+            console.log('Launching with saved config:', config);
+            const result = await window.electronAPI.launchGame({
+                executablePath: config.executablePath,
+                useWine: config.useWine
+            });
+            if (!result.success) {
+                Alert.alert('Launch Failed', result.error || 'Unknown error');
+            }
+        } else {
+            // Scan for executables
+            handleOpenLaunchOptions(true); // true = auto play if single result? No, let's open dialog for safety first time.
+        }
+    };
+
+    const handleOpenLaunchOptions = async (autoLaunchIfSingle = false) => {
+        const pathToCheck = download.extractedPath || download.savePath;
+        if (!pathToCheck) {
+            Alert.alert('Error', 'Game path not found. Is it installed?');
+            return;
+        }
+
+        // if pathToCheck is a file (e.g. single exe), use parent dir? 
+        // Our scan logic expects a directory usually, but might handle file if we coded it robustly.
+        // Let's assume extractedPath is a directory for unpacked games.
+        // If it was a single file download (setup.exe), maybe we shouldn't scan? 
+        // But the requirements say "unpacked games".
+
+        // If it's a file, we might need to get dirname.
+        // For now pass it as is.
+        const results = await window.electronAPI.scanGameExecutables(pathToCheck);
+        setScanResults(results);
+
+        if (results.length === 0) {
+            Alert.alert('No Executables Found', 'Could not find any executable files in the game directory.');
+            return;
+        }
+
+        /* 
+        // Logic for auto-selecting if only 1 result:
+        if (autoLaunchIfSingle && results.length === 1) {
+             const type = results[0].type;
+             const useWine = type === 'windows-exe' && Platform.OS !== 'windows'; // Simple heuristic
+             const autoConfig = { executablePath: results[0].path, useWine };
+             await window.electronAPI.saveGameConfig({ gameId: download.id, config: autoConfig });
+             launchGame(autoConfig);
+             return;
+        }
+        */
+
+        setLaunchDialogVisible(true);
+    };
+
+    const handleSaveAndPlay = async (config: any) => {
+        setLaunchDialogVisible(false);
+        await window.electronAPI.saveGameConfig({ gameId: download.id, config });
+        setSavedConfig(config);
+
+        const result = await window.electronAPI.launchGame(config);
+        if (!result.success) {
+            Alert.alert('Launch Failed', result.error || 'Unknown error');
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -54,7 +141,7 @@ export default function LibraryGameDetail({ download, onPlay }: LibraryGameDetai
                 <View style={styles.actionBar}>
                     <TouchableOpacity
                         style={styles.playButton}
-                        onPress={() => onPlay(download.id)}
+                        onPress={handlePlayPress}
                     >
                         <Text style={styles.playButtonText}>PLAY</Text>
                     </TouchableOpacity>
@@ -71,7 +158,12 @@ export default function LibraryGameDetail({ download, onPlay }: LibraryGameDetai
                     </View>
 
                     <View style={styles.actionIcons}>
-                        <TouchableOpacity style={styles.iconButton}><Ionicons name="settings-sharp" size={20} color="#b8b6b4" /></TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => handleOpenLaunchOptions()}
+                        >
+                            <Ionicons name="settings-sharp" size={20} color="#b8b6b4" />
+                        </TouchableOpacity>
                         <TouchableOpacity style={styles.iconButton}><Ionicons name="information-circle-outline" size={20} color="#b8b6b4" /></TouchableOpacity>
                         <TouchableOpacity style={styles.iconButton}><Ionicons name="star-outline" size={20} color="#b8b6b4" /></TouchableOpacity>
                     </View>
@@ -181,6 +273,16 @@ export default function LibraryGameDetail({ download, onPlay }: LibraryGameDetai
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Launch Config Dialog */}
+            <GameLaunchDialog
+                visible={launchDialogVisible}
+                onClose={() => setLaunchDialogVisible(false)}
+                onSaveAndPlay={handleSaveAndPlay}
+                initialConfig={savedConfig}
+                scanResults={scanResults}
+                gameTitle={gameTitle}
+            />
         </View>
     );
 }

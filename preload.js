@@ -30,6 +30,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('download-error', (event, data) => callback(data));
     },
 
+    // Game Launching
+    scanGameExecutables: (directory) => ipcRenderer.invoke('scan-game-executables', directory),
+    launchGame: (options) => ipcRenderer.invoke('launch-game', options),
+    getGameConfig: (gameId) => ipcRenderer.invoke('get-game-config', gameId),
+    saveGameConfig: (data) => ipcRenderer.invoke('save-game-config', data),
+
     // Window controls
     minimizeWindow: () => ipcRenderer.send('window-minimize'),
     maximizeWindow: () => ipcRenderer.send('window-maximize'),

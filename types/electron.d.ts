@@ -16,6 +16,12 @@ export interface ElectronAPI {
     onDownloadProgress: (callback: (data: any) => void) => void;
     onDownloadComplete: (callback: (data: any) => void) => void;
     onDownloadError: (callback: (data: any) => void) => void;
+
+    // Game Launching
+    scanGameExecutables: (directory: string) => Promise<{ path: string; type: string }[]>;
+    launchGame: (options: { executablePath: string; useWine: boolean; args?: string[] }) => Promise<{ success: boolean; error?: string }>;
+    getGameConfig: (gameId: number | string) => Promise<any>;
+    saveGameConfig: (data: { gameId: number | string; config: any }) => Promise<boolean>;
 }
 
 declare global {
