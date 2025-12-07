@@ -104,9 +104,7 @@ export default function ArticleDetailPage() {
         <View style={styles.container}>
             <Stack.Screen
                 options={{
-                    title: article.title,
-                    headerStyle: { backgroundColor: Colors.dark.surface },
-                    headerTintColor: Colors.dark.text,
+                    headerShown: false
                 }}
             />
 
