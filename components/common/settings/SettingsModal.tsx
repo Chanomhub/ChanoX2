@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, Modal,
     ScrollView, Linking, ActivityIndicator, Platform,
-    Dimensions, Image
+    Dimensions, Image, TextInput
 } from 'react-native';
 import { useFestival } from '@/contexts/FestivalContext';
 import { useLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
@@ -141,6 +141,102 @@ const StorageSettingsContent = ({ theme, t }: any) => {
     );
 };
 
+const LinuxSettingsContent = ({ theme, t }: any) => {
+    const [wineProvider, setWineProvider] = useState<'internal' | 'bottles'>('internal');
+    const [externalCommand, setExternalCommand] = useState('flatpak run com.usebottles.bottles -e %EXE%');
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const loadSettings = async () => {
+        if (window.electronAPI) {
+            const settings = await window.electronAPI.getGlobalSettings();
+            if (settings.wineProvider) {
+                setWineProvider(settings.wineProvider);
+            }
+            if (settings.externalWineCommand) {
+                setExternalCommand(settings.externalWineCommand);
+            }
+        }
+    };
+
+    const saveSettings = async (provider: 'internal' | 'bottles', command: string) => {
+        if (window.electronAPI) {
+            await window.electronAPI.saveGlobalSettings({
+                wineProvider: provider,
+                externalWineCommand: command
+            });
+        }
+    };
+
+    const handleProviderChange = (provider: 'internal' | 'bottles') => {
+        setWineProvider(provider);
+        saveSettings(provider, externalCommand);
+    };
+
+    const handleCommandChange = (text: string) => {
+        setExternalCommand(text);
+        saveSettings(wineProvider, text);
+    };
+
+    return (
+        <View style={styles.contentContainer}>
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, padding: 20 }]}>
+                <Text style={[styles.label, { color: theme.text, marginBottom: 15 }]}>Wine Provider</Text>
+
+                <TouchableOpacity
+                    style={[
+                        styles.sOptionItem,
+                        wineProvider === 'internal' && { backgroundColor: theme.accent + '20', borderColor: theme.accent }
+                    ]}
+                    onPress={() => handleProviderChange('internal')}
+                >
+                    <View style={styles.sOptionHeader}>
+                        <Ionicons name={wineProvider === 'internal' ? 'radio-button-on' : 'radio-button-off'} size={20} color={theme.text} />
+                        <Text style={[styles.sOptionTitle, { color: theme.text }]}>Internal Wine</Text>
+                    </View>
+                    <Text style={[styles.sOptionDesc, { color: theme.textSecondary }]}>
+                        Use the system's installed Wine or bundled version.
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.sOptionItem,
+                        wineProvider === 'bottles' && { backgroundColor: theme.accent + '20', borderColor: theme.accent }
+                    ]}
+                    onPress={() => handleProviderChange('bottles')}
+                >
+                    <View style={styles.sOptionHeader}>
+                        <Ionicons name={wineProvider === 'bottles' ? 'radio-button-on' : 'radio-button-off'} size={20} color={theme.text} />
+                        <Text style={[styles.sOptionTitle, { color: theme.text }]}>External (Bottles / Custom)</Text>
+                    </View>
+                    <Text style={[styles.sOptionDesc, { color: theme.textSecondary }]}>
+                        Launch games using an external command.
+                    </Text>
+                </TouchableOpacity>
+
+                {wineProvider === 'bottles' && (
+                    <View style={{ marginTop: 15, paddingLeft: 10 }}>
+                        <Text style={[styles.label, { fontSize: 13, color: theme.text }]}>Custom Command</Text>
+                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 8 }}>
+                            Use %EXE% as placeholder for the game executable.
+                        </Text>
+                        <TextInput
+                            style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border, borderWidth: 1, padding: 10, borderRadius: 4 }]}
+                            value={externalCommand}
+                            onChangeText={handleCommandChange}
+                            placeholder="e.g. bottles -e %EXE%"
+                            placeholderTextColor={theme.textSecondary}
+                        />
+                    </View>
+                )}
+            </View>
+        </View>
+    );
+};
+
 export default function SettingsModal() {
     const { isOpen, closeSettings, activeSection, setActiveSection } = useSettingsStore();
     const { theme } = useFestival();
@@ -227,6 +323,14 @@ export default function SettingsModal() {
 
             case 'storage':
                 return <StorageSettingsContent theme={theme} t={t} />;
+
+            case 'linux':
+                return (
+                    <View style={styles.contentContainer}>
+                        <SectionHeader title="Linux Settings" theme={theme} />
+                        <LinuxSettingsContent theme={theme} t={t} />
+                    </View>
+                );
 
             case 'general':
                 return (
@@ -338,6 +442,7 @@ export default function SettingsModal() {
                                 <SidebarItem id="account" label={t('account')} icon="👤" isActive={activeSection === 'account'} theme={theme} onPress={() => setActiveSection('account')} />
                                 <SidebarItem id="general" label={t('general')} icon="⚙️" isActive={activeSection === 'general'} theme={theme} onPress={() => setActiveSection('general')} />
                                 <SidebarItem id="storage" label={t('storage', 'Storage')} icon="💾" isActive={activeSection === 'storage'} theme={theme} onPress={() => setActiveSection('storage')} />
+                                <SidebarItem id="linux" label="Linux" icon="🐧" isActive={activeSection === 'linux'} theme={theme} onPress={() => setActiveSection('linux')} />
 
                                 <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
@@ -646,5 +751,31 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    sOptionItem: {
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 4,
+        padding: 15,
+        marginBottom: 10,
+    },
+    sOptionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 5,
+        gap: 10,
+    },
+    sOptionTitle: {
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    sOptionDesc: {
+        fontSize: 12,
+        marginLeft: 30,
+        opacity: 0.8,
+    },
+    input: {
+        fontSize: 14,
+        padding: 8,
     }
 });

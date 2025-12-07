@@ -19,9 +19,13 @@ export interface ElectronAPI {
 
     // Game Launching
     scanGameExecutables: (directory: string) => Promise<{ path: string; type: string }[]>;
-    launchGame: (options: { executablePath: string; useWine: boolean; args?: string[] }) => Promise<{ success: boolean; error?: string }>;
+    launchGame: (options: { executablePath: string; useWine: boolean; args?: string[]; locale?: string }) => Promise<{ success: boolean; error?: string }>;
     getGameConfig: (gameId: number | string) => Promise<any>;
     saveGameConfig: (data: { gameId: number | string; config: any }) => Promise<boolean>;
+
+    // Global Settings
+    getGlobalSettings: () => Promise<{ wineProvider?: 'internal' | 'bottles'; externalWineCommand?: string }>;
+    saveGlobalSettings: (settings: { wineProvider: 'internal' | 'bottles'; externalWineCommand?: string }) => Promise<boolean>;
 }
 
 declare global {

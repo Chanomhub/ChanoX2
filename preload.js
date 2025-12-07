@@ -36,6 +36,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getGameConfig: (gameId) => ipcRenderer.invoke('get-game-config', gameId),
     saveGameConfig: (data) => ipcRenderer.invoke('save-game-config', data),
 
+    // Global Settings
+    getGlobalSettings: () => ipcRenderer.invoke('get-global-settings'),
+    saveGlobalSettings: (settings) => ipcRenderer.invoke('save-global-settings', settings),
+
     // Window controls
     minimizeWindow: () => ipcRenderer.send('window-minimize'),
     maximizeWindow: () => ipcRenderer.send('window-maximize'),

@@ -8,6 +8,8 @@ export interface Download {
     filename: string;
     articleTitle?: string;
     coverImage?: string;
+    engine?: string;
+    gameVersion?: string;
     status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
     progress: number; // 0-100
     downloadedBytes: number;
@@ -23,7 +25,7 @@ export interface Download {
 
 interface DownloadContextType {
     downloads: Download[];
-    openDownloadLink: (url: string, articleTitle?: string, coverImage?: string) => void;
+    openDownloadLink: (url: string, articleTitle?: string, coverImage?: string, engine?: string, gameVersion?: string) => void;
     cancelDownload: (id: number) => void;
     removeDownload: (id: number) => void;
     clearCompleted: () => void;
@@ -82,7 +84,7 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
     }, [downloads]);
 
     // Store pending metadata for the next download started
-    const pendingMetadata = React.useRef<{ title?: string; cover?: string } | null>(null);
+    const pendingMetadata = React.useRef<{ title?: string; cover?: string; engine?: string; gameVersion?: string } | null>(null);
 
     // Setup auto-capture of all downloads
     useEffect(() => {
@@ -101,6 +103,8 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
                     filename,
                     articleTitle: metadata?.title,
                     coverImage: metadata?.cover,
+                    engine: metadata?.engine,
+                    gameVersion: metadata?.gameVersion,
                     status: 'downloading',
                     progress: 0,
                     downloadedBytes: 0,
@@ -218,11 +222,13 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
         );
     }, []);
 
-    const openDownloadLink = (url: string, articleTitle?: string, coverImage?: string) => {
+    const openDownloadLink = (url: string, articleTitle?: string, coverImage?: string, engine?: string, gameVersion?: string) => {
         // Store metadata for when the download actually starts
         pendingMetadata.current = {
             title: articleTitle,
-            cover: coverImage
+            cover: coverImage,
+            engine,
+            gameVersion
         };
 
         // Open in WebView within the app

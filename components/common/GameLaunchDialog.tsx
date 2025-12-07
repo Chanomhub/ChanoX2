@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
@@ -13,6 +13,8 @@ interface GameLaunchConfig {
     useWine: boolean;
     args?: string[];
     locale?: string;
+    engine?: string;
+    gameVersion?: string;
 }
 
 interface GameLaunchDialogProps {
@@ -22,6 +24,8 @@ interface GameLaunchDialogProps {
     initialConfig?: GameLaunchConfig | null;
     scanResults: LaunchOption[];
     gameTitle: string;
+    defaultEngine?: string;
+    defaultVersion?: string;
 }
 
 export default function GameLaunchDialog({
@@ -30,44 +34,78 @@ export default function GameLaunchDialog({
     onSaveAndPlay,
     initialConfig,
     scanResults,
-    gameTitle
+    gameTitle,
+    defaultEngine,
+    defaultVersion
 }: GameLaunchDialogProps) {
     const [selectedPath, setSelectedPath] = useState<string | null>(null);
     const [useWine, setUseWine] = useState(false);
     const [args, setArgs] = useState('');
     const [locale, setLocale] = useState('');
+    const [engine, setEngine] = useState('');
+    const [gameVersion, setGameVersion] = useState('');
 
     useEffect(() => {
+        // Sort results: Native matching OS > Windows Exe (if Linux) > Others
+        const sortedResults = [...scanResults].sort((a, b) => {
+            const isLinux = Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.userAgent.indexOf("Linux") !== -1;
+            const isMac = Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.userAgent.indexOf("Mac") !== -1; // Rough check
+
+            const getScore = (item: LaunchOption) => {
+                if (isLinux) {
+                    if (item.type === 'native-binary') return 10;
+                    if (item.type === 'windows-exe') return 5;
+                } else if (isMac) {
+                    if (item.type === 'mac-app') return 10;
+                } else {
+                    // Windows assumed
+                    if (item.type === 'windows-exe') return 10;
+                }
+                return 0;
+            };
+
+            return getScore(b) - getScore(a);
+        });
+
         if (initialConfig) {
             setSelectedPath(initialConfig.executablePath);
             setUseWine(initialConfig.useWine);
             setArgs(initialConfig.args ? initialConfig.args.join(' ') : '');
             setLocale(initialConfig.locale || '');
-        } else if (scanResults.length > 0) {
-            // Default to first result
-            setSelectedPath(scanResults[0].path);
-            // Auto-detect wine needed? (e.g. if linux and .exe)
-            // React Native 'web' platform check + userAgent for Linux
-            const isLinux = Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.userAgent.indexOf("Linux") !== -1;
+            setEngine(initialConfig.engine || defaultEngine || '');
+            setGameVersion(initialConfig.gameVersion || defaultVersion || '');
+        } else {
+            // New config or no config saved yet
+            setEngine(defaultEngine || '');
+            setGameVersion(defaultVersion || '');
 
-            if (isLinux) {
-                if (scanResults[0].type === 'windows-exe') {
+            if (sortedResults.length > 0) {
+                // Default to first sorted result (best match)
+                setSelectedPath(sortedResults[0].path);
+
+                // Auto-set Wine if best match is windows-exe on Linux
+                const isLinux = Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.userAgent.indexOf("Linux") !== -1;
+                if (isLinux && sortedResults[0].type === 'windows-exe') {
                     setUseWine(true);
                 }
             }
         }
-    }, [initialConfig, scanResults, visible]);
+    }, [initialConfig, scanResults, visible, defaultEngine, defaultVersion]);
 
     // Explicitly handle Linux check for component logic
     const isLinux = Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.userAgent.indexOf("Linux") !== -1;
 
     const handleSave = () => {
         if (selectedPath) {
+            // Only update fields that have values to keep config clean? 
+            // Or just save everything.
             onSaveAndPlay({
                 executablePath: selectedPath,
                 useWine: useWine,
                 args: args.trim().length > 0 ? args.trim().split(' ') : [],
-                locale: locale.trim() || undefined
+                locale: locale.trim() || undefined,
+                engine: engine.trim() || undefined,
+                gameVersion: gameVersion.trim() || undefined
             });
         }
     };
@@ -76,10 +114,32 @@ export default function GameLaunchDialog({
         switch (type) {
             case 'windows-exe': return 'logo-windows';
             case 'mac-app': return 'logo-apple';
-            case 'native-binary': return 'terminal';
+            case 'native-binary': return 'logo-tux';
             default: return 'document-text';
         }
     };
+
+    // Memoize and sort results for display
+    const displayedOptions = useMemo(() => {
+        return [...scanResults].sort((a, b) => {
+            const isLinux = Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.userAgent.indexOf("Linux") !== -1;
+            const isMac = Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.userAgent.indexOf("Mac") !== -1;
+
+            const getScore = (item: LaunchOption) => {
+                if (isLinux) {
+                    if (item.type === 'native-binary') return 10;
+                    if (item.type === 'windows-exe') return 5;
+                } else if (isMac) {
+                    if (item.type === 'mac-app') return 10;
+                } else {
+                    if (item.type === 'windows-exe') return 10;
+                }
+                return 0;
+            };
+
+            return getScore(b) - getScore(a);
+        });
+    }, [scanResults]);
 
     return (
         <Modal
@@ -99,7 +159,7 @@ export default function GameLaunchDialog({
 
                     <Text style={styles.sectionLabel}>Select Executable</Text>
                     <ScrollView style={styles.listContainer}>
-                        {scanResults.map((option, index) => (
+                        {displayedOptions.map((option, index) => (
                             <TouchableOpacity
                                 key={index}
                                 style={[
@@ -122,7 +182,7 @@ export default function GameLaunchDialog({
                                 )}
                             </TouchableOpacity>
                         ))}
-                        {scanResults.length === 0 && (
+                        {displayedOptions.length === 0 && (
                             <Text style={styles.noResults}>No executables found. Please verify game files.</Text>
                         )}
                     </ScrollView>
@@ -144,6 +204,24 @@ export default function GameLaunchDialog({
                             value={locale}
                             onChangeText={setLocale}
                             placeholder="e.g. ja_JP.UTF-8"
+                            placeholderTextColor="#6e7681"
+                        />
+
+                        <Text style={styles.sectionLabel}>Game Engine</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={engine}
+                            onChangeText={setEngine}
+                            placeholder="e.g. Unreal Engine 5"
+                            placeholderTextColor="#6e7681"
+                        />
+
+                        <Text style={styles.sectionLabel}>Game Version</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={gameVersion}
+                            onChangeText={setGameVersion}
+                            placeholder="e.g. 1.0.4"
                             placeholderTextColor="#6e7681"
                         />
 

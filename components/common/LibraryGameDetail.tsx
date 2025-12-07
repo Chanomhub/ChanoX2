@@ -43,7 +43,9 @@ export default function LibraryGameDetail({ download, onPlay }: LibraryGameDetai
             console.log('Launching with saved config:', config);
             const result = await window.electronAPI.launchGame({
                 executablePath: config.executablePath,
-                useWine: config.useWine
+                useWine: config.useWine,
+                args: config.args,
+                locale: config.locale
             });
             if (!result.success) {
                 Alert.alert('Launch Failed', result.error || 'Unknown error');
@@ -262,6 +264,25 @@ export default function LibraryGameDetail({ download, onPlay }: LibraryGameDetai
                             </TouchableOpacity>
                         </View>
 
+                        {/* Game Info */}
+                        {(savedConfig?.engine || savedConfig?.gameVersion || download.engine || download.gameVersion) && (
+                            <View style={styles.sideCard}>
+                                <Text style={styles.sideTitle}>GAME INFO</Text>
+                                {(savedConfig?.engine || download.engine) && (
+                                    <View style={{ marginBottom: 10 }}>
+                                        <Text style={[styles.infoText, { marginBottom: 2 }]}>ENGINE</Text>
+                                        <Text style={{ color: '#dcdedf', fontSize: 13, fontWeight: '500' }}>{savedConfig?.engine || download.engine}</Text>
+                                    </View>
+                                )}
+                                {(savedConfig?.gameVersion || download.gameVersion) && (
+                                    <View>
+                                        <Text style={[styles.infoText, { marginBottom: 2 }]}>VERSION</Text>
+                                        <Text style={{ color: '#dcdedf', fontSize: 13, fontWeight: '500' }}>{savedConfig?.gameVersion || download.gameVersion}</Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+
                         {/* Language */}
                         <View style={styles.sideCard}>
                             <Text style={styles.sideTitle}>LANGUAGE</Text>
@@ -282,6 +303,8 @@ export default function LibraryGameDetail({ download, onPlay }: LibraryGameDetai
                 initialConfig={savedConfig}
                 scanResults={scanResults}
                 gameTitle={gameTitle}
+                defaultEngine={download.engine}
+                defaultVersion={download.gameVersion}
             />
         </View>
     );

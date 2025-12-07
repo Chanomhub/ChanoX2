@@ -207,7 +207,9 @@ export default function ArticleDetailPage() {
                                         openDownloadLink(
                                             url,
                                             article?.title,
-                                            article?.coverImage || article?.mainImage || article?.backgroundImage || undefined
+                                            article?.coverImage || article?.mainImage || article?.backgroundImage || undefined,
+                                            article?.engine?.name || undefined,
+                                            article?.ver || undefined
                                         );
                                     }}
                                     articleTitle={article?.title}

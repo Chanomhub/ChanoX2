@@ -477,32 +477,81 @@ ipcMain.handle('save-game-config', (event, { gameId, config }) => {
   return true;
 });
 
+// --- Global Settings Logic ---
+const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
+
+function loadGlobalSettings() {
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to load global settings:', e);
+  }
+  return {};
+}
+
+function saveGlobalSettings(settings) {
+  try {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  } catch (e) {
+    console.error('Failed to save global settings:', e);
+  }
+}
+
+ipcMain.handle('get-global-settings', () => {
+  return loadGlobalSettings();
+});
+
+ipcMain.handle('save-global-settings', (event, settings) => {
+  saveGlobalSettings(settings);
+  return true;
+});
+
 function scanDir(dir, depth = 0, maxDepth = 3) {
   if (depth > maxDepth) return [];
   let updateFiles = [];
   try {
     const files = fs.readdirSync(dir);
     for (const file of files) {
+      // Ignore common junk and metadata folders
       if (file === 'PaxHeader' || file === '__MACOSX' || file.startsWith('.')) continue;
 
       const fullPath = path.join(dir, file);
       try {
         const stats = fs.statSync(fullPath);
         if (stats.isDirectory()) {
+          // Double check: if the directory name itself contains PaxHeader (sometimes it's nested strangely), skip
+          if (file.includes('PaxHeader')) continue;
+
           if (process.platform === 'darwin' && file.endsWith('.app')) {
             updateFiles.push({ path: fullPath, type: 'mac-app' });
           } else {
             updateFiles = updateFiles.concat(scanDir(fullPath, depth + 1, maxDepth));
           }
         } else {
+          // Skip if parent dir was PaxHeader (though properly handled by recursion check above, safer to be sure)
+          if (fullPath.includes('PaxHeader')) continue;
+
           const lower = file.toLowerCase();
           if (lower.endsWith('.exe')) {
             updateFiles.push({ path: fullPath, type: 'windows-exe' });
           } else if (process.platform !== 'win32') {
-            if (!!(stats.mode & 0o100) && !lower.endsWith('.sh') && !lower.endsWith('.so') && !lower.includes('.')) {
+            // Check for executable bit
+            const isExecutable = !!(stats.mode & 0o100);
+
+            // Common non-binary extensions to ignore even if +x
+            const ignoredExts = ['.sh', '.so', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.json', '.xml', '.html', '.css', '.js', '.map', '.config', '.ini', '.md'];
+            const hasIgnoredExt = ignoredExts.some(ext => lower.endsWith(ext));
+
+            // Allow files with dots if they are executable and not in ignored list
+            // Also explicitly include .x86/.x86_64 regardless of mode if widely used? 
+            // Better to stick to +x check for general files, and specific extension check for known binary types
+
+            if (isExecutable && !hasIgnoredExt) {
               updateFiles.push({ path: fullPath, type: 'native-binary' });
-            }
-            if (lower.endsWith('.x86_64') || lower.endsWith('.x86')) {
+            } else if (lower.endsWith('.x86_64') || lower.endsWith('.x86')) {
+              // Explicitly add common Linux game binary extensions even if +x is missing (rare but possible in transfer)
               updateFiles.push({ path: fullPath, type: 'native-binary' });
             }
           }
@@ -525,14 +574,52 @@ ipcMain.handle('scan-game-executables', (event, directory) => {
 ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = [], locale }) => {
   const { spawn } = require('child_process');
 
-  console.log('Launching game:', executablePath, 'Use Wine:', useWine, 'Locale:', locale);
+  const globalSettings = loadGlobalSettings();
+  const wineProvider = globalSettings.wineProvider || 'internal';
+
+  console.log('Launching game:', executablePath, 'Use Wine:', useWine, 'Locale:', locale, 'Provider:', wineProvider);
 
   let command = executablePath;
   let finalArgs = args;
 
   if (useWine) {
-    command = 'wine';
-    finalArgs = [executablePath, ...args];
+    if (wineProvider === 'bottles') {
+      const customCmd = globalSettings.externalWineCommand || 'flatpak run com.usebottles.bottles -e %EXE%';
+      console.log('🍷 Launching via External Command:', customCmd);
+
+      // Replace %EXE% with the actual path
+      let cmdString = customCmd.replace('%EXE%', executablePath);
+
+      // Fallback: if user didn't put %EXE%, assume they want to append it
+      if (!customCmd.includes('%EXE%')) {
+        cmdString = `${customCmd} "${executablePath}"`;
+      }
+
+      // Parse command string into command + args
+      // Simple split by space, respecting quotes would be better but for now simple split
+      // or use shell: true in spawn? 
+      // spawn with shell: true allows executing the full string command
+
+      // To be safe and simple with spawn(cmd, args):
+      // We will just execute it as a shell command for maximum flexibility for the user
+      // BUT spawn with shell: true is discouraged if we can avoid it.
+      // Let's try to split the first token as command, rest as args.
+
+      const parts = cmdString.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+      if (parts.length > 0) {
+        command = parts[0].replace(/"/g, ''); // remove quotes around command if any
+        const extraArgs = parts.slice(1).map(arg => arg.replace(/"/g, ''));
+        finalArgs = [...extraArgs, ...args];
+      } else {
+        // Fallback if parsing failed
+        command = customCmd;
+        finalArgs = [executablePath, ...args];
+      }
+
+    } else {
+      command = 'wine';
+      finalArgs = [executablePath, ...args];
+    }
   } else if (process.platform === 'darwin' && executablePath.endsWith('.app')) {
     command = 'open';
     finalArgs = ['-a', executablePath, ...args];
@@ -563,7 +650,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
       const subprocess = spawn(command, finalArgs, {
         cwd: gameDir,
         env: cleanEnv,
-        detached: true,
+        detached: wineProvider !== 'bottles', // Try attaching for Bottles/External to see if it fixes window parenting
         stdio: ['ignore', out, err]
       });
 
