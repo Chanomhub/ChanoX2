@@ -14,6 +14,7 @@ import DownloadFooter from '@/components/common/downloads/DownloadFooter';
 import TitleBar from '@/components/common/TitleBar';
 import MenuBar from '@/components/common/MenuBar';
 import { ThemeScrollbar } from '@/components/common/ThemeScrollbar';
+import SettingsModal from '@/components/common/settings/SettingsModal';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider as PaperProvider } from 'react-native-paper';
@@ -52,11 +53,11 @@ function AppNavigator() {
                 <Stack.Screen name="(main)/webview" options={{ title: 'WebView', headerShown: true }} />
                 <Stack.Screen name="(auth)/login" options={{ title: 'Login', headerShown: true }} />
                 <Stack.Screen name="(auth)/register" options={{ title: 'Register', headerShown: true }} />
-                <Stack.Screen name="(main)/settings" options={{ title: 'Settings', headerShown: true }} />
                 <Stack.Screen name="(main)/[slug]" options={{ headerShown: true }} />
             </Stack>
             <DownloadFooter />
             <FestivalOverlay />
+            <SettingsModal />
         </View>
     );
 }

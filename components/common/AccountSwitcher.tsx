@@ -3,10 +3,12 @@ import { Platform, View, Text, TouchableOpacity, Modal, StyleSheet, FlatList } f
 import { useAuth } from '@/contexts/AuthContext';
 import { useFestival } from '@/contexts/FestivalContext';
 import { router } from 'expo-router';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 export default function AccountSwitcher({ compact = false }: { compact?: boolean }) {
     const { user, accounts, switchAccount, logout } = useAuth();
     const { theme } = useFestival();
+    const { openSettings } = useSettingsStore();
     const [visible, setVisible] = useState(false);
 
     const styles = useMemo(() => StyleSheet.create({
@@ -139,7 +141,7 @@ export default function AccountSwitcher({ compact = false }: { compact?: boolean
 
     const handleSettings = () => {
         setVisible(false);
-        router.push('/settings');
+        openSettings();
     };
 
     const handleLogout = async () => {
