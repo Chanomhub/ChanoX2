@@ -25,5 +25,13 @@
     "online": "ออนไลน์",
     "guest_user": "ผู้ใช้ทั่วไป",
     "unknown": "ไม่ทราบ",
-    "two_factor_disabled": "การยืนยันตัวตนสองขั้นตอนกำลัง {{status}} อยู่ในขณะนี้"
+    "two_factor_disabled": "การยืนยันตัวตนสองขั้นตอนกำลัง {{status}} อยู่ในขณะนี้",
+    "storage": "พื้นที่จัดเก็บ",
+    "loading": "กำลังโหลด...",
+    "free": "ว่าง",
+    "used_space": "พื้นที่ใช้ไป",
+    "free_space": "พื้นที่ว่าง",
+    "download_folder": "โฟลเดอร์ดาวน์โหลด",
+    "download_folder_desc": "ตำแหน่งสำหรับเกมและการอัปเดต",
+    "change_location": "เปลี่ยนตำแหน่ง"
 }

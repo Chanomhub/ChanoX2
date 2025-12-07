@@ -25,5 +25,13 @@
     "online": "Online",
     "guest_user": "Guest User",
     "unknown": "Unknown",
-    "two_factor_disabled": "Two-factor authentication is currently {{status}}."
+    "two_factor_disabled": "Two-factor authentication is currently {{status}}.",
+    "storage": "Storage",
+    "loading": "Loading...",
+    "free": "FREE",
+    "used_space": "Used Space",
+    "free_space": "Free Space",
+    "download_folder": "Download Folder",
+    "download_folder_desc": "Location for games and updates",
+    "change_location": "Change Location"
 }

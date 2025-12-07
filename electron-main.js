@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 
 const fs = require('fs');
@@ -73,6 +73,60 @@ ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
     console.error('Extraction failed:', error);
     throw error;
   }
+
+});
+
+// Storage & Download Management
+// Storage & Download Management
+const HOME_DIR = app.getPath('home');
+const DEFAULT_DIR = path.join(HOME_DIR, 'ChanoX2Library');
+
+// Ensure default directory exists
+try {
+  if (!fs.existsSync(DEFAULT_DIR)) {
+    fs.mkdirSync(DEFAULT_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.error('Failed to create default library directory:', err);
+}
+
+let downloadDirectory = DEFAULT_DIR;
+
+ipcMain.handle('select-download-directory', async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory']
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+  return result.filePaths[0];
+});
+
+ipcMain.handle('get-disk-space', async (event, checkPath) => {
+  try {
+    const stats = await fs.promises.statfs(checkPath);
+    return {
+      free: stats.bfree * stats.bsize,
+      total: stats.blocks * stats.bsize,
+      available: stats.bavail * stats.bsize
+    };
+  } catch (error) {
+    console.error('Failed to check disk space:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('set-download-directory', (event, path) => {
+  if (path && fs.existsSync(path)) {
+    downloadDirectory = path;
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('get-download-directory', () => {
+  return downloadDirectory;
 });
 
 
@@ -136,6 +190,10 @@ function createWindow() {
   mainWindow.webContents.session.on('will-download', (event, item, webContents) => {
     const id = downloadId++;
     const filename = item.getFilename();
+
+    // Set the save path to our configured directory
+    const savePath = path.join(downloadDirectory, filename);
+    item.setSavePath(savePath);
 
     // ALWAYS send to mainWindow, regardless of where the download started
     if (mainWindow && !mainWindow.isDestroyed()) {

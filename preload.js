@@ -10,6 +10,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openPath: (path) => ipcRenderer.send('open-path', path),
     extractFile: (filePath, destPath) => ipcRenderer.invoke('extract-file', { filePath, destPath }),
 
+    // Storage Management
+    selectDownloadDirectory: () => ipcRenderer.invoke('select-download-directory'),
+    getDiskSpace: (path) => ipcRenderer.invoke('get-disk-space', path),
+    setDownloadDirectory: (path) => ipcRenderer.invoke('set-download-directory', path),
+    getDownloadDirectory: () => ipcRenderer.invoke('get-download-directory'),
+
     // Download event listeners (auto-captured from browser/iframes)
     onDownloadStarted: (callback) => {
         ipcRenderer.on('download-started', (event, data) => callback(data));

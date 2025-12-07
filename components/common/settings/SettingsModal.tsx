@@ -47,7 +47,99 @@ const SectionHeader = ({ title, theme }: any) => (
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
         <View style={[styles.sectionDivider, { backgroundColor: theme.border }]} />
     </View>
+
 );
+
+const StorageSettingsContent = ({ theme, t }: any) => {
+    const { downloadPath, setDownloadPath } = useSettingsStore();
+    const [diskSpace, setDiskSpace] = useState<{ free: number, total: number, available: number } | null>(null);
+
+    useEffect(() => {
+        loadStorageInfo();
+    }, []);
+
+    const loadStorageInfo = async () => {
+        if (window.electronAPI) {
+            const path = await window.electronAPI.getDownloadDirectory();
+            setDownloadPath(path);
+            const space = await window.electronAPI.getDiskSpace(path);
+            setDiskSpace(space);
+        }
+    };
+
+    const handleChangeLocation = async () => {
+        if (window.electronAPI) {
+            const path = await window.electronAPI.selectDownloadDirectory();
+            if (path) {
+                const success = await window.electronAPI.setDownloadDirectory(path);
+                if (success) {
+                    loadStorageInfo();
+                }
+            }
+        }
+    };
+
+    const formatBytes = (bytes: number) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    const usedPercentage = diskSpace ? ((diskSpace.total - diskSpace.free) / diskSpace.total) * 100 : 0;
+
+    return (
+        <View style={styles.contentContainer}>
+            <SectionHeader title={t('storage', 'Storage')} theme={theme} />
+
+            {/* Storage Bar */}
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, padding: 20 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <Text style={[styles.label, { color: theme.text }]}>
+                        {downloadPath || t('loading', 'Loading...')}
+                    </Text>
+                    <Text style={{ color: theme.textSecondary, fontWeight: 'bold' }}>
+                        {diskSpace ? `${formatBytes(diskSpace.free)} ${t('free', 'FREE')} OF ${formatBytes(diskSpace.total)}` : ''}
+                    </Text>
+                </View>
+
+                {/* Bar */}
+                <View style={{ height: 10, backgroundColor: theme.background, borderRadius: 5, overflow: 'hidden', flexDirection: 'row', marginBottom: 20 }}>
+                    <View style={{ width: `${usedPercentage}%`, backgroundColor: theme.accent, height: '100%' }} />
+                    {/* Placeholder for "Games" vs "Other" if we had that data */}
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 20 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.accent }} />
+                        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{t('used_space', 'Used Space')}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.background }} />
+                        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{t('free_space', 'Free Space')}</Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* Settings */}
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={styles.rowBetween}>
+                    <View>
+                        <Text style={[styles.label, { color: theme.text }]}>{t('download_folder', 'Download Folder')}</Text>
+                        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{t('download_folder_desc', 'Location for games and updates')}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={[styles.buttonOutline, { borderColor: theme.textSecondary }]}
+                        onPress={handleChangeLocation}
+                    >
+                        <Text style={{ color: theme.text }}>{t('change_location', 'Change')}</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
+    );
+};
 
 export default function SettingsModal() {
     const { isOpen, closeSettings, activeSection, setActiveSection } = useSettingsStore();
@@ -132,6 +224,9 @@ export default function SettingsModal() {
                         </View>
                     </View>
                 );
+
+            case 'storage':
+                return <StorageSettingsContent theme={theme} t={t} />;
 
             case 'general':
                 return (
@@ -242,6 +337,7 @@ export default function SettingsModal() {
                                 <Text style={[styles.sidebarHeader, { color: theme.textSecondary }]}>{t('preferences').toUpperCase()}</Text>
                                 <SidebarItem id="account" label={t('account')} icon="👤" isActive={activeSection === 'account'} theme={theme} onPress={() => setActiveSection('account')} />
                                 <SidebarItem id="general" label={t('general')} icon="⚙️" isActive={activeSection === 'general'} theme={theme} onPress={() => setActiveSection('general')} />
+                                <SidebarItem id="storage" label={t('storage', 'Storage')} icon="💾" isActive={activeSection === 'storage'} theme={theme} onPress={() => setActiveSection('storage')} />
 
                                 <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
