@@ -10,7 +10,7 @@ const { protocol, net } = require('electron');
 const { pathToFileURL } = require('url');
 
 const appServe = async (win) => {
-  const distPath = path.join(__dirname, 'dist');
+  const distPath = path.join(__dirname, 'web-build');
 
   if (!protocol.isProtocolHandled('chanox2')) {
     protocol.handle('chanox2', (request) => {

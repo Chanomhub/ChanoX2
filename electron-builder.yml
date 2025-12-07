@@ -9,7 +9,7 @@ directories:
   buildResources: assets
 
 files:
-  - dist/**/*
+  - web-build/**/*
   - electron-main.js
   - package.json
   - node_modules/**/*
