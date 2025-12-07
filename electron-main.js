@@ -8,7 +8,8 @@ const fs = require('fs');
 
 const { protocol } = require('electron');
 const serve = require('electron-serve');
-const appServe = serve({ scheme: 'chanox2', directory: 'dist' });
+const loadURL = serve.default || serve;
+const appServe = loadURL({ scheme: 'chanox2', directory: 'dist' });
 
 
 protocol.registerSchemesAsPrivileged([
