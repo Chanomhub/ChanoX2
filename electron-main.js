@@ -6,9 +6,15 @@ app.name = 'ChanoX2';
 
 const fs = require('fs');
 
+const { protocol } = require('electron');
 const serve = require('electron-serve');
-const loadURL = serve.default || serve;
-const appServe = loadURL({ directory: 'dist' });
+const appServe = serve({ scheme: 'chanox2', directory: 'dist' });
+
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'chanox2', privileges: { secure: true, standard: true } }
+]);
+
 
 let mainWindow;
 const activeDownloads = new Map();
