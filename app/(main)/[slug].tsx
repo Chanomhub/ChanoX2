@@ -22,7 +22,7 @@ export default function ArticleDetailPage() {
     useEffect(() => {
         let isMounted = true;
 
-        if (slug && !isLanguageLoading) {
+        if (slug && slug !== 'index.html' && !isLanguageLoading) {
             console.log('Fetching article with slug:', slug, 'language:', language);
             fetchArticle(isMounted);
         }

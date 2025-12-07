@@ -47,6 +47,11 @@ nsis:
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: ChanoX2
+  
+asarUnpack:
+  - "node_modules/7zip-bin/**/*"
+  - "node_modules/node-7z/**/*"
+
 
 # AppImage Configuration (Linux)
 appImage:

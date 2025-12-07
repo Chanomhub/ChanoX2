@@ -1,46 +1,22 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
 const path = require('path');
 
 // Set app name to ensure userData path is correct (and not default 'Electron')
 app.name = 'ChanoX2';
 
 const fs = require('fs');
-
 const { protocol, net } = require('electron');
 const { pathToFileURL } = require('url');
 
-const appServe = async (win) => {
-  const distPath = path.join(__dirname, 'web-build');
+process.on('uncaughtException', (error) => {
+  console.error('🔥 Uncaught Exception:', error);
+});
 
-  if (!protocol.isProtocolHandled('chanox2')) {
-    protocol.handle('chanox2', (request) => {
-      let urlPath = request.url.slice('chanox2://'.length);
-      // Remove 'domain' part if present
-      if (urlPath.startsWith('-/')) {
-        urlPath = urlPath.slice(2);
-      } else if (urlPath === '-') {
-        urlPath = '';
-      }
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 Unhandled Rejection:', reason);
+});
 
-      console.log('Proto Request:', request.url);
-      console.log('Decoded Path:', urlPath);
-
-      const filePath = path.join(distPath, decodeURIComponent(urlPath));
-      console.log('Resolved File Path:', filePath);
-
-      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-        console.log('File exists, serving.');
-        return net.fetch(pathToFileURL(filePath).toString());
-      }
-      console.log('File not found, serving index.html');
-      // SPA Fallback
-      return net.fetch(pathToFileURL(path.join(distPath, 'index.html')).toString());
-    });
-  }
-
-  await win.loadURL('chanox2://-/index.html');
-};
-
+// ⚠️ CRITICAL: ต้อง register protocol ก่อน app.whenReady()
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'chanox2',
@@ -54,12 +30,13 @@ protocol.registerSchemesAsPrivileged([
   }
 ]);
 
+// appServe removed, handling moved to whenReady
 
 
 let mainWindow;
 const activeDownloads = new Map();
 let downloadId = Date.now();
-const pathTo7zip = require('7zip-bin').path7za;
+const pathTo7zip = require('7zip-bin').path7za.replace('app.asar', 'app.asar.unpacked');
 
 // Fix 7zip permissions on Linux
 if (process.platform === 'linux') {
@@ -101,19 +78,13 @@ ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
     // Handle double-extraction for .tar.gz / .tar.xz
     const lowerPath = filePath.toLowerCase();
     if (lowerPath.endsWith('.tar.gz') || lowerPath.endsWith('.tar.xz') || lowerPath.endsWith('.tgz')) {
-      // Check if a .tar file exists in the destination
-      // Usually it has the same base name, but let's look for any .tar if we want to be aggressive, 
-      // or just strict name matching. 
-      // Strict: original name "file.tar.xz" -> extracts "file.tar" usually.
       const baseName = path.basename(filePath);
-      // Remove the last extension (.xz, .gz) to guess the tar name
       const tarNameGuess = baseName.replace(/\.[^.]+$/, "");
       const tarPath = path.join(destPath, tarNameGuess);
 
       if (fs.existsSync(tarPath) && tarPath.toLowerCase().endsWith('.tar')) {
         console.log('Detected intermediate tar file, extracting:', tarPath);
         await runExtraction(tarPath, destPath);
-        // Cleanup the .tar file
         fs.unlinkSync(tarPath);
       }
     }
@@ -123,9 +94,7 @@ ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
     console.error('Extraction failed:', error);
     throw error;
   }
-
 });
-
 
 // Storage & Download Management
 const HOME_DIR = app.getPath('home');
@@ -179,7 +148,6 @@ ipcMain.handle('get-download-directory', () => {
   return downloadDirectory;
 });
 
-
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -188,29 +156,49 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
-      webSecurity: false, // Allow iframes to load external sites
+      webSecurity: false,
       preload: path.join(__dirname, 'preload.js'),
-      partition: 'persist:chanox2' // Explicitly persist session data
+      partition: 'persist:chanox2'
     },
-    frame: false, // Frameless window
-    // titleBarStyle: 'hidden', // Optional: MacOS specific style
-
+    frame: false,
   });
 
+  // ตรวจสอบ development mode
   const isDev = process.env.NODE_ENV === 'development';
+  const webBuildExists = fs.existsSync(path.join(__dirname, 'web-build'));
+
+  console.log('🚀 Environment:', {
+    NODE_ENV: process.env.NODE_ENV,
+    isDev,
+    webBuildExists,
+    __dirname
+  });
 
   if (isDev) {
+    // Development mode: ใช้ Metro bundler
+    console.log('📱 Loading from Metro dev server (localhost:8081)...');
     mainWindow.loadURL('http://localhost:8081');
     mainWindow.webContents.openDevTools();
   } else {
-    appServe(mainWindow);
+    // Production mode: ใช้ไฟล์ที่ build แล้ว
+    console.log('📦 Loading from built files (chanox2:// protocol)...');
+    mainWindow.loadURL('chanox2://app/');
   }
 
-  // F12 shortcut to toggle DevTools (works in both dev and production)
+  // F12 shortcut to toggle DevTools
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.key === 'F12' && input.type === 'keyDown') {
       mainWindow.webContents.toggleDevTools();
     }
+  });
+
+  // Debug: แสดง navigation events
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('❌ Failed to load:', validatedURL, errorDescription);
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('✅ Successfully loaded!');
   });
 
   // Handle new window creation
@@ -221,31 +209,48 @@ function createWindow() {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: false, // Needed for some sites
+        sandbox: false,
         webSecurity: false,
         preload: path.join(__dirname, 'preload.js'),
-        partition: 'persist:chanox2' // Share session with main window
+        partition: 'persist:chanox2'
       },
       frame: true,
       autoHideMenuBar: true
     });
 
     newWindow.loadURL(url);
-
-    // Optional: Add custom menu or toolbar here if needed
   });
 
-  // Intercept ALL downloads (from any source including iframes and new windows)
-  // We attach this to the session so it covers all windows sharing the session
+  // Prevent external navigation
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    console.log('⚠️ Will Navigate to:', url);
+    if (!url.startsWith('chanox2://')) {
+      event.preventDefault();
+      console.warn('⚠️ Blocked navigation to:', url);
+      // require('electron').shell.openExternal(url);
+    }
+  });
+
+  // Handle window open requests
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    console.log('⚠️ Window Open Request:', url);
+    if (url.startsWith('http')) {
+      // require('electron').shell.openExternal(url);
+      console.warn('⚠️ Blocked window open:', url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
+
+
+  // Intercept ALL downloads
   mainWindow.webContents.session.on('will-download', (event, item, webContents) => {
     const id = downloadId++;
     const filename = item.getFilename();
 
-    // Set the save path to our configured directory
     const savePath = path.join(downloadDirectory, filename);
     item.setSavePath(savePath);
 
-    // ALWAYS send to mainWindow, regardless of where the download started
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('download-started', {
         id,
@@ -349,7 +354,67 @@ ipcMain.on('window-close', () => {
   if (mainWindow) mainWindow.close();
 });
 
-app.whenReady().then(createWindow);
+// ⚠️ ต้องเรียก createWindow หลังจาก app.whenReady()
+app.whenReady().then(() => {
+  const distPath = path.join(__dirname, 'web-build');
+  console.log('🚀 App Ready. Registering protocol handler...');
+
+  const partitionSession = session.fromPartition('persist:chanox2');
+
+  // Register protocol on the specific partition/session used by the window
+  const result = partitionSession.protocol.handle('chanox2', (request) => {
+    // Expected URL: chanox2://app/index.html
+    let urlPath = request.url.replace('chanox2://app', '');
+
+    // If just chanox2://app or chanox2://app/, assume index.html
+    if (urlPath === '' || urlPath === '/') {
+      urlPath = '/index.html';
+    }
+
+    urlPath = decodeURIComponent(urlPath);
+    // Security check: prevent directory traversal
+    if (urlPath.includes('..')) {
+      return new Response('Access Denied', { status: 403 });
+    }
+
+    console.log('Proto Request:', request.url, '->', urlPath);
+
+    let filePath = path.join(distPath, urlPath);
+
+    // Fallback to index.html if file doesn't exist (SPA routing)
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      console.log('File not found, fallback to index.html:', filePath);
+      filePath = path.join(distPath, 'index.html');
+    }
+
+    try {
+      const content = fs.readFileSync(filePath);
+
+      // Simple MIME type lookup
+      const ext = path.extname(filePath).toLowerCase();
+      let contentType = 'text/html';
+      if (ext === '.js') contentType = 'text/javascript';
+      else if (ext === '.css') contentType = 'text/css';
+      else if (ext === '.json') contentType = 'application/json';
+      else if (ext === '.png') contentType = 'image/png';
+      else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+      else if (ext === '.svg') contentType = 'image/svg+xml';
+      else if (ext === '.ico') contentType = 'image/x-icon';
+      else if (ext === '.ttf') contentType = 'font/ttf';
+
+      return new Response(content, {
+        headers: { 'content-type': contentType }
+      });
+    } catch (err) {
+      console.error('Failed to read file:', filePath, err);
+      return new Response('Internal Server Error', { status: 500 });
+    }
+  });
+
+  console.log('✅ Protocol registered on partition. Is handled?', partitionSession.protocol.isProtocolHandled('chanox2'));
+
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -367,7 +432,6 @@ app.on('activate', () => {
 
 const GAME_CONFIG_FILE = path.join(app.getPath('userData'), 'games-config.json');
 
-// Helper to load game config
 function loadGameConfig() {
   try {
     if (fs.existsSync(GAME_CONFIG_FILE)) {
@@ -379,7 +443,6 @@ function loadGameConfig() {
   return {};
 }
 
-// Helper to save game config
 function saveGameConfig(config) {
   try {
     fs.writeFileSync(GAME_CONFIG_FILE, JSON.stringify(config, null, 2));
@@ -400,39 +463,31 @@ ipcMain.handle('save-game-config', (event, { gameId, config }) => {
   return true;
 });
 
-// Recursive scan for executables
 function scanDir(dir, depth = 0, maxDepth = 3) {
   if (depth > maxDepth) return [];
   let updateFiles = [];
   try {
     const files = fs.readdirSync(dir);
     for (const file of files) {
-      // Filter out system/metadata folders
       if (file === 'PaxHeader' || file === '__MACOSX' || file.startsWith('.')) continue;
 
       const fullPath = path.join(dir, file);
       try {
         const stats = fs.statSync(fullPath);
         if (stats.isDirectory()) {
-          // MacOS .app is a directory but treated as an executable
           if (process.platform === 'darwin' && file.endsWith('.app')) {
             updateFiles.push({ path: fullPath, type: 'mac-app' });
           } else {
             updateFiles = updateFiles.concat(scanDir(fullPath, depth + 1, maxDepth));
           }
         } else {
-          // Check extensions
           const lower = file.toLowerCase();
           if (lower.endsWith('.exe')) {
             updateFiles.push({ path: fullPath, type: 'windows-exe' });
           } else if (process.platform !== 'win32') {
-            // Check for executable bit on Linux/Mac
-            // constants.S_IXUSR = 0o100
             if (!!(stats.mode & 0o100) && !lower.endsWith('.sh') && !lower.endsWith('.so') && !lower.includes('.')) {
-              // Heuristic: generic binary (no extension usually, or specifically trusted)
               updateFiles.push({ path: fullPath, type: 'native-binary' });
             }
-            // Also include .sh if we want? Maybe risky. Let's stick to binaries or strict extensions.
             if (lower.endsWith('.x86_64') || lower.endsWith('.x86')) {
               updateFiles.push({ path: fullPath, type: 'native-binary' });
             }
@@ -461,7 +516,6 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
   let command = executablePath;
   let finalArgs = args;
 
-  // ... (command selection logic remains partially same, simplified for brevity in replacement if needed, but here we just need to insert locale handling)
   if (useWine) {
     command = 'wine';
     finalArgs = [executablePath, ...args];
@@ -483,19 +537,17 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
       const out = fs.openSync(outLog, 'a');
       const err = fs.openSync(errLog, 'a');
 
-      // Sanitize environment variables to prevent child process from inheriting Electron state
       const cleanEnv = { ...process.env };
       delete cleanEnv.ELECTRON_RUN_AS_NODE;
       delete cleanEnv.ELECTRON_NO_ATTACH_CONSOLE;
 
-      // Apply Locale if specified
       if (locale) {
         cleanEnv.LANG = locale;
         cleanEnv.LC_ALL = locale;
       }
 
       const subprocess = spawn(command, finalArgs, {
-        cwd: gameDir, // Run from game directory
+        cwd: gameDir,
         env: cleanEnv,
         detached: true,
         stdio: ['ignore', out, err]
@@ -508,7 +560,6 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
 
       subprocess.unref();
 
-      // Give it a tiny moment to fail synchronously-ish
       setTimeout(() => {
         resolve({ success: true, logsPath: outLog });
       }, 500);
