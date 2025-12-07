@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 
@@ -12,6 +12,7 @@ interface GameLaunchConfig {
     executablePath: string;
     useWine: boolean;
     args?: string[];
+    locale?: string;
 }
 
 interface GameLaunchDialogProps {
@@ -34,12 +35,14 @@ export default function GameLaunchDialog({
     const [selectedPath, setSelectedPath] = useState<string | null>(null);
     const [useWine, setUseWine] = useState(false);
     const [args, setArgs] = useState('');
+    const [locale, setLocale] = useState('');
 
     useEffect(() => {
         if (initialConfig) {
             setSelectedPath(initialConfig.executablePath);
             setUseWine(initialConfig.useWine);
             setArgs(initialConfig.args ? initialConfig.args.join(' ') : '');
+            setLocale(initialConfig.locale || '');
         } else if (scanResults.length > 0) {
             // Default to first result
             setSelectedPath(scanResults[0].path);
@@ -63,7 +66,8 @@ export default function GameLaunchDialog({
             onSaveAndPlay({
                 executablePath: selectedPath,
                 useWine: useWine,
-                args: args.trim().length > 0 ? args.trim().split(' ') : []
+                args: args.trim().length > 0 ? args.trim().split(' ') : [],
+                locale: locale.trim() || undefined
             });
         }
     };
@@ -125,6 +129,24 @@ export default function GameLaunchDialog({
 
                     {/* Options Section */}
                     <View style={styles.optionsSection}>
+                        <Text style={styles.sectionLabel}>Launch Arguments</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={args}
+                            onChangeText={setArgs}
+                            placeholder="e.g. -windowed -noborder"
+                            placeholderTextColor="#6e7681"
+                        />
+
+                        <Text style={styles.sectionLabel}>Locale Code (e.g. ja_JP.UTF-8)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={locale}
+                            onChangeText={setLocale}
+                            placeholder="e.g. ja_JP.UTF-8"
+                            placeholderTextColor="#6e7681"
+                        />
+
                         <TouchableOpacity
                             style={styles.checkboxContainer}
                             onPress={() => setUseWine(!useWine)}
@@ -270,5 +292,14 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
         letterSpacing: 0.5,
+    },
+    input: {
+        backgroundColor: '#101214',
+        color: '#dcdedf',
+        padding: 10,
+        borderRadius: 2,
+        marginBottom: 15,
+        borderWidth: 1,
+        borderColor: '#2a2e36',
     },
 });

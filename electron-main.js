@@ -407,14 +407,15 @@ ipcMain.handle('scan-game-executables', (event, directory) => {
   return scanDir(directory);
 });
 
-ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = [] }) => {
+ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = [], locale }) => {
   const { spawn } = require('child_process');
 
-  console.log('Launching game:', executablePath, 'Use Wine:', useWine);
+  console.log('Launching game:', executablePath, 'Use Wine:', useWine, 'Locale:', locale);
 
   let command = executablePath;
   let finalArgs = args;
 
+  // ... (command selection logic remains partially same, simplified for brevity in replacement if needed, but here we just need to insert locale handling)
   if (useWine) {
     command = 'wine';
     finalArgs = [executablePath, ...args];
@@ -436,8 +437,20 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
       const out = fs.openSync(outLog, 'a');
       const err = fs.openSync(errLog, 'a');
 
+      // Sanitize environment variables to prevent child process from inheriting Electron state
+      const cleanEnv = { ...process.env };
+      delete cleanEnv.ELECTRON_RUN_AS_NODE;
+      delete cleanEnv.ELECTRON_NO_ATTACH_CONSOLE;
+
+      // Apply Locale if specified
+      if (locale) {
+        cleanEnv.LANG = locale;
+        cleanEnv.LC_ALL = locale;
+      }
+
       const subprocess = spawn(command, finalArgs, {
         cwd: gameDir, // Run from game directory
+        env: cleanEnv,
         detached: true,
         stdio: ['ignore', out, err]
       });
