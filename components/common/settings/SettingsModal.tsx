@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Linking, ActivityIndicator, Platform } from 'react-native';
+import {
+    View, Text, StyleSheet, TouchableOpacity, Modal,
+    ScrollView, Linking, ActivityIndicator, Platform,
+    Dimensions, Image
+} from 'react-native';
 import { useFestival } from '@/contexts/FestivalContext';
 import { useLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettingsStore } from '@/stores/settingsStore';
 import Constants from 'expo-constants';
 import packageJson from '../../../package.json';
-import { Colors } from '@/constants/Colors';
+import { Ionicons } from '@expo/vector-icons'; // แนะนำให้ใช้ Icon set ถ้ามี
 
 interface GitHubRelease {
     tag_name: string;
@@ -14,13 +18,42 @@ interface GitHubRelease {
     body: string;
 }
 
+// Sub-component: Menu Item
+const SidebarItem = ({ id, label, icon, isActive, theme, onPress }: any) => (
+    <TouchableOpacity
+        style={[
+            styles.sidebarItem,
+            isActive && { backgroundColor: theme.accent + '15', borderLeftColor: theme.accent }
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+    >
+        <View style={[styles.activeIndicator, { backgroundColor: isActive ? theme.accent : 'transparent' }]} />
+        <Text style={[
+            styles.sidebarIcon,
+            { color: isActive ? theme.accent : theme.textSecondary }
+        ]}>{icon}</Text>
+        <Text style={[
+            styles.sidebarLabel,
+            { color: isActive ? theme.text : theme.textSecondary, fontWeight: isActive ? '600' : '400' }
+        ]}>{label}</Text>
+    </TouchableOpacity>
+);
+
+// Sub-component: Section Header
+const SectionHeader = ({ title, theme }: any) => (
+    <View style={styles.sectionHeaderContainer}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+        <View style={[styles.sectionDivider, { backgroundColor: theme.border }]} />
+    </View>
+);
+
 export default function SettingsModal() {
     const { isOpen, closeSettings, activeSection, setActiveSection } = useSettingsStore();
     const { theme } = useFestival();
     const { language, setLanguage } = useLanguage();
     const { user } = useAuth();
 
-    // Updates Logic
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -38,16 +71,13 @@ export default function SettingsModal() {
         setError(null);
         try {
             const response = await fetch('https://api.github.com/repos/Chanomhub/ChanoX2/releases/latest');
-            if (!response.ok) {
-                throw new Error('Failed to fetch release info');
-            }
+            if (!response.ok) throw new Error('Failed');
             const data: GitHubRelease = await response.json();
             const version = data.tag_name.replace(/^v/, '');
             setLatestVersion(version);
             setReleaseUrl(data.html_url);
         } catch (err) {
-            setError('Could not check for updates');
-            console.error(err);
+            setError('Check failed');
         } finally {
             setLoading(false);
         }
@@ -55,108 +85,119 @@ export default function SettingsModal() {
 
     const isUpdateAvailable = latestVersion && latestVersion !== currentVersion;
 
-    const renderSidebarItem = (id: string, label: string, icon: string) => (
-        <TouchableOpacity
-            style={[
-                styles.sidebarItem,
-                activeSection === id && { backgroundColor: theme.accent + '20' }
-            ]}
-            onPress={() => setActiveSection(id)}
-        >
-            <Text style={[
-                styles.sidebarIcon,
-                { color: activeSection === id ? theme.accent : theme.textSecondary }
-            ]}>{icon}</Text>
-            <Text style={[
-                styles.sidebarLabel,
-                { color: activeSection === id ? theme.text : theme.textSecondary, fontWeight: activeSection === id ? 'bold' : 'normal' }
-            ]}>{label}</Text>
-        </TouchableOpacity>
-    );
-
     const renderContent = () => {
         switch (activeSection) {
             case 'account':
                 return (
-                    <View style={styles.contentSection}>
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Account</Text>
+                    <View style={styles.contentContainer}>
+                        <SectionHeader title="Account Details" theme={theme} />
+
+                        {/* Profile Card */}
                         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                            <View style={styles.accountHeader}>
-                                <View style={[styles.avatarPlaceholder, { backgroundColor: theme.accent }]}>
-                                    <Text style={styles.avatarText}>
-                                        {user?.username?.charAt(0).toUpperCase() || '?'}
+                            <View style={styles.cardContent}>
+                                <View style={[styles.avatarContainer, { borderColor: theme.accent }]}>
+                                    <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
+                                        <Text style={styles.avatarText}>
+                                            {user?.username?.charAt(0).toUpperCase() || '?'}
+                                        </Text>
+                                    </View>
+                                    <View style={[styles.statusDot, { backgroundColor: theme.success, borderColor: theme.surface }]} />
+                                </View>
+
+                                <View style={styles.profileInfo}>
+                                    <Text style={[styles.profileName, { color: theme.text }]}>
+                                        {user?.username || 'Guest User'}
+                                    </Text>
+                                    <Text style={[styles.profileStatus, { color: theme.success }]}>
+                                        ● Online
+                                    </Text>
+                                    <Text style={[styles.profileId, { color: theme.textSecondary }]}>
+                                        ID: {user?.id || 'Unknown'}
                                     </Text>
                                 </View>
-                                <View>
-                                    <Text style={[styles.accountName, { color: theme.accent }]}>{user?.username || 'Guest'}</Text>
-                                    <Text style={[styles.accountStatus, { color: theme.success }]}>Online</Text>
-                                </View>
-                                <TouchableOpacity style={[styles.viewProfileBtn, { backgroundColor: theme.border }]}>
-                                    <Text style={{ color: theme.text }}>View Profile</Text>
+
+                                <TouchableOpacity style={[styles.buttonOutline, { borderColor: theme.textSecondary }]}>
+                                    <Text style={{ color: theme.text }}>Edit Profile</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
-                        <View style={styles.row}>
-                            <Text style={{ color: theme.textSecondary, marginTop: 20 }}>More account settings coming soon...</Text>
+
+                        <Text style={[styles.subHeader, { color: theme.textSecondary }]}>Security & Privacy</Text>
+                        <View style={[styles.infoBox, { backgroundColor: theme.surface + '80' }]}>
+                            <Text style={{ color: theme.textSecondary }}>
+                                Two-factor authentication is currently <Text style={{ fontWeight: 'bold', color: theme.error }}>Disabled</Text>.
+                            </Text>
                         </View>
                     </View>
                 );
+
             case 'general':
                 return (
-                    <View style={styles.contentSection}>
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>General</Text>
+                    <View style={styles.contentContainer}>
+                        <SectionHeader title="System & Updates" theme={theme} />
+
+                        {/* Update Card */}
                         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                            <View style={styles.row}>
+                            <View style={styles.rowBetween}>
                                 <View>
-                                    <Text style={[styles.label, { color: theme.text }]}>Current Version</Text>
-                                    <Text style={[styles.value, { color: theme.textSecondary }]}>v{currentVersion}</Text>
+                                    <Text style={[styles.label, { color: theme.text }]}>Client Version</Text>
+                                    <View style={styles.versionBadgeContainer}>
+                                        <Text style={[styles.versionBadge, { backgroundColor: theme.border, color: theme.text }]}>
+                                            v{currentVersion}
+                                        </Text>
+                                        <Text style={[styles.buildText, { color: theme.textSecondary }]}>
+                                            (Stable Channel)
+                                        </Text>
+                                    </View>
                                 </View>
 
-                                {loading ? (
-                                    <ActivityIndicator color={theme.accent} />
-                                ) : error ? (
-                                    <View style={styles.statusContainer}>
-                                        <Text style={[styles.errorText, { color: theme.error }]}>Error checking</Text>
-                                        <TouchableOpacity onPress={checkVersion}>
-                                            <Text style={[styles.retryText, { color: theme.accent }]}>Retry</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                ) : isUpdateAvailable ? (
-                                    <View style={styles.statusContainer}>
-                                        <Text style={[styles.updateText, { color: theme.success }]}>New version available: v{latestVersion}</Text>
+                                <View style={styles.actionContainer}>
+                                    {loading ? (
+                                        <ActivityIndicator color={theme.accent} />
+                                    ) : isUpdateAvailable ? (
                                         <TouchableOpacity
-                                            style={[styles.updateButton, { backgroundColor: theme.accent }]}
+                                            style={[styles.primaryButton, { backgroundColor: theme.success }]}
                                             onPress={() => releaseUrl && Linking.openURL(releaseUrl)}
                                         >
-                                            <Text style={[styles.updateButtonText, { color: theme.background }]}>Update</Text>
+                                            <Text style={styles.primaryButtonText}>Update to v{latestVersion}</Text>
                                         </TouchableOpacity>
-                                    </View>
-                                ) : (
-                                    <Text style={[styles.uptodateText, { color: theme.success }]}>You are up to date</Text>
-                                )}
+                                    ) : (
+                                        <View style={[styles.statusPill, { backgroundColor: theme.success + '20' }]}>
+                                            <Text style={[styles.statusPillText, { color: theme.success }]}>Up to Date</Text>
+                                        </View>
+                                    )}
+                                    {error && (
+                                        <TouchableOpacity onPress={checkVersion}>
+                                            <Text style={[styles.linkText, { color: theme.error }]}>Retry Check</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                         </View>
 
-                        <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 24 }]}>Language</Text>
-                        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <SectionHeader title="Language / ภาษา" theme={theme} />
+                        <View style={styles.gridContainer}>
                             {SUPPORTED_LANGUAGES.map((lang) => (
                                 <TouchableOpacity
                                     key={lang.code}
                                     style={[
-                                        styles.languageOption,
-                                        language === lang.code && { backgroundColor: theme.accent + '20' }
+                                        styles.langCard,
+                                        { backgroundColor: theme.surface, borderColor: theme.border },
+                                        language === lang.code && { borderColor: theme.accent, backgroundColor: theme.accent + '10' }
                                     ]}
                                     onPress={() => setLanguage(lang.code)}
                                 >
                                     <Text style={[
-                                        styles.languageText,
+                                        styles.langText,
                                         { color: theme.text },
                                         language === lang.code && { color: theme.accent, fontWeight: 'bold' }
                                     ]}>
                                         {lang.label}
                                     </Text>
                                     {language === lang.code && (
-                                        <Text style={{ color: theme.accent }}>✓</Text>
+                                        <View style={[styles.checkMark, { backgroundColor: theme.accent }]}>
+                                            <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>
+                                        </View>
                                     )}
                                 </TouchableOpacity>
                             ))}
@@ -165,8 +206,9 @@ export default function SettingsModal() {
                 );
             default:
                 return (
-                    <View style={styles.contentSection}>
-                        <Text style={{ color: theme.textSecondary }}>Select a category to view settings.</Text>
+                    <View style={[styles.centerContent, { opacity: 0.5 }]}>
+                        <Text style={{ fontSize: 40, marginBottom: 10 }}>🚧</Text>
+                        <Text style={{ color: theme.textSecondary }}>Work in Progress</Text>
                     </View>
                 );
         }
@@ -182,37 +224,38 @@ export default function SettingsModal() {
             onRequestClose={closeSettings}
         >
             <View style={styles.overlay}>
-                <View style={[styles.container, { backgroundColor: theme.background }]}>
-                    {/* Header */}
-                    <View style={[styles.header, { borderBottomColor: theme.border }]}>
-                        <Text style={[styles.headerTitle, { color: theme.accent }]}>STEAM SETTINGS</Text>
-                        <View style={styles.windowControls}>
-                            <TouchableOpacity onPress={closeSettings} style={styles.closeButton}>
-                                <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>✕</Text>
-                            </TouchableOpacity>
-                        </View>
+                <View style={[styles.container, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                    {/* Header Bar */}
+                    <View style={[styles.titleBar, { backgroundColor: theme.surface }]}>
+                        <Text style={[styles.windowTitle, { color: theme.textSecondary }]}>SETTINGS</Text>
+                        <TouchableOpacity onPress={closeSettings} style={styles.closeBtn}>
+                            <Text style={[styles.closeText, { color: theme.text }]}>✕</Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.body}>
                         {/* Sidebar */}
-                        <ScrollView style={[styles.sidebar, { backgroundColor: theme.surface }]}>
-                            {renderSidebarItem('account', 'Account', '👤')}
-                            {renderSidebarItem('general', 'General', '⚙️')}
-                            {/* Placeholders */}
-                            {renderSidebarItem('friends', 'Friends & Chat', '👥')}
-                            {renderSidebarItem('family', 'Family', '👨‍👩‍👧‍👦')}
-                            {renderSidebarItem('security', 'Security', '🛡️')}
-                            {renderSidebarItem('notifications', 'Notifications', '🔔')}
-                            {renderSidebarItem('interface', 'Interface', '🖥️')}
-                            {renderSidebarItem('storage', 'Storage', '💾')}
-                            {renderSidebarItem('cloud', 'Cloud', '☁️')}
-                            {renderSidebarItem('ingame', 'In Game', '🎮')}
-                        </ScrollView>
+                        <View style={[styles.sidebar, { backgroundColor: theme.background }]}>
+                            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sidebarContent}>
+                                <Text style={[styles.sidebarHeader, { color: theme.textSecondary }]}>PREFERENCES</Text>
+                                <SidebarItem id="account" label="Account" icon="👤" isActive={activeSection === 'account'} theme={theme} onPress={() => setActiveSection('account')} />
+                                <SidebarItem id="general" label="General" icon="⚙️" isActive={activeSection === 'general'} theme={theme} onPress={() => setActiveSection('general')} />
 
-                        {/* Content */}
-                        <ScrollView style={styles.content}>
-                            {renderContent()}
-                        </ScrollView>
+                                <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+                                <Text style={[styles.sidebarHeader, { color: theme.textSecondary }]}>APPLICATION</Text>
+                                <SidebarItem id="friends" label="Friends & Chat" icon="💬" isActive={activeSection === 'friends'} theme={theme} onPress={() => setActiveSection('friends')} />
+                                <SidebarItem id="security" label="Security" icon="🛡️" isActive={activeSection === 'security'} theme={theme} onPress={() => setActiveSection('security')} />
+                                <SidebarItem id="notifications" label="Notifications" icon="🔔" isActive={activeSection === 'notifications'} theme={theme} onPress={() => setActiveSection('notifications')} />
+                            </ScrollView>
+                        </View>
+
+                        {/* Main Content */}
+                        <View style={styles.contentArea}>
+                            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
+                                {renderContent()}
+                            </ScrollView>
+                        </View>
                     </View>
                 </View>
             </View>
@@ -223,167 +266,287 @@ export default function SettingsModal() {
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        backgroundColor: 'rgba(0,0,0,0.75)',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 40,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(5px)' }
+        }) as any,
     },
     container: {
-        width: '100%',
-        maxWidth: 800,
-        height: '80%',
-        borderRadius: 4,
-        overflow: 'hidden',
+        width: Platform.OS === 'web' ? '75%' : '95%',
+        maxWidth: 900,
+        height: Platform.OS === 'web' ? '80%' : '90%',
+        borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#333', // fallback
-        ...Platform.select({
-            web: {
-                boxShadow: '0 0 20px rgba(0,0,0,0.5)',
-            }
-        })
+        overflow: 'hidden',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
     },
-    header: {
+    titleBar: {
+        height: 40,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
     },
-    headerTitle: {
-        fontSize: 14,
+    windowTitle: {
+        fontSize: 12,
         fontWeight: 'bold',
-        letterSpacing: 1,
+        letterSpacing: 1.5,
     },
-    windowControls: {
-        flexDirection: 'row',
+    closeBtn: {
+        padding: 8,
     },
-    closeButton: {
-        padding: 4,
-    },
-    closeButtonText: {
+    closeText: {
         fontSize: 16,
+        fontWeight: 'bold',
     },
     body: {
         flex: 1,
         flexDirection: 'row',
     },
+    // Sidebar Styles
     sidebar: {
-        flex: 2,
+        width: 240,
         borderRightWidth: 1,
         borderRightColor: 'rgba(255,255,255,0.05)',
+        paddingVertical: 16,
+    },
+    sidebarContent: {
+        paddingHorizontal: 0,
+    },
+    sidebarHeader: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        marginLeft: 20,
+        marginBottom: 8,
+        marginTop: 16,
+        letterSpacing: 1,
     },
     sidebarItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingRight: 16,
+        marginBottom: 2,
+    },
+    activeIndicator: {
+        width: 4,
+        height: '100%',
+        marginRight: 16,
+        borderTopRightRadius: 2,
+        borderBottomRightRadius: 2,
     },
     sidebarIcon: {
-        marginRight: 10,
-        fontSize: 14,
+        fontSize: 16,
+        marginRight: 12,
+        width: 24,
+        textAlign: 'center',
     },
     sidebarLabel: {
-        fontSize: 13,
+        fontSize: 14,
     },
-    content: {
-        flex: 3,
-        padding: 32,
+    divider: {
+        height: 1,
+        marginVertical: 10,
+        marginHorizontal: 20,
+        opacity: 0.5,
     },
-    contentSection: {
+    // Content Area Styles
+    contentArea: {
+        flex: 1,
+        backgroundColor: 'transparent',
+    },
+    scrollContent: {
+        padding: 40,
+        paddingBottom: 60,
+    },
+    contentContainer: {
         flex: 1,
     },
+    sectionHeaderContainer: {
+        marginBottom: 24,
+        marginTop: 8,
+    },
     sectionTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 20,
+        fontSize: 24,
+        fontWeight: '300', // Light font weight looks more modern
+        marginBottom: 10,
+        letterSpacing: 0.5,
     },
+    sectionDivider: {
+        height: 1,
+        width: '100%',
+        opacity: 0.3,
+    },
+    subHeader: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginTop: 20,
+        marginBottom: 10,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    // Card Styles
     card: {
-        padding: 16,
-        borderRadius: 4,
-        marginBottom: 16,
+        borderRadius: 6,
+        borderWidth: 1,
+        marginBottom: 20,
+        overflow: 'hidden',
     },
-    row: {
+    cardContent: {
+        padding: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    rowBetween: {
+        padding: 20,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        flexWrap: 'wrap',
     },
-    label: {
-        fontSize: 14,
-        fontWeight: 'bold',
+    // Profile Styles
+    avatarContainer: {
+        position: 'relative',
+        marginRight: 20,
     },
-    value: {
-        fontSize: 13,
-        marginTop: 2,
-    },
-    statusContainer: {
-        alignItems: 'flex-end',
-    },
-    errorText: {
-        fontSize: 12,
-    },
-    retryText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    updateText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        marginBottom: 4,
-    },
-    uptodateText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    updateButton: {
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 2,
-    },
-    updateButtonText: {
-        fontSize: 11,
-        fontWeight: 'bold',
-    },
-    languageOption: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-    },
-    languageText: {
-        fontSize: 14,
-    },
-    accountHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    avatarPlaceholder: {
-        width: 64,
-        height: 64,
-        borderRadius: 4,
+    avatar: {
+        width: 80,
+        height: 80,
+        borderRadius: 4, // Square-ish for gaming feel
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16,
     },
     avatarText: {
-        fontSize: 24,
+        fontSize: 32,
         fontWeight: 'bold',
         color: '#fff',
     },
-    accountName: {
-        fontSize: 18,
+    statusDot: {
+        position: 'absolute',
+        bottom: -4,
+        right: -4,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        borderWidth: 3,
+    },
+    profileInfo: {
+        flex: 1,
+    },
+    profileName: {
+        fontSize: 20,
         fontWeight: 'bold',
+        marginBottom: 4,
     },
-    accountStatus: {
+    profileStatus: {
+        fontSize: 14,
+        marginBottom: 2,
+    },
+    profileId: {
         fontSize: 12,
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     },
-    viewProfileBtn: {
-        marginLeft: 'auto',
+    // Button Styles
+    buttonOutline: {
         paddingVertical: 8,
         paddingHorizontal: 16,
-        borderRadius: 2,
+        borderWidth: 1,
+        borderRadius: 4,
+    },
+    primaryButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 4,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        elevation: 2,
+    },
+    primaryButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
+    // Update/Version Styles
+    label: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 6,
+    },
+    versionBadgeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    versionBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+        overflow: 'hidden',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginRight: 8,
+    },
+    buildText: {
+        fontSize: 12,
+    },
+    actionContainer: {
+        alignItems: 'flex-end',
+    },
+    statusPill: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    statusPillText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    linkText: {
+        fontSize: 12,
+        marginTop: 4,
+        textDecorationLine: 'underline',
+    },
+    infoBox: {
+        padding: 16,
+        borderRadius: 4,
+    },
+    // Language Grid
+    gridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginHorizontal: -8,
+    },
+    langCard: {
+        width: '45%', // 2 columns roughly
+        minWidth: 140,
+        margin: 8,
+        padding: 16,
+        borderRadius: 6,
+        borderWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    langText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    checkMark: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    centerContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     }
 });
