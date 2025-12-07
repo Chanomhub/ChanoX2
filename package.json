@@ -1,6 +1,6 @@
 {
   "name": "chanox2",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Desktop application for ChanomHub",
   "author": {
     "name": "ChanomHub",
@@ -15,7 +15,7 @@
     "electron:start": "concurrently -k \"bun start\" \"wait-on tcp:8081 && cross-env NODE_ENV=development electron electron-main.js\"",
     "build:web": "expo export --platform web --output-dir web-build && node scripts/fix-web-paths.js",
     "build:electron": "electron-builder",
-    "electron:prod": "npm run build:web && electron electron-main.js",
+    "electron:prod": "npm run build:web && cross-env NODE_ENV=production electron electron-main.js",
     "build:all": "npm run build:web && npm run build:electron",
     "test": "jest"
   },
