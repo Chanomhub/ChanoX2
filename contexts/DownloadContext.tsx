@@ -7,6 +7,7 @@ export interface Download {
     url?: string;
     filename: string;
     articleTitle?: string;
+    coverImage?: string;
     status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
     progress: number; // 0-100
     downloadedBytes: number;
@@ -22,7 +23,7 @@ export interface Download {
 
 interface DownloadContextType {
     downloads: Download[];
-    openDownloadLink: (url: string, articleTitle?: string) => void;
+    openDownloadLink: (url: string, articleTitle?: string, coverImage?: string) => void;
     cancelDownload: (id: number) => void;
     removeDownload: (id: number) => void;
     clearCompleted: () => void;
@@ -80,14 +81,26 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
         }
     }, [downloads]);
 
+    // Store pending metadata for the next download started
+    const pendingMetadata = React.useRef<{ title?: string; cover?: string } | null>(null);
+
     // Setup auto-capture of all downloads
     useEffect(() => {
         ElectronDownloader.setupDownloadListeners(
             // On download started
             (id, filename, totalBytes) => {
+                // Check if we have pending metadata
+                const metadata = pendingMetadata.current;
+
+                // Clear immediately to avoid attaching to wrong download if concurrent (unlikely here)
+                // But better to keep it briefly? No, single thread assumtion is safer for now.
+                pendingMetadata.current = null;
+
                 const newDownload: Download = {
                     id,
                     filename,
+                    articleTitle: metadata?.title,
+                    coverImage: metadata?.cover,
                     status: 'downloading',
                     progress: 0,
                     downloadedBytes: 0,
@@ -116,52 +129,76 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
             },
             // On complete
             (id, savePath, filename) => {
-                setDownloads(prev =>
-                    prev.map(d =>
-                        d.id === id
-                            ? {
-                                ...d,
-                                status: 'completed' as const,
-                                progress: 100,
-                                endTime: new Date(),
-                                savePath,
-                                filename,
-                                speed: 0,
-                                isExtracting: true // Auto-extract
-                            }
-                            : d
-                    )
-                );
+                // Check if file is an archive
+                const lowerFilename = filename.toLowerCase();
+                const archiveExtensions = ['.zip', '.rar', '.7z', '.tar', '.gz', '.xz', '.tgz'];
+                const isArchive = archiveExtensions.some(ext => lowerFilename.endsWith(ext));
 
-                // Perform auto-extraction
-                // Handle .tar.xz, .tar.gz, etc. by stripping extensions more aggressively
-                // tailored for common archive types
-                let destPath = savePath.replace(/\.[^/.]+$/, ""); // strip last extension
-                if (destPath.endsWith('.tar')) {
-                    destPath = destPath.substring(0, destPath.length - 4);
+                if (isArchive) {
+                    setDownloads(prev =>
+                        prev.map(d =>
+                            d.id === id
+                                ? {
+                                    ...d,
+                                    status: 'completed' as const,
+                                    progress: 100,
+                                    endTime: new Date(),
+                                    savePath,
+                                    filename,
+                                    speed: 0,
+                                    isExtracting: true // Auto-extract
+                                }
+                                : d
+                        )
+                    );
+
+                    // Perform auto-extraction
+                    let destPath = savePath.replace(/\.[^/.]+$/, ""); // strip last extension
+                    if (destPath.endsWith('.tar')) {
+                        destPath = destPath.substring(0, destPath.length - 4);
+                    }
+
+                    ElectronDownloader.extractFile(savePath, destPath)
+                        .then(() => {
+                            console.log('Auto-extraction successful', destPath);
+                            setDownloads(prev =>
+                                prev.map(d =>
+                                    d.id === id
+                                        ? { ...d, isExtracting: false, extractedPath: destPath }
+                                        : d
+                                )
+                            );
+                        })
+                        .catch(err => {
+                            console.error('Auto-extraction failed', err);
+                            setDownloads(prev =>
+                                prev.map(d =>
+                                    d.id === id
+                                        ? { ...d, isExtracting: false, error: 'Extraction failed' } // Don't fail the download, just extraction
+                                        : d
+                                )
+                            );
+                        });
+                } else {
+                    // Non-archive file (e.g. .exe), treat as ready immediately
+                    setDownloads(prev =>
+                        prev.map(d =>
+                            d.id === id
+                                ? {
+                                    ...d,
+                                    status: 'completed' as const,
+                                    progress: 100,
+                                    endTime: new Date(),
+                                    savePath,
+                                    filename,
+                                    speed: 0,
+                                    isExtracting: false,
+                                    extractedPath: savePath // Treat the file itself as the "extracted" content
+                                }
+                                : d
+                        )
+                    );
                 }
-
-                ElectronDownloader.extractFile(savePath, destPath)
-                    .then(() => {
-                        console.log('Auto-extraction successful', destPath);
-                        setDownloads(prev =>
-                            prev.map(d =>
-                                d.id === id
-                                    ? { ...d, isExtracting: false, extractedPath: destPath }
-                                    : d
-                            )
-                        );
-                    })
-                    .catch(err => {
-                        console.error('Auto-extraction failed', err);
-                        setDownloads(prev =>
-                            prev.map(d =>
-                                d.id === id
-                                    ? { ...d, isExtracting: false, error: 'Extraction failed' } // Don't fail the download, just extraction
-                                    : d
-                            )
-                        );
-                    });
             },
             // On error
             (id, error) => {
@@ -181,7 +218,13 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
         );
     }, []);
 
-    const openDownloadLink = (url: string, articleTitle?: string) => {
+    const openDownloadLink = (url: string, articleTitle?: string, coverImage?: string) => {
+        // Store metadata for when the download actually starts
+        pendingMetadata.current = {
+            title: articleTitle,
+            cover: coverImage
+        };
+
         // Open in WebView within the app
         ElectronDownloader.openDownloadLink(url, router);
 
@@ -233,9 +276,8 @@ export function DownloadProvider({ children }: { children: React.ReactNode }) {
 
     const extractDownload = async (id: number) => {
         const download = downloads.find(d => d.id === id);
-        // Allow common compressed formats
-        const supportedExtensions = ['.zip', '.tar.xz', '.7z', '.rar', '.tar', '.gz'];
-        const isSupported = download?.filename && supportedExtensions.some(ext => download.filename.endsWith(ext));
+        const supportedExtensions = ['.zip', '.tar.xz', '.7z', '.rar', '.tar', '.gz', '.tgz', '.xz'];
+        const isSupported = download?.filename && supportedExtensions.some(ext => download.filename.toLowerCase().endsWith(ext));
 
         if (!download || !download.savePath || !isSupported) {
             return;

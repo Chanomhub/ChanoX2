@@ -122,7 +122,7 @@ function createWindow() {
         preload: path.join(__dirname, 'preload.js'),
         partition: 'persist:chanox2' // Share session with main window
       },
-      frame: false,
+      frame: true,
       autoHideMenuBar: true
     });
 

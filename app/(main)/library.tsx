@@ -13,8 +13,11 @@ export default function Library() {
     const [selectedGameId, setSelectedGameId] = useState<number | undefined>();
     const { width } = useWindowDimensions();
 
+    // Filter for only valid unpacked games
+    const installedGames = downloads.filter(d => d.extractedPath);
+
     // Sort downloads for "Received" shelf (mock logic for now, using index)
-    const recentGames = [...downloads].reverse().slice(0, 10);
+    const recentGames = [...installedGames].reverse().slice(0, 10);
 
     // Convert downloads to Article type shape for HorizontalScroll compatibility
     // In a real app we'd want to store Article data in installs or fetch it
@@ -23,7 +26,7 @@ export default function Library() {
         title: d.articleTitle || d.filename,
         slug: '', // Not linkable to store page easily without slug persistence
         description: d.filename,
-        coverImage: null, // We need to persist coverImage in DownloadItem!
+        coverImage: d.coverImage || null,
         mainImage: null,
         backgroundImage: null,
         ver: null,
@@ -90,19 +93,26 @@ export default function Library() {
                     <View style={styles.shelfContainer}>
                         <View style={styles.shelfHeader}>
                             <Text style={styles.shelfTitle}>All Games</Text>
-                            <Text style={styles.shelfCount}>({downloads.length})</Text>
+                            <Text style={styles.shelfCount}>({installedGames.length})</Text>
                         </View>
 
                         <View style={styles.grid}>
-                            {downloads.map(d => (
+                            {installedGames.map(d => (
                                 <TouchableOpacity
                                     key={d.id}
                                     style={styles.gridItem}
                                     onPress={() => openFile(d.id)}
                                 >
                                     <View style={styles.gridImagePlaceholder}>
-                                        {/* We really need to save images to downloads */}
-                                        <Text style={styles.gridIcon}>🎮</Text>
+                                        {d.coverImage ? (
+                                            <Image
+                                                source={{ uri: d.coverImage }}
+                                                style={{ width: '100%', height: '100%', borderRadius: 2 }}
+                                                resizeMode="cover"
+                                            />
+                                        ) : (
+                                            <Text style={styles.gridIcon}>🎮</Text>
+                                        )}
                                     </View>
                                     <Text style={styles.gridTitle} numberOfLines={1}>
                                         {d.articleTitle || d.filename}

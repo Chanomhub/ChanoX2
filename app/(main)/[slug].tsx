@@ -204,7 +204,11 @@ export default function ArticleDetailPage() {
                                     onClose={() => setSelectedDownload(null)}
                                     download={selectedDownload}
                                     onDownload={(url) => {
-                                        openDownloadLink(url, article?.title);
+                                        openDownloadLink(
+                                            url,
+                                            article?.title,
+                                            article?.coverImage || article?.mainImage || article?.backgroundImage || undefined
+                                        );
                                     }}
                                     articleTitle={article?.title}
                                 />

@@ -3,42 +3,83 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform }
 import { Colors } from '@/constants/Colors';
 
 // Mock data for "What's New" shelf since we don't have a real API for this yet
-const MOCK_NEWS = [
-    {
-        id: '1',
-        game: 'Starward',
-        title: 'Starward Character Balance Adjustment Announcement (December 4th)',
-        date: 'December 04',
-        type: 'BALANCE SETTING',
-        image: 'https://placehold.co/300x160/2a475e/ffffff?text=Starward',
-    },
-    {
-        id: '2',
-        game: 'Star Wings',
-        title: 'Star Wings Character Balance Adjustment Announcement (November 13th)',
-        date: 'November 13',
-        type: 'BALANCE SETTING',
-        image: 'https://placehold.co/300x160/3d2a5e/ffffff?text=Star+Wings',
-    },
-    {
-        id: '3',
-        game: 'VRChat',
-        title: 'Steam Audio & Release 2025.4.2 is now Live!',
-        date: 'This week',
-        type: 'New Release!',
-        image: 'https://placehold.co/300x160/1a1a2e/ffffff?text=VRChat',
-    },
-    {
-        id: '4',
-        game: 'Umamusume: Pretty Derby',
-        title: 'New Story Event—Halloween Makeover!',
-        date: 'Nov 25, 5:00 AM - Dec 7, 4:59 AM',
-        type: 'EVENT',
-        image: 'https://placehold.co/300x160/5e2a2a/ffffff?text=Umamusume',
-    },
-];
+const CACHE_KEY = 'library_whats_new_cache';
+
+interface NewsItem {
+    id: string;
+    game: string;
+    title: string;
+    date: string;
+    type: string;
+    image: string;
+    slug: string;
+}
 
 export default function LibraryUpdateSection() {
+    const [news, setNews] = React.useState<NewsItem[]>([]);
+
+    React.useEffect(() => {
+        // 1. Load from cache immediately
+        const loadCache = () => {
+            try {
+                if (typeof window !== 'undefined') {
+                    const cached = localStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                        setNews(JSON.parse(cached));
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load news cache', e);
+            }
+        };
+
+        loadCache();
+
+        // 2. Fetch fresh data
+        const fetchData = async () => {
+            try {
+                const { client } = require('@/libs/api/client');
+                const { GET_ARTICLES } = require('@/libs/api/queries');
+
+                const data = await client.request(GET_ARTICLES, {
+                    limit: 3,
+                    offset: 0,
+                    filter: {} // Assuming empty filter gets latest
+                });
+
+                if (data && data.articles) {
+                    const newItems: NewsItem[] = data.articles.map((article: any) => ({
+                        id: article.id.toString(),
+                        game: article.title, // Using title as game name
+                        title: article.description || 'New Release', // Description acts as the "update title" or fallback
+                        date: new Date(article.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+                        type: 'NEW RELEASE',
+                        image: article.coverImage || article.mainImage || 'https://placehold.co/300x160/2a475e/ffffff?text=No+Image',
+                        slug: article.slug
+                    }));
+
+                    // Update state and cache only if data is different (JSON string comparison is cheap for 3 items)
+                    setNews(prev => {
+                        const isDifferent = JSON.stringify(prev) !== JSON.stringify(newItems);
+                        if (isDifferent) {
+                            if (typeof window !== 'undefined') {
+                                localStorage.setItem(CACHE_KEY, JSON.stringify(newItems));
+                            }
+                            return newItems;
+                        }
+                        return prev;
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch what\'s new', error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    if (news.length === 0) return null; // Don't show if no data
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -53,7 +94,7 @@ export default function LibraryUpdateSection() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {MOCK_NEWS.map((item) => (
+                {news.map((item) => (
                     <TouchableOpacity key={item.id} style={styles.card}>
                         <View style={styles.imageContainer}>
                             <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
