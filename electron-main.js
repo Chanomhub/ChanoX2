@@ -42,11 +42,19 @@ const pathTo7zip = require('7zip-bin').path7za.replace('app.asar', 'app.asar.unp
 if (process.platform === 'linux') {
   try {
     if (fs.existsSync(pathTo7zip)) {
-      fs.chmodSync(pathTo7zip, '755');
-      console.log('Set 7zip permissions to 755');
+      try {
+        fs.chmodSync(pathTo7zip, '755');
+        console.log('Set 7zip permissions to 755');
+      } catch (err) {
+        if (err.code === 'EROFS') {
+          console.log('Skipping 7zip chmod (Read-Only Filesystem)');
+        } else {
+          console.error('Failed to set 7zip permissions:', err);
+        }
+      }
     }
   } catch (err) {
-    console.error('Failed to set 7zip permissions:', err);
+    console.error('General error setting 7zip permissions:', err);
   }
 }
 
@@ -58,7 +66,13 @@ ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
       // Fix permissions lazy check
       if (process.platform === 'linux') {
         try {
-          if (fs.existsSync(pathTo7zip)) fs.chmodSync(pathTo7zip, '755');
+          if (fs.existsSync(pathTo7zip)) {
+            try {
+              fs.chmodSync(pathTo7zip, '755');
+            } catch (e) {
+              if (e.code !== 'EROFS') throw e;
+            }
+          }
         } catch (e) { /* ignore */ }
       }
 
@@ -164,7 +178,7 @@ function createWindow() {
   });
 
   // ตรวจสอบ development mode
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = !app.isPackaged;
   const webBuildExists = fs.existsSync(path.join(__dirname, 'web-build'));
 
   console.log('🚀 Environment:', {
