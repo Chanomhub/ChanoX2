@@ -22,11 +22,17 @@ const appServe = async (win) => {
         urlPath = '';
       }
 
+      console.log('Proto Request:', request.url);
+      console.log('Decoded Path:', urlPath);
+
       const filePath = path.join(distPath, decodeURIComponent(urlPath));
+      console.log('Resolved File Path:', filePath);
 
       if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        console.log('File exists, serving.');
         return net.fetch(pathToFileURL(filePath).toString());
       }
+      console.log('File not found, serving index.html');
       // SPA Fallback
       return net.fetch(pathToFileURL(path.join(distPath, 'index.html')).toString());
     });
