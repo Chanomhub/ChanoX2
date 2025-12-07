@@ -8,6 +8,7 @@ import { ArticleDetail, ArticleResponse, Download, DownloadsResponse } from '@/t
 import { useDownloads } from '@/contexts/DownloadContext';
 import { ArticleDownloadDialog } from '@/components/common/ArticleDownloadDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
+import HtmlRenderer from '@/components/common/HtmlRenderer';
 
 export default function ArticleDetailPage() {
     const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -143,7 +144,7 @@ export default function ArticleDetailPage() {
                                 <View style={styles.bodyCard}>
                                     <Text style={styles.sectionTitle}>Full Description</Text>
                                     <ScrollView style={styles.bodyScroll}>
-                                        <Text style={styles.bodyText}>{article.body.replace(/<[^>]*>/g, '')}</Text>
+                                        <HtmlRenderer html={article.body} />
                                     </ScrollView>
                                 </View>
                             )}
