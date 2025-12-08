@@ -40,6 +40,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getGlobalSettings: () => ipcRenderer.invoke('get-global-settings'),
     saveGlobalSettings: (settings) => ipcRenderer.invoke('save-global-settings', settings),
 
+    // Downloads Persistence
+    getDownloads: () => ipcRenderer.invoke('get-downloads'),
+    saveDownloads: (downloads) => ipcRenderer.invoke('save-downloads', downloads),
+
+    // Auth Persistence
+    getAuthData: (key) => ipcRenderer.invoke('get-auth-data', key),
+    saveAuthData: (key, value) => ipcRenderer.invoke('save-auth-data', { key, value }),
+    removeAuthData: (key) => ipcRenderer.invoke('remove-auth-data', key),
+
     // Window controls
     minimizeWindow: () => ipcRenderer.send('window-minimize'),
     maximizeWindow: () => ipcRenderer.send('window-maximize'),

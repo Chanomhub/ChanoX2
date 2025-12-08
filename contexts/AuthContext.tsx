@@ -24,13 +24,15 @@ const LEGACY_TOKEN_KEY = 'chanox2_auth_token'; // For migration
 const storage = {
     async getItem(key: string): Promise<string | null> {
         try {
+            if (typeof window !== 'undefined' && window.electronAPI) {
+                return await window.electronAPI.getAuthData(key);
+            }
             if (typeof window !== 'undefined' && window.localStorage) {
                 return window.localStorage.getItem(key);
             }
             if (Platform.OS === 'web') {
                 return localStorage.getItem(key);
             } else {
-                // For native platforms, use expo-secure-store
                 const SecureStore = await import('expo-secure-store');
                 return await SecureStore.getItemAsync(key);
             }
@@ -42,6 +44,10 @@ const storage = {
 
     async setItem(key: string, value: string): Promise<void> {
         try {
+            if (typeof window !== 'undefined' && window.electronAPI) {
+                await window.electronAPI.saveAuthData(key, value);
+                return;
+            }
             if (typeof window !== 'undefined' && window.localStorage) {
                 window.localStorage.setItem(key, value);
                 return;
@@ -59,6 +65,10 @@ const storage = {
 
     async removeItem(key: string): Promise<void> {
         try {
+            if (typeof window !== 'undefined' && window.electronAPI) {
+                await window.electronAPI.removeAuthData(key);
+                return;
+            }
             if (typeof window !== 'undefined' && window.localStorage) {
                 window.localStorage.removeItem(key);
                 return;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Download } from '@/contexts/DownloadContext';
+import { Download, useDownloads } from '@/contexts/DownloadContext';
 import { Colors } from '@/constants/Colors';
 import GameLaunchDialog from './GameLaunchDialog';
 
@@ -13,17 +13,31 @@ import { useGameScanner } from '@/hooks/useGameScanner';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 
+const formatPlayTime = (seconds?: number) => {
+    if (!seconds) return "0.0 hrs";
+    const hours = seconds / 3600;
+    return `${hours.toFixed(1)} hrs`;
+};
+
+const formatLastPlayed = (dateString?: string) => {
+    if (!dateString) return "Never";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    return date.toLocaleDateString();
+};
+
 interface LibraryGameDetailProps {
     download: Download;
     onPlay: (id: number) => void;
 }
 
 export default function LibraryGameDetail({ download }: LibraryGameDetailProps) {
-    // Mock data
-    const timePlayed = "12.5 hrs";
-    const lastPlayed = "Today";
-    const achievementProgress = 11;
-
+    const { toggleFavorite } = useDownloads();
     const [launchDialogVisible, setLaunchDialogVisible] = useState(false);
 
     // Custom Hooks
@@ -100,18 +114,18 @@ export default function LibraryGameDetail({ download }: LibraryGameDetailProps) 
                     <View style={styles.playStats}>
                         <View>
                             <Text style={styles.statLabel}>LAST PLAYED</Text>
-                            <Text style={styles.statValue}>{lastPlayed}</Text>
+                            <Text style={styles.statValue}>{formatLastPlayed(config?.lastPlayed)}</Text>
                         </View>
                         <View>
                             <Text style={styles.statLabel}>PLAY TIME</Text>
-                            <Text style={styles.statValue}>{timePlayed}</Text>
+                            <Text style={styles.statValue}>{formatPlayTime(config?.playTime)}</Text>
                         </View>
                     </View>
 
                     <View style={styles.actionIcons}>
                         <Button variant="secondary" icon="settings-sharp" onPress={() => handleOpenLaunchOptions()} style={styles.iconButton} />
                         <Button variant="secondary" icon="information-circle-outline" onPress={() => { }} style={styles.iconButton} />
-                        <Button variant="secondary" icon="star-outline" onPress={() => { }} style={styles.iconButton} />
+                        <Button variant="secondary" icon={download.isFavorite ? "star" : "star-outline"} onPress={() => toggleFavorite(download.id)} style={styles.iconButton} />
                     </View>
                 </View>
 
@@ -147,7 +161,7 @@ export default function LibraryGameDetail({ download }: LibraryGameDetailProps) 
                         <View style={styles.sideCard}>
                             <Text style={styles.sideTitle}>ACHIEVEMENTS</Text>
                             <View style={styles.achievementProgress}>
-                                <Text style={styles.progressText}>{achievementProgress}/25 (44%)</Text>
+                                <Text style={styles.progressText}>11/25 (44%)</Text>
                                 <View style={styles.progressBarBg}>
                                     <View style={[styles.progressBarFill, { width: '44%' }]} />
                                 </View>

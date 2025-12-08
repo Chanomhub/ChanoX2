@@ -15,10 +15,21 @@ export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId
     const [filterExpanded, setFilterExpanded] = useState(false);
 
     // Filter games
-    const filteredGames = downloads.filter(d =>
-        (d.articleTitle || d.filename).toLowerCase().includes(searchQuery.toLowerCase()) &&
-        d.status === 'completed'
-    );
+    // Filter and sort games
+    const filteredGames = downloads
+        .filter(d =>
+            (d.articleTitle || d.filename).toLowerCase().includes(searchQuery.toLowerCase()) &&
+            d.status === 'completed'
+        )
+        .sort((a, b) => {
+            // Sort by favorite first
+            if (a.isFavorite && !b.isFavorite) return -1;
+            if (!a.isFavorite && b.isFavorite) return 1;
+            // Then sort alphabetically
+            const nameA = a.articleTitle || a.filename;
+            const nameB = b.articleTitle || b.filename;
+            return nameA.localeCompare(nameB);
+        });
 
     if (collapsed) {
         return (
@@ -123,6 +134,7 @@ export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId
                         <Text style={[styles.gameName, selectedGameId === game.id && styles.gameNameSelected]} numberOfLines={1}>
                             {game.articleTitle || game.filename}
                         </Text>
+                        {game.isFavorite && <Text style={{ fontSize: 10, color: '#e6c845', marginLeft: 4 }}>★</Text>}
                     </TouchableOpacity>
                 ))}
             </ScrollView>

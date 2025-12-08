@@ -8,6 +8,8 @@ export interface GameConfig {
     locale?: string;
     engine?: string;
     gameVersion?: string;
+    lastPlayed?: string; // ISO Date string
+    playTime?: number; // Total seconds played
 }
 
 export const useGameLauncher = (gameId: number | string) => {

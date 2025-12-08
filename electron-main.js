@@ -508,6 +508,78 @@ ipcMain.handle('save-global-settings', (event, settings) => {
   return true;
 });
 
+// --- Downloads Persistence Logic ---
+const DOWNLOADS_FILE = path.join(app.getPath('userData'), 'downloads.json');
+
+function loadDownloads() {
+  try {
+    if (fs.existsSync(DOWNLOADS_FILE)) {
+      return JSON.parse(fs.readFileSync(DOWNLOADS_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to load downloads:', e);
+  }
+  return [];
+}
+
+function saveDownloads(downloads) {
+  try {
+    fs.writeFileSync(DOWNLOADS_FILE, JSON.stringify(downloads, null, 2));
+  } catch (e) {
+    console.error('Failed to save downloads:', e);
+  }
+}
+
+ipcMain.handle('get-downloads', () => {
+  return loadDownloads();
+});
+
+ipcMain.handle('save-downloads', (event, downloads) => {
+  saveDownloads(downloads);
+  return true;
+});
+
+// --- Auth Persistence Logic ---
+const AUTH_FILE = path.join(app.getPath('userData'), 'auth.json');
+
+function loadAuth() {
+  try {
+    if (fs.existsSync(AUTH_FILE)) {
+      return JSON.parse(fs.readFileSync(AUTH_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to load auth data:', e);
+  }
+  return {};
+}
+
+function saveAuth(data) {
+  try {
+    fs.writeFileSync(AUTH_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error('Failed to save auth data:', e);
+  }
+}
+
+ipcMain.handle('get-auth-data', (event, key) => {
+  const data = loadAuth();
+  return data[key] || null;
+});
+
+ipcMain.handle('save-auth-data', (event, { key, value }) => {
+  const data = loadAuth();
+  data[key] = value;
+  saveAuth(data);
+  return true;
+});
+
+ipcMain.handle('remove-auth-data', (event, key) => {
+  const data = loadAuth();
+  delete data[key];
+  saveAuth(data);
+  return true;
+});
+
 function scanDir(dir, depth = 0, maxDepth = 3) {
   if (depth > maxDepth) return [];
   let updateFiles = [];
@@ -579,6 +651,28 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
 
   console.log('Launching game:', executablePath, 'Use Wine:', useWine, 'Locale:', locale, 'Provider:', wineProvider);
 
+  // Identify Game ID by executable path (simple mapping for now, ideally passed in)
+  // Limitation: if two games share the same exe, they share config/stats. 
+  // Ideally 'launch-game' should receive 'gameId'. Since we don't have it here easily without changing signature
+  // and all callers, we'll iterate the config to find the gameId that matches this executablePath.
+  const allConfigs = loadGameConfig();
+  let gameId = Object.keys(allConfigs).find(key => allConfigs[key].executablePath === executablePath);
+
+  // If not found (e.g. first launch without config), we might miss stats. 
+  // In a real app, pass gameId explicitly.
+  if (!gameId) {
+    console.warn('Game ID not found for path, stats might not save correctly:', executablePath);
+  }
+
+  // Update Last Played immediately
+  if (gameId) {
+    allConfigs[gameId] = {
+      ...allConfigs[gameId],
+      lastPlayed: new Date().toISOString()
+    };
+    saveGameConfig(allConfigs);
+  }
+
   let command = executablePath;
   let finalArgs = args;
 
@@ -596,15 +690,6 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
       }
 
       // Parse command string into command + args
-      // Simple split by space, respecting quotes would be better but for now simple split
-      // or use shell: true in spawn? 
-      // spawn with shell: true allows executing the full string command
-
-      // To be safe and simple with spawn(cmd, args):
-      // We will just execute it as a shell command for maximum flexibility for the user
-      // BUT spawn with shell: true is discouraged if we can avoid it.
-      // Let's try to split the first token as command, rest as args.
-
       const parts = cmdString.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
       if (parts.length > 0) {
         command = parts[0].replace(/"/g, ''); // remove quotes around command if any
@@ -647,6 +732,8 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
         cleanEnv.LC_ALL = locale;
       }
 
+      const startTime = Date.now();
+
       const subprocess = spawn(command, finalArgs, {
         cwd: gameDir,
         env: cleanEnv,
@@ -657,6 +744,25 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
       subprocess.on('error', (err) => {
         console.error('Failed to start subprocess:', err);
         resolve({ success: false, error: err.message });
+      });
+
+      // Track close event to calculate duration
+      subprocess.on('close', (code) => {
+        const endTime = Date.now();
+        const durationSeconds = Math.floor((endTime - startTime) / 1000);
+        console.log(`Game process exited with code ${code}. Duration: ${durationSeconds}s`);
+
+        if (gameId) {
+          const currentConfigs = loadGameConfig(); // Reload to be safe
+          const currentStats = currentConfigs[gameId] || {};
+          const previousTime = currentStats.playTime || 0;
+
+          currentConfigs[gameId] = {
+            ...currentStats,
+            playTime: previousTime + durationSeconds
+          };
+          saveGameConfig(currentConfigs);
+        }
       });
 
       subprocess.unref();
