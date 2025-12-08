@@ -428,6 +428,11 @@ app.whenReady().then(() => {
   console.log('✅ Protocol registered on partition. Is handled?', partitionSession.protocol.isProtocolHandled('chanox2'));
 
   createWindow();
+
+  // Check for updates after a short delay to ensure window is ready
+  setTimeout(() => {
+    checkForUpdates();
+  }, 3000);
 });
 
 app.on('window-all-closed', () => {
@@ -579,6 +584,92 @@ ipcMain.handle('remove-auth-data', (event, key) => {
   saveAuth(data);
   return true;
 });
+
+// --- Auto Update Logic ---
+async function checkForUpdates() {
+  // Use explicit package.json read to ensure freshness
+  let currentVersion = app.getVersion();
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    currentVersion = pkg.version;
+  } catch (e) {
+    console.error('Failed to read package.json version', e);
+  }
+
+  console.log('Checking for updates... Current version:', currentVersion);
+
+  try {
+    const response = await fetch('https://api.github.com/repos/Chanomhub/ChanoX2/releases/latest');
+    if (!response.ok) {
+      console.error('Failed to fetch update info:', response.statusText);
+      return;
+    }
+
+    const data = await response.json();
+    const latestVersion = data.tag_name.replace(/^v/, '').trim();
+    currentVersion = currentVersion.trim();
+
+    console.log('Latest version:', latestVersion, 'Current version:', currentVersion);
+
+    // Simple version comparison (assumes semver X.Y.Z)
+    if (latestVersion !== currentVersion && compareVersions(latestVersion, currentVersion) > 0) {
+      console.log('Update available!');
+
+      const { response: buttonIndex } = await dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        buttons: ['Update Now', 'Later'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Update Available',
+        message: `A new version (${latestVersion}) is available.`,
+        detail: `You are currently on version ${currentVersion}.\nWould you like to download and install the update now?`,
+        icon: path.join(__dirname, 'assets/icon.png') // Optional, if you have one
+      });
+
+      if (buttonIndex === 0) {
+        // Find best asset for current platform
+        let downloadUrl = data.html_url; // Fallback to release page
+        const platform = process.platform;
+        const arch = process.arch;
+
+        const asset = data.assets.find(a => {
+          const name = a.name.toLowerCase();
+          if (platform === 'win32' && name.endsWith('.exe')) return true;
+          if (platform === 'linux') {
+            if (name.endsWith('.deb') || name.endsWith('.appimage')) return true; // Prefer deb or appimage
+          }
+          if (platform === 'darwin' && name.endsWith('.dmg')) return true;
+          return false;
+        });
+
+        if (asset) {
+          downloadUrl = asset.browser_download_url;
+        }
+
+        console.log('Opening download URL:', downloadUrl);
+        const { shell } = require('electron');
+        shell.openExternal(downloadUrl);
+      }
+    } else {
+      console.log('App is up to date.');
+    }
+  } catch (error) {
+    console.error('Error checking for updates:', error);
+  }
+}
+
+// Helper to compare versions
+function compareVersions(v1, v2) {
+  const p1 = v1.split('.').map(Number);
+  const p2 = v2.split('.').map(Number);
+  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+    const n1 = p1[i] || 0;
+    const n2 = p2[i] || 0;
+    if (n1 > n2) return 1;
+    if (n1 < n2) return -1;
+  }
+  return 0;
+}
 
 function scanDir(dir, depth = 0, maxDepth = 3) {
   if (depth > maxDepth) return [];

@@ -12,7 +12,9 @@ import LibraryGameDetail from '@/components/common/LibraryGameDetail';
 export default function Library() {
     const { downloads, openFile, showInFolder } = useDownloads();
     const [selectedGameId, setSelectedGameId] = useState<number | undefined>();
+    const [searchQuery, setSearchQuery] = useState('');
     const { width } = useWindowDimensions();
+    const isMobile = width < 768;
 
     // Filter for only valid unpacked games
     const installedGames = downloads.filter(d => d.extractedPath);
@@ -129,9 +131,12 @@ export default function Library() {
 
             {/* Sidebar */}
             <LibrarySidebar
-                downloads={downloads}
                 onSelectGame={handleSelectGame}
                 selectedGameId={selectedGameId}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                isMobile={isMobile}
+                onCloseMobile={() => { }} // No-op for now unless we add mobile drawer state
             />
 
             {/* Main Content */}

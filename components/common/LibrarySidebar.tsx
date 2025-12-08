@@ -1,33 +1,49 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform, Image, useWindowDimensions } from 'react-native';
 import { Colors } from '@/constants/Colors';
-import { Download } from '@/contexts/DownloadContext';
+import { Download, useDownloads } from '@/contexts/DownloadContext';
+import { GlobalChat } from '@/components/features/GlobalChat';
+import { Button } from '@/components/ui/Button';
 
 interface LibrarySidebarProps {
-    downloads: Download[];
     onSelectGame: (id: number) => void;
     selectedGameId?: number;
+    searchQuery: string;
+    onSearchChange: (query: string) => void;
+    isMobile: boolean;
+    onCloseMobile: () => void;
     collapsed?: boolean;
 }
 
-export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId, collapsed = false }: LibrarySidebarProps) {
-    const [searchQuery, setSearchQuery] = useState('');
+export default function LibrarySidebar({
+    searchQuery,
+    onSearchChange,
+    selectedGameId,
+    onSelectGame,
+    isMobile,
+    onCloseMobile,
+    collapsed = false
+}: LibrarySidebarProps) {
+    const { downloads } = useDownloads();
+    const { width } = useWindowDimensions();
+    const [isChatVisible, setIsChatVisible] = useState(false);
     const [filterExpanded, setFilterExpanded] = useState(false);
 
     // Filter games
     // Filter and sort games
     const filteredGames = downloads
-        .filter(d =>
-            (d.articleTitle || d.filename).toLowerCase().includes(searchQuery.toLowerCase()) &&
-            d.status === 'completed'
-        )
-        .sort((a, b) => {
+        .filter((d: Download) => {
+            if (d.status !== 'completed') return false;
+            const name = d.articleTitle || d.filename || '';
+            return name.toLowerCase().includes((searchQuery || '').toLowerCase());
+        })
+        .sort((a: Download, b: Download) => {
             // Sort by favorite first
             if (a.isFavorite && !b.isFavorite) return -1;
             if (!a.isFavorite && b.isFavorite) return 1;
             // Then sort alphabetically
-            const nameA = a.articleTitle || a.filename;
-            const nameB = b.articleTitle || b.filename;
+            const nameA = a.articleTitle || a.filename || '';
+            const nameB = b.articleTitle || b.filename || '';
             return nameA.localeCompare(nameB);
         });
 
@@ -78,26 +94,39 @@ export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId
                 <Text style={styles.navText}>Home</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.navItem}>
-                <Text style={styles.navIcon}>⊞</Text>
-                <Text style={styles.navText}>Collections</Text>
+            <TouchableOpacity style={styles.navItem} onPress={() => setIsChatVisible(true)}>
+                <Text style={styles.navIcon}>💬</Text>
+                <Text style={styles.navText}>Global Chat</Text>
             </TouchableOpacity>
 
-            <View style={styles.searchSection}>
-                <View style={styles.searchBar}>
-                    <Text style={styles.searchIcon}>🔍</Text>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder=""
-                        placeholderTextColor={Colors.dark.textSecondary}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
+            <View style={styles.header}>
+                <View style={styles.titleRow}>
+                    <Text style={styles.title}>LIBRARY</Text>
                 </View>
-                <TouchableOpacity style={styles.filterButton} onPress={() => setFilterExpanded(!filterExpanded)}>
-                    <Text style={styles.filterIcon}>≡</Text>
-                </TouchableOpacity>
+
+                <View style={styles.searchRow}>
+                    <View style={styles.searchBar}>
+                        <Text style={styles.searchIcon}>🔍</Text>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search"
+                            placeholderTextColor={Colors.dark.textSecondary}
+                            value={searchQuery}
+                            onChangeText={onSearchChange}
+                        />
+                    </View>
+                    <TouchableOpacity style={styles.filterButton} onPress={() => setFilterExpanded(!filterExpanded)}>
+                        <Text style={styles.filterIcon}>≡</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
+
+            {filterExpanded && (
+                <View style={styles.filterOptions}>
+                    <Text style={styles.filterOptionText}>Sort by: Name (A-Z)</Text>
+                    {/* Add more sort options here later */}
+                </View>
+            )}
 
             <View style={styles.headerRow}>
                 <Text style={styles.sectionHeader}>GAMES AND SOFTWARE</Text>
@@ -145,7 +174,9 @@ export default function LibrarySidebar({ downloads, onSelectGame, selectedGameId
                     <Text style={styles.addGameText}>Add a Game</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+
+            <GlobalChat visible={isChatVisible} onClose={() => setIsChatVisible(false)} />
+        </View >
     );
 }
 
@@ -157,9 +188,24 @@ const styles = StyleSheet.create({
         borderRightColor: '#1a1d26',
         flexDirection: 'column',
     },
-    collapsed: {
-        width: 60,
-        alignItems: 'center',
+    header: {
+        padding: 16,
+        gap: 12
+    },
+    titleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#fff',
+        letterSpacing: 1
+    },
+    chatButton: {
+        width: 40,
+        height: 40,
     },
     navItem: {
         flexDirection: 'row',
@@ -184,23 +230,22 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
     },
-    searchSection: {
+    searchRow: {
         flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
         alignItems: 'center',
+        gap: 8,
+        marginTop: 4
     },
     searchBar: {
         flex: 1,
         flexDirection: 'row',
-        backgroundColor: '#1f2126',
-        borderRadius: 2,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
         alignItems: 'center',
-        marginRight: 8,
-        // borderBottomWidth: 1,
-        // borderBottomColor: Colors.dark.accent, // Active search look
+        backgroundColor: '#1f2126',
+        borderRadius: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderColor: '#2b2f38',
     },
     searchIcon: {
         fontSize: 12,
@@ -219,8 +264,15 @@ const styles = StyleSheet.create({
         }) as any
     },
     filterButton: {
-        padding: 4,
+        padding: 8,
+        backgroundColor: '#1f2126',
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#2b2f38',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
+
     filterIcon: {
         fontSize: 16,
         color: Colors.dark.textSecondary,
@@ -349,4 +401,15 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 2,
     },
+    filterOptions: {
+        backgroundColor: '#1f2126',
+        padding: 12,
+        marginHorizontal: 16,
+        borderRadius: 4,
+        marginBottom: 8
+    },
+    filterOptionText: {
+        color: '#dcdedf',
+        fontSize: 12
+    }
 });
