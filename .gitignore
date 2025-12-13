@@ -42,3 +42,9 @@ yarn-error.*
 CICD_SETUP.md
 .gitignore
 DOWNLOADS.md
+
+
+
+
+
+.env

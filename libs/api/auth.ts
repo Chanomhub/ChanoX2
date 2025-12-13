@@ -112,3 +112,26 @@ export async function updateUser(token: string, userData: Partial<User>): Promis
 
     return response.json();
 }
+
+/**
+ * Login with Supabase access token (for SSO)
+ * This exchanges the Supabase token with the backend to get an internal user
+ */
+export async function loginWithSupabaseToken(supabaseAccessToken: string): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE}/users/login-supabase`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            accessToken: supabaseAccessToken,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Supabase login failed' }));
+        throw new Error(error.message || 'Supabase login failed');
+    }
+
+    return response.json();
+}

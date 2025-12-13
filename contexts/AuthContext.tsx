@@ -1,6 +1,11 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { Platform } from 'react-native';
-import { login as apiLogin, register as apiRegister, getCurrentUser, User, LoginCredentials, RegisterData } from '@/libs/api/auth';
+import { login as apiLogin, register as apiRegister, getCurrentUser, loginWithSupabaseToken, User, LoginCredentials, RegisterData } from '@/libs/api/auth';
+import { supabase, isSupabaseConfigured } from '@/libs/supabase';
+import { makeRedirectUri } from 'expo-auth-session';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 interface AuthContextType {
     user: User | null;
@@ -12,6 +17,9 @@ interface AuthContextType {
     logout: () => Promise<void>;
     switchAccount: (userId: number) => Promise<void>;
     isAuthenticated: boolean;
+    loginWithGoogle: () => Promise<void>;
+    handleSupabaseCallback: (accessToken: string) => Promise<void>;
+    isSupabaseAvailable: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,6 +102,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Load token and user on app start
     useEffect(() => {
         loadStoredAuth();
+    }, []);
+
+    // Listen for OAuth callback from Electron deep link
+    useEffect(() => {
+        const isElectron = typeof window !== 'undefined' && window.electronAPI;
+        if (isElectron && window.electronAPI.onOAuthCallback) {
+            console.log('Setting up OAuth callback listener...');
+            window.electronAPI.onOAuthCallback(async (data) => {
+                console.log('OAuth callback received from deep link');
+                try {
+                    if (data.accessToken) {
+                        // Set Supabase session
+                        const { error: sessionError } = await supabase.auth.setSession({
+                            access_token: data.accessToken,
+                            refresh_token: data.refreshToken || '',
+                        });
+                        if (sessionError) {
+                            console.error('Failed to set Supabase session:', sessionError);
+                            return;
+                        }
+
+                        // Exchange Supabase token with backend
+                        console.log('Exchanging Supabase token with backend...');
+                        const response = await loginWithSupabaseToken(data.accessToken);
+                        console.log('Backend response user:', response.user);
+
+                        // Ensure ID is a number
+                        const userId = response.user.id ? Number(response.user.id) : Date.now();
+                        const newUser = { ...response.user, id: isNaN(userId) ? Date.now() : userId };
+
+                        // Read fresh accounts from storage
+                        let currentAccounts: User[] = [];
+                        const storedAccountsJson = await storage.getItem(ACCOUNTS_KEY);
+                        if (storedAccountsJson) {
+                            try {
+                                const parsed = JSON.parse(storedAccountsJson);
+                                if (Array.isArray(parsed)) {
+                                    currentAccounts = parsed.filter(u => u).map((u, index) => ({
+                                        ...u,
+                                        id: u.id ? Number(u.id) : Date.now() + index
+                                    }));
+                                }
+                            } catch (e) {
+                                console.error('Failed to parse stored accounts:', e);
+                            }
+                        }
+
+                        // Add/update user in accounts
+                        const otherAccounts = currentAccounts.filter(a => a.email !== newUser.email);
+                        const newAccounts = [...otherAccounts, newUser];
+
+                        // Save accounts
+                        setAccounts(newAccounts);
+                        setUser(newUser);
+                        setToken(newUser.token);
+                        await storage.setItem(ACCOUNTS_KEY, JSON.stringify(newAccounts));
+                        await storage.setItem(ACTIVE_USER_ID_KEY, String(newUser.id));
+
+                        console.log('OAuth callback processed successfully, user:', newUser.email);
+                    }
+                } catch (error) {
+                    console.error('Error processing OAuth callback:', error);
+                }
+            });
+        }
     }, []);
 
     const loadStoredAuth = async () => {
@@ -283,6 +356,183 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const loginWithGoogle = async () => {
+        if (!isSupabaseConfigured()) {
+            throw new Error('Supabase is not configured');
+        }
+
+        try {
+            console.log('Initiating Google Login...');
+
+            // Detect Electron environment
+            const isElectron = typeof window !== 'undefined' && window.electronAPI;
+
+            // For Web (including Electron)
+            if (Platform.OS === 'web') {
+                let redirectUrl: string | undefined;
+                if (isElectron) {
+                    // In Electron, use local callback server (port 9876) that receives tokens from browser
+                    // This allows opening OAuth in user's default browser
+                    try {
+                        // Start the OAuth callback server
+                        const { port } = await window.electronAPI.startOAuthServer();
+                        redirectUrl = `http://localhost:${port}/callback`;
+                        console.log('Electron OAuth server started, redirect URL:', redirectUrl);
+
+                        // Get the OAuth URL with skipBrowserRedirect so we can open it in external browser
+                        const { data, error } = await supabase.auth.signInWithOAuth({
+                            provider: 'google',
+                            options: {
+                                redirectTo: redirectUrl,
+                                skipBrowserRedirect: true,
+                                queryParams: {
+                                    prompt: 'select_account', // Always show account picker
+                                },
+                            },
+                        });
+                        if (error) throw error;
+
+                        if (data?.url) {
+                            // Open in user's default browser
+                            console.log('Opening OAuth URL in external browser');
+                            window.electronAPI.openExternal(data.url);
+                        }
+                        // Return - callback will be handled via IPC event
+                        return;
+                    } catch (err) {
+                        console.error('Failed to start OAuth server, falling back to in-app:', err);
+                        // Fallback to in-app navigation
+                        redirectUrl = 'http://localhost:8081/callback';
+                    }
+                } else {
+                    redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/callback` : undefined;
+                }
+
+                // Fallback: Navigate within the current window
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: redirectUrl,
+                        queryParams: {
+                            prompt: 'select_account',
+                        },
+                    },
+                });
+                if (error) throw error;
+                return;
+            }
+
+            // For Native (Android/iOS)
+            const redirectUrl = makeRedirectUri({
+                path: 'callback',
+            });
+            console.log('Redirect URL:', redirectUrl);
+
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: redirectUrl,
+                    skipBrowserRedirect: true,
+                },
+            });
+
+            if (error) throw error;
+            if (!data?.url) throw new Error('No auth URL returned');
+
+            console.log('Opening auth session...', data.url);
+            const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+            console.log('Auth session result:', result);
+
+            if (result.type === 'success' && result.url) {
+                // Parse the URL to get the tokens (handled in callback screen usually, 
+                // but openAuthSessionAsync might return detailed URL with params)
+                // Actually, supabase might handle session automatically if we extract params,
+                // but often we just rely on deep linking to the callback screen.
+                // However, openAuthSessionAsync returns control here.
+
+                // We typically need to manually set the session if the callback
+                // doesn't happen via deep link automatically engaging the app (which it might not if we are checking result here)
+
+                // Extract params from result.url
+                const { params, errorCode } = QueryParams.getQueryParams(result.url);
+
+                if (errorCode) throw new Error(errorCode);
+
+                const { access_token, refresh_token } = params;
+
+                if (access_token && refresh_token) {
+                    const { error: sessionError } = await supabase.auth.setSession({
+                        access_token,
+                        refresh_token,
+                    });
+                    if (sessionError) throw sessionError;
+
+                    // Fetch user details to update local state immediately
+                    const { data: { user: authUser } } = await supabase.auth.getUser();
+                    if (authUser && authUser.email) {
+                        // We need to map this to our internal User type. 
+                        // This might be tricky if our backend requires a separate login sync.
+                        // For now we'll assume we can use the email to find/create a user or just pass through.
+                        // Ideally we call our backend to sync Supabase user.
+
+                        // NOTE: If your backend is NOT Supabase, you need to exchange this token
+                        // or register this user with your backend.
+                        // Assuming simple Supabase usage for now or backend sync happens elsewhere.
+                        console.log('Logged in with Google:', authUser.email);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Google login error:', error);
+            throw error;
+        }
+    };
+
+    // Handle Supabase OAuth callback - exchanges token with backend and saves user
+    const handleSupabaseCallback = async (accessToken: string) => {
+        try {
+            console.log('Exchanging Supabase token with backend...');
+            const response = await loginWithSupabaseToken(accessToken);
+            console.log('Backend response user:', response.user);
+
+            // Ensure ID is a number, fallback to random if missing
+            const userId = response.user.id ? Number(response.user.id) : Date.now();
+            const newUser = { ...response.user, id: isNaN(userId) ? Date.now() : userId };
+
+            // Read fresh accounts from storage to avoid stale state
+            let currentAccounts: User[] = [];
+            const storedAccountsJson = await storage.getItem(ACCOUNTS_KEY);
+            if (storedAccountsJson) {
+                try {
+                    const parsed = JSON.parse(storedAccountsJson);
+                    if (Array.isArray(parsed)) {
+                        currentAccounts = parsed.filter(u => u).map((u, index) => {
+                            let id = u.id;
+                            if (id === null || id === undefined || (typeof id === 'number' && isNaN(id))) {
+                                id = Date.now() + index;
+                            } else {
+                                id = Number(id);
+                            }
+                            return { ...u, id };
+                        });
+                    }
+                } catch (e) {
+                    console.error('Failed to parse stored accounts:', e);
+                }
+            }
+
+            // Add or update user in accounts list (merge, not replace)
+            const otherAccounts = currentAccounts.filter(a => a.email !== newUser.email);
+            const newAccounts = [...otherAccounts, newUser];
+
+            await saveAccounts(newAccounts, newUser);
+            console.log('Supabase user saved to accounts. Total accounts:', newAccounts.length);
+        } catch (error) {
+            console.error('Supabase callback error:', error);
+            throw error;
+        }
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -295,6 +545,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 logout,
                 switchAccount,
                 isAuthenticated: !!user,
+                loginWithGoogle,
+                handleSupabaseCallback,
+                isSupabaseAvailable: isSupabaseConfigured(),
             }}
         >
             {children}

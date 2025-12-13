@@ -8,9 +8,10 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const { login } = useAuth();
+    const { login, loginWithGoogle, isSupabaseAvailable } = useAuth();
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -31,6 +32,23 @@ export default function LoginScreen() {
             setLoading(false);
         }
     };
+
+    const handleGoogleLogin = async () => {
+        setGoogleLoading(true);
+        setError('');
+
+        try {
+            await loginWithGoogle();
+            // Navigate back to home on success
+            router.replace('/');
+        } catch (err: any) {
+            setError(err.message || 'Google login failed. Please try again.');
+        } finally {
+            setGoogleLoading(false);
+        }
+    };
+
+    const isLoading = loading || googleLoading;
 
     return (
         <KeyboardAvoidingView
@@ -58,6 +76,33 @@ export default function LoginScreen() {
                         </View>
                     ) : null}
 
+                    {/* Google Login Button (if Supabase is configured) */}
+                    {isSupabaseAvailable && (
+                        <>
+                            <TouchableOpacity
+                                style={[styles.googleButton, isLoading && styles.buttonDisabled]}
+                                onPress={handleGoogleLogin}
+                                disabled={isLoading}
+                            >
+                                {googleLoading ? (
+                                    <ActivityIndicator color={Colors.dark.text} />
+                                ) : (
+                                    <View style={styles.googleButtonContent}>
+                                        <Text style={styles.googleIcon}>G</Text>
+                                        <Text style={styles.googleButtonText}>Continue with Google</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+
+                            {/* Divider */}
+                            <View style={styles.dividerContainer}>
+                                <View style={styles.divider} />
+                                <Text style={styles.dividerText}>or</Text>
+                                <View style={styles.divider} />
+                            </View>
+                        </>
+                    )}
+
                     {/* Email Input */}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Email</Text>
@@ -70,7 +115,7 @@ export default function LoginScreen() {
                             keyboardType="email-address"
                             autoCapitalize="none"
                             autoComplete="email"
-                            editable={!loading}
+                            editable={!isLoading}
                         />
                     </View>
 
@@ -86,15 +131,15 @@ export default function LoginScreen() {
                             secureTextEntry
                             autoCapitalize="none"
                             autoComplete="password"
-                            editable={!loading}
+                            editable={!isLoading}
                         />
                     </View>
 
                     {/* Login Button */}
                     <TouchableOpacity
-                        style={[styles.button, loading && styles.buttonDisabled]}
+                        style={[styles.button, isLoading && styles.buttonDisabled]}
                         onPress={handleLogin}
-                        disabled={loading}
+                        disabled={isLoading}
                     >
                         {loading ? (
                             <ActivityIndicator color={Colors.dark.background} />
@@ -106,7 +151,7 @@ export default function LoginScreen() {
                     {/* Register Link */}
                     <View style={styles.registerContainer}>
                         <Text style={styles.registerText}>Don't have an account? </Text>
-                        <TouchableOpacity onPress={() => router.push('/register')} disabled={loading}>
+                        <TouchableOpacity onPress={() => router.push('/register')} disabled={isLoading}>
                             <Text style={styles.registerLink}>Create one</Text>
                         </TouchableOpacity>
                     </View>
@@ -203,5 +248,51 @@ const styles = StyleSheet.create({
         color: Colors.dark.accent,
         fontSize: 14,
         fontWeight: 'bold',
+    },
+    // Google OAuth Button Styles
+    googleButton: {
+        backgroundColor: '#4285F4',
+        padding: 16,
+        borderRadius: 4,
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    googleButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    googleIcon: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginRight: 12,
+        width: 24,
+        height: 24,
+        textAlign: 'center',
+        lineHeight: 24,
+        backgroundColor: '#fff',
+        color: '#4285F4',
+        borderRadius: 4,
+    },
+    googleButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    // Divider Styles
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    divider: {
+        flex: 1,
+        height: 1,
+        backgroundColor: Colors.dark.border,
+    },
+    dividerText: {
+        color: Colors.dark.textSecondary,
+        paddingHorizontal: 16,
+        fontSize: 14,
     },
 });

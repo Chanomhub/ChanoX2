@@ -53,6 +53,7 @@ function AppNavigator() {
                 <Stack.Screen name="(main)/webview" options={{ title: 'WebView', headerShown: true }} />
                 <Stack.Screen name="(auth)/login" options={{ title: 'Login', headerShown: true }} />
                 <Stack.Screen name="(auth)/register" options={{ title: 'Register', headerShown: true }} />
+                <Stack.Screen name="(auth)/callback" options={{ title: 'Logging in...', headerShown: false }} />
                 <Stack.Screen name="(main)/[slug]" options={{ headerShown: false }} />
             </Stack>
             <DownloadFooter />

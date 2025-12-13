@@ -3,6 +3,7 @@ export interface ElectronAPI {
     openNewWindow: (url: string) => void;
     showItemInFolder: (path: string) => void;
     openPath: (path: string) => void;
+    openExternal: (url: string) => void;
     extractFile: (filePath: string, destPath: string) => Promise<{ success: boolean }>;
 
     // Storage Management
@@ -36,6 +37,11 @@ export interface ElectronAPI {
     // Window controls
     getGlobalSettings: () => Promise<{ wineProvider?: 'internal' | 'bottles'; externalWineCommand?: string }>;
     saveGlobalSettings: (settings: { wineProvider: 'internal' | 'bottles'; externalWineCommand?: string }) => Promise<boolean>;
+
+    // OAuth callback
+    onOAuthCallback: (callback: (data: { accessToken: string; refreshToken: string | null }) => void) => void;
+    startOAuthServer: () => Promise<{ port: number }>;
+    stopOAuthServer: () => Promise<boolean>;
 }
 
 declare global {

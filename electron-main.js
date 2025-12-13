@@ -235,22 +235,34 @@ function createWindow() {
     newWindow.loadURL(url);
   });
 
-  // Prevent external navigation
+  // Prevent external navigation - allow OAuth and localhost in dev mode
   mainWindow.webContents.on('will-navigate', (event, url) => {
     console.log('⚠️ Will Navigate to:', url);
-    if (!url.startsWith('chanox2://')) {
+    const isAppUrl = url.startsWith('chanox2://');
+    const isOauthUrl = url.includes('supabase.co') || url.includes('google.com') || url.includes('accounts.google.com');
+    // Allow localhost for dev mode
+    const isDevUrl = isDev && url.startsWith('http://localhost');
+
+    console.log('🔍 Navigation checks:', { isAppUrl, isDevUrl, isOauthUrl, isDev });
+
+    if (!isAppUrl && !isDevUrl && !isOauthUrl) {
       event.preventDefault();
       console.warn('⚠️ Blocked navigation to:', url);
-      // require('electron').shell.openExternal(url);
+      require('electron').shell.openExternal(url);
+    } else {
+      console.log('✅ Allowing navigation to:', url);
     }
   });
 
   // Handle window open requests
+  // Handle window open requests
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     console.log('⚠️ Window Open Request:', url);
-    if (url.startsWith('http')) {
-      // require('electron').shell.openExternal(url);
-      console.warn('⚠️ Blocked window open:', url);
+    const isOauthUrl = url.includes('supabase.co') || url.includes('google.com') || url.includes('accounts.google.com');
+
+    if (url.startsWith('http') && !isOauthUrl) {
+      require('electron').shell.openExternal(url);
+      console.warn('Opening external:', url);
       return { action: 'deny' };
     }
     return { action: 'allow' };
@@ -347,6 +359,142 @@ ipcMain.on('open-path', async (event, fullPath) => {
   if (error) {
     console.error('Error opening path:', error);
   }
+});
+
+// Open URL in system's default browser (for OAuth)
+ipcMain.on('open-external', (event, url) => {
+  const { shell } = require('electron');
+  console.log('Opening external URL:', url);
+  shell.openExternal(url);
+});
+
+// --- OAuth Callback Server ---
+// Temporary HTTP server to receive OAuth callback from external browser
+const http = require('http');
+let oauthServer = null;
+const OAUTH_CALLBACK_PORT = 9876;
+
+// Start OAuth callback server
+ipcMain.handle('start-oauth-server', async () => {
+  return new Promise((resolve, reject) => {
+    if (oauthServer) {
+      console.log('OAuth server already running');
+      resolve({ port: OAUTH_CALLBACK_PORT });
+      return;
+    }
+
+    oauthServer = http.createServer((req, res) => {
+      const url = new URL(req.url, `http://localhost:${OAUTH_CALLBACK_PORT}`);
+
+      // Check if this is the callback
+      if (url.pathname === '/callback') {
+        console.log('🔐 OAuth callback received');
+
+        // Get tokens from hash (sent as query params by Supabase redirect)
+        // The tokens might be in the URL fragment (#) which we need to handle client-side
+        // Or as query params if Supabase uses that format
+
+        // Send a page that extracts hash fragment and posts it
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Login Successful</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                     display: flex; justify-content: center; align-items: center; height: 100vh; 
+                     margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+              .container { text-align: center; color: white; padding: 40px; }
+              h1 { margin-bottom: 10px; }
+              p { opacity: 0.9; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>✅ Login Successful!</h1>
+              <p>You can close this tab and return to ChanoX2.</p>
+            </div>
+            <script>
+              // Extract tokens from URL hash or query
+              const hash = window.location.hash.substring(1);
+              const params = new URLSearchParams(hash || window.location.search);
+              const accessToken = params.get('access_token');
+              const refreshToken = params.get('refresh_token');
+              
+              if (accessToken) {
+                // Send tokens to callback endpoint
+                fetch('/oauth-tokens', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ accessToken, refreshToken })
+                }).then(() => {
+                  setTimeout(() => window.close(), 1500);
+                });
+              }
+            </script>
+          </body>
+          </html>
+        `);
+      } else if (url.pathname === '/oauth-tokens' && req.method === 'POST') {
+        // Receive tokens from the callback page
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+          try {
+            const { accessToken, refreshToken } = JSON.parse(body);
+            console.log('✅ OAuth tokens received from browser');
+
+            // Send tokens to renderer
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('oauth-callback', { accessToken, refreshToken });
+              mainWindow.focus();
+            }
+
+            res.writeHead(200);
+            res.end('OK');
+
+            // Close the server after a delay
+            setTimeout(() => {
+              if (oauthServer) {
+                oauthServer.close();
+                oauthServer = null;
+                console.log('OAuth server closed');
+              }
+            }, 2000);
+          } catch (e) {
+            console.error('Failed to parse OAuth tokens:', e);
+            res.writeHead(400);
+            res.end('Bad Request');
+          }
+        });
+      } else {
+        res.writeHead(404);
+        res.end('Not Found');
+      }
+    });
+
+    oauthServer.listen(OAUTH_CALLBACK_PORT, () => {
+      console.log(`🔐 OAuth callback server started on port ${OAUTH_CALLBACK_PORT}`);
+      resolve({ port: OAUTH_CALLBACK_PORT });
+    });
+
+    oauthServer.on('error', (err) => {
+      console.error('OAuth server error:', err);
+      oauthServer = null;
+      reject(err);
+    });
+  });
+});
+
+// Stop OAuth callback server
+ipcMain.handle('stop-oauth-server', async () => {
+  if (oauthServer) {
+    oauthServer.close();
+    oauthServer = null;
+    console.log('OAuth server stopped');
+  }
+  return true;
 });
 
 // Window controls
@@ -446,6 +594,84 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+// --- Deep Link / OAuth Callback Handling ---
+// Register as default protocol client for chanox2://
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('chanox2', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('chanox2');
+}
+
+// Handle deep link on macOS
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  console.log('🔗 Deep link received:', url);
+  handleDeepLink(url);
+});
+
+// Handle deep link on Windows/Linux (second instance)
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Find the deep link URL in command line args
+    const url = commandLine.find(arg => arg.startsWith('chanox2://'));
+    if (url) {
+      console.log('🔗 Deep link from second instance:', url);
+      handleDeepLink(url);
+    }
+    // Focus the main window
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
+// Handle OAuth callback deep link
+function handleDeepLink(url) {
+  if (!url.startsWith('chanox2://callback')) {
+    console.log('Deep link is not a callback, ignoring');
+    return;
+  }
+
+  console.log('🔐 OAuth callback deep link:', url);
+
+  // Extract tokens from URL (they could be in hash or query params)
+  // Format: chanox2://callback#access_token=...&refresh_token=...
+  // or: chanox2://callback?access_token=...
+
+  let tokenPart = '';
+  if (url.includes('#')) {
+    tokenPart = url.split('#')[1];
+  } else if (url.includes('?')) {
+    tokenPart = url.split('?')[1];
+  }
+
+  if (tokenPart && mainWindow && !mainWindow.isDestroyed()) {
+    // Parse the tokens
+    const params = new URLSearchParams(tokenPart);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken) {
+      console.log('✅ Found access token, sending to renderer');
+      // Send tokens to renderer process
+      mainWindow.webContents.send('oauth-callback', {
+        accessToken,
+        refreshToken,
+      });
+      // Focus the window
+      mainWindow.focus();
+    } else {
+      console.error('❌ No access token found in callback URL');
+    }
+  }
+}
 
 // --- Game Launching Logic ---
 

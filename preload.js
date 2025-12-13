@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openNewWindow: (url) => ipcRenderer.send('open-new-window', url),
     showItemInFolder: (path) => ipcRenderer.send('show-item-in-folder', path),
     openPath: (path) => ipcRenderer.send('open-path', path),
+    openExternal: (url) => ipcRenderer.send('open-external', url),
     extractFile: (filePath, destPath) => ipcRenderer.invoke('extract-file', { filePath, destPath }),
 
     // Storage Management
@@ -53,4 +54,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     minimizeWindow: () => ipcRenderer.send('window-minimize'),
     maximizeWindow: () => ipcRenderer.send('window-maximize'),
     closeWindow: () => ipcRenderer.send('window-close'),
+
+    // OAuth callback listener
+    onOAuthCallback: (callback) => {
+        ipcRenderer.on('oauth-callback', (event, data) => callback(data));
+    },
+
+    // OAuth server control
+    startOAuthServer: () => ipcRenderer.invoke('start-oauth-server'),
+    stopOAuthServer: () => ipcRenderer.invoke('stop-oauth-server'),
 });
