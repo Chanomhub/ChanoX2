@@ -1,50 +1,35 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# Dependencies
 node_modules/
 
-# Expo
-.expo/
+# Build outputs
 dist/
-web-build/
-expo-env.d.ts
+release/
+build/
+*.log
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# Temporary build output files
+build_output*.txt
 
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
-CICD_SETUP.md
-.gitignore
-DOWNLOADS.md
-
-
-
-
-
+# Environment
 .env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Legacy Expo project (not used in Electron version)
+_legacy_expo/
+
+# Electron
+*.asar
+
+# Test coverage
+coverage/
