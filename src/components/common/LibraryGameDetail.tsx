@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useLibrary } from '@/contexts/LibraryContext';
 import { LibraryItem } from '@/types/libraryItem';
+import { client } from '@/libs/api/client';
+import { GET_OFFICIAL_DOWNLOAD_SOURCES } from '@/libs/api/queries';
+import { OfficialDownloadSource, OfficialDownloadSourcesResponse } from '@/types/graphql';
 import GameLaunchDialog, { GameLaunchConfig } from './GameLaunchDialog';
 import { useGameLauncher } from '@/hooks/useGameLauncher';
 import { useGameScanner } from '@/hooks/useGameScanner';
@@ -14,7 +17,9 @@ import {
     RotateCcw,
     Trash2,
     Archive,
-    ArrowLeft
+    ArrowLeft,
+    ExternalLink,
+    ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -46,6 +51,8 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
 
     const [launchDialogVisible, setLaunchDialogVisible] = useState(false);
     const [hasArchive, setHasArchive] = useState(false);
+    const [officialSources, setOfficialSources] = useState<OfficialDownloadSource[]>([]);
+    const [loadingOfficialSources, setLoadingOfficialSources] = useState(false);
 
     // Custom Hooks
     const { config, launchGame, saveConfig } = useGameLauncher(libraryItem.id);
@@ -59,6 +66,27 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
         };
         checkArchive();
     }, [libraryItem.id, archiveExists, libraryItem.archivePath]);
+
+    // Fetch official download sources if articleId is available
+    useEffect(() => {
+        const fetchOfficialSources = async () => {
+            if (!libraryItem.articleId) return;
+
+            setLoadingOfficialSources(true);
+            try {
+                const data = await client.request<OfficialDownloadSourcesResponse>(
+                    GET_OFFICIAL_DOWNLOAD_SOURCES,
+                    { articleId: Number(libraryItem.articleId) }
+                );
+                setOfficialSources(data.officialDownloadSources);
+            } catch (err) {
+                console.error('Error fetching official sources:', err);
+            } finally {
+                setLoadingOfficialSources(false);
+            }
+        };
+        fetchOfficialSources();
+    }, [libraryItem.articleId]);
 
     const handlePlayPress = async () => {
         if (libraryItem.isReExtracting) return;
@@ -278,6 +306,42 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
                                     className="w-full justify-between"
                                 />
                             )}
+                        </div>
+                    )}
+
+                    {/* Official Sources */}
+                    {loadingOfficialSources ? (
+                        <div className="bg-black/20 p-4 rounded-sm">
+                            <div className="flex items-center justify-center py-4">
+                                <Loader2 className="w-5 h-5 animate-spin text-[#66c0f4]" />
+                            </div>
+                        </div>
+                    ) : officialSources.length > 0 && (
+                        <div className="bg-black/20 p-4 rounded-sm space-y-3">
+                            <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-2">Official Links</h3>
+                            {officialSources.map((source) => (
+                                <a
+                                    key={source.id}
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (window.electronAPI) {
+                                            window.electronAPI.openExternal(source.url);
+                                        } else {
+                                            window.open(source.url, '_blank');
+                                        }
+                                    }}
+                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded text-sm font-medium bg-[#101822] hover:bg-[#1a2634] border border-[#2a475e] hover:border-[#66c0f4] transition-colors group"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <ExternalLink className="w-4 h-4 text-[#66c0f4]" />
+                                        <span className="text-[#dcdedf] group-hover:text-white">{source.name}</span>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-[#4b5563] group-hover:text-white" />
+                                </a>
+                            ))}
                         </div>
                     )}
 

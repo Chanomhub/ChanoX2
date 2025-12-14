@@ -59,7 +59,7 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
     }, [downloads]);
 
     // Store pending metadata for the next download started
-    const pendingMetadata = useRef<{ title?: string; cover?: string; engine?: string; gameVersion?: string } | null>(null);
+    const pendingMetadata = useRef<{ articleId?: number; title?: string; cover?: string; engine?: string; gameVersion?: string } | null>(null);
 
     // Helper to call extraction complete callback
     const handleExtractionComplete = useCallback((download: Download, extractedPath: string) => {
@@ -82,6 +82,7 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
                     const newDownload: Download = {
                         id,
                         filename,
+                        articleId: metadata?.articleId,
                         articleTitle: metadata?.title,
                         coverImage: metadata?.cover,
                         engine: metadata?.engine,
@@ -226,8 +227,9 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
         };
     }, [handleExtractionComplete]);
 
-    const openDownloadLink = (url: string, articleTitle?: string, coverImage?: string, engine?: string, gameVersion?: string) => {
+    const openDownloadLink = (url: string, articleId?: number, articleTitle?: string, coverImage?: string, engine?: string, gameVersion?: string) => {
         pendingMetadata.current = {
+            articleId,
             title: articleTitle,
             cover: coverImage,
             engine,

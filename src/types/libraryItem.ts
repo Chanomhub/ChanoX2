@@ -1,5 +1,6 @@
 export interface LibraryItem {
     id: number;               // Unique ID (timestamp)
+    articleId?: number;       // ID จาก API สำหรับดึง official sources
     title: string;            // ชื่อบทความ/เกม
     coverImage?: string;      // รูปปก
 

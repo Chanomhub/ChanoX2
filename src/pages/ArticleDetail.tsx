@@ -59,23 +59,37 @@ export default function ArticleDetail() {
         return images;
     }, [article]);
 
+    // Prevent duplicate fetches from StrictMode
+    const fetchingRef = useRef(false);
+
     useEffect(() => {
-        if (slug) {
-            fetchArticle();
+        if (slug && !fetchingRef.current) {
+            fetchingRef.current = true;
+            fetchArticle().finally(() => {
+                fetchingRef.current = false;
+            });
         }
     }, [slug]);
 
     const fetchArticle = async () => {
         try {
             setLoading(true);
-            const data = await client.request<ArticleResponse>(GET_ARTICLE, {
+            const articleData = await client.request<ArticleResponse>(GET_ARTICLE, {
                 slug: slug,
                 language: 'en', // Defaulting to EN for now
             });
 
-            if (data && data.article) {
-                setArticle(data.article);
-                fetchDownloads(data.article.id);
+            if (articleData && articleData.article) {
+                setArticle(articleData.article);
+
+                // Fetch downloads in parallel (reduces from 3 sequential to 1 + 1 parallel = 2 round trips)
+                const articleId = Number(articleData.article.id);
+                const [downloadsData, officialData] = await Promise.all([
+                    client.request<DownloadsResponse>(GET_DOWNLOADS, { articleId }),
+                    client.request<OfficialDownloadSourcesResponse>(GET_OFFICIAL_DOWNLOAD_SOURCES, { articleId })
+                ]);
+                setDownloads(downloadsData.downloads.filter(d => d.isActive));
+                setOfficialSources(officialData.officialDownloadSources);
             } else {
                 setError('Article not found');
             }
@@ -84,21 +98,6 @@ export default function ArticleDetail() {
             console.error('Error fetching article:', err);
             setError(err.message || 'Unknown error');
             setLoading(false);
-        }
-    };
-
-    const fetchDownloads = async (articleId: number | string) => {
-        try {
-            const id = typeof articleId === 'string' ? parseInt(articleId, 10) : articleId;
-            const [downloadsData, officialData] = await Promise.all([
-                client.request<DownloadsResponse>(GET_DOWNLOADS, { articleId: id }),
-                client.request<OfficialDownloadSourcesResponse>(GET_OFFICIAL_DOWNLOAD_SOURCES, { articleId: id })
-            ]);
-
-            setDownloads(downloadsData.downloads.filter(d => d.isActive));
-            setOfficialSources(officialData.officialDownloadSources);
-        } catch (err) {
-            console.error('Error fetching downloads:', err);
         }
     };
 
@@ -402,6 +401,7 @@ export default function ArticleDetail() {
                     onDownload={(url) => {
                         openDownloadLink(
                             url,
+                            article?.id,
                             article?.title,
                             article?.coverImage || article?.mainImage || article?.backgroundImage || undefined,
                             article?.engine?.name || undefined,

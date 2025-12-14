@@ -13,6 +13,7 @@ export interface Download {
     error?: string;
 
     // Metadata
+    articleId?: number;
     articleTitle?: string;
     coverImage?: string;
     engine?: string;

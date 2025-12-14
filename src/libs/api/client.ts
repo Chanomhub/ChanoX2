@@ -68,26 +68,46 @@ export class APQGraphQLClient extends GraphQLClient {
             // 2. For cached queries (includeQuery=false): Use GET for HTTP caching (queries only)
             // 3. Mutations: Always use POST
 
-            // FORCE POST to avoid 404s on GET requests
-            const method = 'POST';
+            const isMutation = cleanQuery.startsWith('mutation');
+            const useGet = !includeQuery && !isMutation;
 
             let url = this.apiUrl;
-            let options: RequestInit = {
-                method,
-                headers: combinedHeaders,
-            };
+            let options: RequestInit;
 
-            // POST request: use body
-            const body: any = {
-                extensions,
-            };
-            if (includeQuery) {
-                body.query = cleanQuery;
+            if (useGet) {
+                // GET request: use query parameters for CDN caching
+                const params = new URLSearchParams();
+                params.set('extensions', JSON.stringify(extensions));
+                if (variables) {
+                    params.set('variables', JSON.stringify(variables));
+                }
+                url = `${this.apiUrl}?${params.toString()}`;
+                options = {
+                    method: 'GET',
+                    headers: {
+                        ...combinedHeaders,
+                        'Content-Type': undefined as any, // Remove content-type for GET
+                    },
+                };
+                // Clean up undefined headers
+                delete (options.headers as any)['Content-Type'];
+            } else {
+                // POST request: use body
+                const body: any = {
+                    extensions,
+                };
+                if (includeQuery) {
+                    body.query = cleanQuery;
+                }
+                if (variables) {
+                    body.variables = variables;
+                }
+                options = {
+                    method: 'POST',
+                    headers: combinedHeaders,
+                    body: JSON.stringify(body),
+                };
             }
-            if (variables) {
-                body.variables = variables;
-            }
-            options.body = JSON.stringify(body);
 
             const res = await fetch(url, options);
 

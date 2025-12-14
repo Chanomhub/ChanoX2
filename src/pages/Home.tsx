@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { client } from '@/libs/api/client';
 import { GET_ARTICLES } from '@/libs/api/queries';
 import { Article, ArticlesResponse } from '@/types/graphql';
@@ -12,9 +12,15 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
+    const fetchingRef = useRef(false);
 
     useEffect(() => {
-        fetchArticles();
+        if (!fetchingRef.current) {
+            fetchingRef.current = true;
+            fetchArticles().finally(() => {
+                fetchingRef.current = false;
+            });
+        }
     }, []);
 
     const fetchArticles = async () => {
