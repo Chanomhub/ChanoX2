@@ -25,7 +25,9 @@ export default function HtmlRenderer({ html }: HtmlRendererProps) {
         },
         img: {
             marginVertical: 10,
-            borderRadius: 4,
+            borderRadius: 8,
+            maxWidth: '100%',
+            alignSelf: 'center',
         },
         blockquote: {
             backgroundColor: Colors.dark.surface,
@@ -188,6 +190,12 @@ export default function HtmlRenderer({ html }: HtmlRendererProps) {
                 selectable: true,
             }}
             enableExperimentalMarginCollapsing={true}
+            renderersProps={{
+                img: {
+                    enableExperimentalPercentWidth: true,
+                },
+            }}
+            computeEmbeddedMaxWidth={(contentWidth) => Math.min(contentWidth, 400)}
         />
     );
 }
