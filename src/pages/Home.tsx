@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { client } from '@/libs/api/client';
 import { GET_ARTICLES } from '@/libs/api/queries';
 import { Article, ArticlesResponse } from '@/types/graphql';
@@ -9,7 +8,6 @@ import GameListSection from '@/components/common/GameListSection';
 import { Loader2 } from 'lucide-react';
 
 export default function Home() {
-    const { user, logout } = useAuth();
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -77,20 +75,6 @@ export default function Home() {
         <div className="pb-8">
             <div className="flex justify-between items-center p-6 mb-2">
                 <h1 className="text-2xl font-bold text-chanox-accent tracking-wider">STORE</h1>
-                {user && (
-                    <div className="flex items-center gap-4">
-                        <div className="text-right">
-                            <p className="text-sm font-medium text-white">{user.username}</p>
-                            <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                        <button
-                            onClick={() => logout()}
-                            className="px-4 py-2 bg-red-500/10 text-red-500 rounded-md hover:bg-red-500/20 transition-colors text-sm"
-                        >
-                            Logout
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Featured Carousel */}

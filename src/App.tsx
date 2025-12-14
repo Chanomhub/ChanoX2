@@ -15,6 +15,7 @@ import ArticleDetail from '@/pages/ArticleDetail'
 import Downloads from '@/pages/Downloads'
 import Library from '@/pages/Library'
 import Search from '@/pages/Search'
+import Settings from '@/pages/Settings'
 
 export default function App() {
     console.log('App rendering');
@@ -34,6 +35,7 @@ export default function App() {
                                     <Route path="/downloads" element={<Downloads />} />
                                     <Route path="/library" element={<Library />} />
                                     <Route path="/search" element={<Search />} />
+                                    <Route path="/settings" element={<Settings />} />
                                 </Routes>
                             </Layout>
                         </LanguageProvider>
