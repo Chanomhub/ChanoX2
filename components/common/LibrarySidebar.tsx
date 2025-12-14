@@ -188,6 +188,11 @@ const styles = StyleSheet.create({
         borderRightColor: '#1a1d26',
         flexDirection: 'column',
     },
+    collapsed: {
+        width: 60,
+        alignItems: 'center',
+        paddingTop: 8,
+    },
     header: {
         padding: 16,
         gap: 12
