@@ -11,6 +11,17 @@ import { useLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
 import { useSettingsStore, SettingsSection } from '@/stores/settingsStore';
 import packageJson from '../../package.json';
 
+// shadcn components
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/Input';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/ScrollArea';
+
 interface GitHubRelease {
     tag_name: string;
     html_url: string;
@@ -23,8 +34,6 @@ interface SidebarItemProps {
     isActive: boolean;
     onClick: () => void;
 }
-
-
 
 // Sidebar Item Component
 function SidebarItem({ label, icon, isActive, onClick }: SidebarItemProps) {
@@ -52,19 +61,7 @@ function SectionHeader({ title }: { title: string }) {
     return (
         <div className="mb-6">
             <h2 className="text-2xl font-light text-zinc-100 tracking-wide">{title}</h2>
-            <div className="h-px bg-zinc-700/50 mt-3" />
-        </div>
-    );
-}
-
-// Card Component
-function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-    return (
-        <div className={cn(
-            "bg-chanox-surface border border-chanox-border rounded-lg p-5 mb-4",
-            className
-        )}>
-            {children}
+            <Separator className="mt-3 bg-zinc-700/50" />
         </div>
     );
 }
@@ -76,57 +73,63 @@ function AccountSection() {
     return (
         <div>
             <SectionHeader title="Account Details" />
-            <Card>
-                <div className="flex items-center gap-5">
-                    {/* Avatar */}
-                    <div className="relative">
-                        <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-chanox-accent to-blue-600 flex items-center justify-center">
-                            <span className="text-3xl font-bold text-white">
-                                {user?.username?.charAt(0).toUpperCase() || '?'}
-                            </span>
+            <Card className="bg-chanox-surface border-chanox-border">
+                <CardContent className="pt-6">
+                    <div className="flex items-center gap-5">
+                        {/* Avatar */}
+                        <div className="relative">
+                            <Avatar className="w-20 h-20 rounded-lg">
+                                <AvatarFallback className="bg-gradient-to-br from-chanox-accent to-blue-600 text-3xl font-bold text-white rounded-lg">
+                                    {user?.username?.charAt(0).toUpperCase() || '?'}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-chanox-surface" />
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-chanox-surface" />
-                    </div>
 
-                    {/* Profile Info */}
-                    <div className="flex-1">
-                        <h3 className="text-xl font-semibold text-zinc-100">
-                            {user?.username || 'Guest User'}
-                        </h3>
-                        <p className="text-green-400 text-sm flex items-center gap-1.5">
-                            <span className="w-2 h-2 bg-green-400 rounded-full" />
-                            Online
-                        </p>
-                        <p className="text-zinc-500 text-xs font-mono mt-1">
-                            ID: {user?.id || 'Unknown'}
-                        </p>
-                    </div>
+                        {/* Profile Info */}
+                        <div className="flex-1">
+                            <h3 className="text-xl font-semibold text-zinc-100">
+                                {user?.username || 'Guest User'}
+                            </h3>
+                            <p className="text-green-400 text-sm flex items-center gap-1.5">
+                                <span className="w-2 h-2 bg-green-400 rounded-full" />
+                                Online
+                            </p>
+                            <p className="text-zinc-500 text-xs font-mono mt-1">
+                                ID: {user?.id || 'Unknown'}
+                            </p>
+                        </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                        <button className="px-4 py-2 text-sm border border-zinc-600 rounded-md text-zinc-300 hover:bg-white/5 transition-colors">
-                            Edit Profile
-                        </button>
-                        {user && (
-                            <button
-                                onClick={logout}
-                                className="px-4 py-2 text-sm border border-red-500/50 rounded-md text-red-400 hover:bg-red-500/10 transition-colors"
-                            >
-                                Logout
-                            </button>
-                        )}
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                                Edit Profile
+                            </Button>
+                            {user && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={logout}
+                                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                >
+                                    Logout
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </CardContent>
             </Card>
 
             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mt-6 mb-3">
                 Security & Privacy
             </h3>
-            <Card className="bg-zinc-800/50">
-                <p className="text-zinc-400 text-sm">
-                    Two-factor authentication is currently{' '}
-                    <span className="text-red-400 font-medium">Disabled</span>.
-                </p>
+            <Card className="bg-zinc-800/50 border-chanox-border">
+                <CardContent className="pt-4">
+                    <p className="text-zinc-400 text-sm">
+                        Two-factor authentication is currently{' '}
+                        <span className="text-red-400 font-medium">Disabled</span>.
+                    </p>
+                </CardContent>
             </Card>
         </div>
     );
@@ -170,41 +173,44 @@ function GeneralSection() {
             <SectionHeader title="System & Updates" />
 
             {/* Version Card */}
-            <Card>
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div>
-                        <p className="text-zinc-100 font-medium">Client Version</p>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="px-2 py-0.5 bg-zinc-700 rounded text-xs text-zinc-200 font-mono">
-                                v{currentVersion}
-                            </span>
-                            <span className="text-zinc-500 text-xs">(Stable Channel)</span>
+            <Card className="bg-chanox-surface border-chanox-border mb-4">
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                            <p className="text-zinc-100 font-medium">Client Version</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="px-2 py-0.5 bg-zinc-700 rounded text-xs text-zinc-200 font-mono">
+                                    v{currentVersion}
+                                </span>
+                                <span className="text-zinc-500 text-xs">(Stable Channel)</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 text-chanox-accent animate-spin" />
+                            ) : isUpdateAvailable ? (
+                                <Button
+                                    onClick={() => releaseUrl && window.electronAPI?.openExternal(releaseUrl)}
+                                    className="bg-green-600 hover:bg-green-700"
+                                    size="sm"
+                                    icon={<ExternalLink size={14} />}
+                                >
+                                    Update to v{latestVersion}
+                                </Button>
+                            ) : (
+                                <span className="px-3 py-1.5 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
+                                    Up to date
+                                </span>
+                            )}
+                            {error && (
+                                <button onClick={checkVersion} className="text-red-400 text-xs underline">
+                                    Retry
+                                </button>
+                            )}
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                        {loading ? (
-                            <Loader2 className="w-5 h-5 text-chanox-accent animate-spin" />
-                        ) : isUpdateAvailable ? (
-                            <button
-                                onClick={() => releaseUrl && window.electronAPI?.openExternal(releaseUrl)}
-                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md flex items-center gap-2 transition-colors"
-                            >
-                                <ExternalLink size={14} />
-                                Update to v{latestVersion}
-                            </button>
-                        ) : (
-                            <span className="px-3 py-1.5 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
-                                Up to date
-                            </span>
-                        )}
-                        {error && (
-                            <button onClick={checkVersion} className="text-red-400 text-xs underline">
-                                Retry
-                            </button>
-                        )}
-                    </div>
-                </div>
+                </CardContent>
             </Card>
 
             <SectionHeader title={t('language')} />
@@ -287,51 +293,54 @@ function StorageSection() {
             <SectionHeader title="Storage" />
 
             {/* Storage Bar */}
-            <Card>
-                <div className="flex justify-between items-center mb-3">
-                    <p className="text-zinc-300 text-sm truncate max-w-[60%]">
-                        {downloadPath || 'Loading...'}
-                    </p>
-                    <p className="text-zinc-400 text-sm font-medium">
-                        {diskSpace ? `${formatBytes(diskSpace.free)} FREE of ${formatBytes(diskSpace.total)}` : ''}
-                    </p>
-                </div>
+            <Card className="bg-chanox-surface border-chanox-border mb-4">
+                <CardContent className="pt-6">
+                    <div className="flex justify-between items-center mb-3">
+                        <p className="text-zinc-300 text-sm truncate max-w-[60%]">
+                            {downloadPath || 'Loading...'}
+                        </p>
+                        <p className="text-zinc-400 text-sm font-medium">
+                            {diskSpace ? `${formatBytes(diskSpace.free)} FREE of ${formatBytes(diskSpace.total)}` : ''}
+                        </p>
+                    </div>
 
-                {/* Progress Bar */}
-                <div className="h-2.5 bg-zinc-800 rounded-full overflow-hidden mb-4">
-                    <div
-                        className="h-full bg-gradient-to-r from-chanox-accent to-blue-500 transition-all"
-                        style={{ width: `${usedPercentage}%` }}
+                    {/* Progress Bar */}
+                    <Progress
+                        value={usedPercentage}
+                        className="h-2.5 mb-4 bg-zinc-800"
                     />
-                </div>
 
-                <div className="flex gap-5">
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded bg-chanox-accent" />
-                        <span className="text-zinc-400 text-xs">Used Space</span>
+                    <div className="flex gap-5">
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded bg-chanox-accent" />
+                            <span className="text-zinc-400 text-xs">Used Space</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded bg-zinc-800" />
+                            <span className="text-zinc-400 text-xs">Free Space</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded bg-zinc-800" />
-                        <span className="text-zinc-400 text-xs">Free Space</span>
-                    </div>
-                </div>
+                </CardContent>
             </Card>
 
             {/* Settings */}
-            <Card>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-zinc-100 font-medium">Download Folder</p>
-                        <p className="text-zinc-500 text-xs mt-0.5">Location for games and updates</p>
+            <Card className="bg-chanox-surface border-chanox-border">
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-zinc-100 font-medium">Download Folder</p>
+                            <p className="text-zinc-500 text-xs mt-0.5">Location for games and updates</p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleChangeLocation}
+                            icon={<FolderOpen size={14} />}
+                        >
+                            Change
+                        </Button>
                     </div>
-                    <button
-                        onClick={handleChangeLocation}
-                        className="px-4 py-2 text-sm border border-zinc-600 rounded-md text-zinc-300 hover:bg-white/5 transition-colors flex items-center gap-2"
-                    >
-                        <FolderOpen size={14} />
-                        Change
-                    </button>
-                </div>
+                </CardContent>
             </Card>
         </div>
     );
@@ -385,77 +394,75 @@ function LinuxSection() {
         <div>
             <SectionHeader title="Linux Settings" />
 
-            <Card>
-                <p className="text-zinc-100 font-medium mb-4">Wine Provider</p>
-
-                {/* Internal Wine Option */}
-                <button
-                    onClick={() => handleProviderChange('internal')}
-                    className={cn(
-                        "w-full p-4 rounded-lg border mb-3 text-left transition-all",
-                        wineProvider === 'internal'
-                            ? "border-chanox-accent bg-chanox-accent/10"
-                            : "border-chanox-border hover:border-zinc-600"
-                    )}
-                >
-                    <div className="flex items-center gap-3">
-                        <div className={cn(
-                            "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                            wineProvider === 'internal' ? "border-chanox-accent" : "border-zinc-600"
-                        )}>
-                            {wineProvider === 'internal' && (
-                                <div className="w-2.5 h-2.5 bg-chanox-accent rounded-full" />
+            <Card className="bg-chanox-surface border-chanox-border">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base text-zinc-100">Wine Provider</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <RadioGroup
+                        value={wineProvider}
+                        onValueChange={(value) => handleProviderChange(value as 'internal' | 'bottles')}
+                        className="space-y-3"
+                    >
+                        {/* Internal Wine Option */}
+                        <div
+                            className={cn(
+                                "flex items-start space-x-3 p-4 rounded-lg border transition-all cursor-pointer",
+                                wineProvider === 'internal'
+                                    ? "border-chanox-accent bg-chanox-accent/10"
+                                    : "border-chanox-border hover:border-zinc-600"
                             )}
+                            onClick={() => handleProviderChange('internal')}
+                        >
+                            <RadioGroupItem value="internal" id="internal" className="mt-0.5" />
+                            <div className="flex-1">
+                                <Label htmlFor="internal" className="text-zinc-100 font-medium cursor-pointer">
+                                    Internal Wine
+                                </Label>
+                                <p className="text-zinc-500 text-xs mt-1">
+                                    Use the system's installed Wine or bundled version.
+                                </p>
+                            </div>
                         </div>
-                        <span className="text-zinc-100 font-medium">Internal Wine</span>
-                    </div>
-                    <p className="text-zinc-500 text-xs mt-2 ml-8">
-                        Use the system's installed Wine or bundled version.
-                    </p>
-                </button>
 
-                {/* External/Bottles Option */}
-                <button
-                    onClick={() => handleProviderChange('bottles')}
-                    className={cn(
-                        "w-full p-4 rounded-lg border text-left transition-all",
-                        wineProvider === 'bottles'
-                            ? "border-chanox-accent bg-chanox-accent/10"
-                            : "border-chanox-border hover:border-zinc-600"
-                    )}
-                >
-                    <div className="flex items-center gap-3">
-                        <div className={cn(
-                            "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                            wineProvider === 'bottles' ? "border-chanox-accent" : "border-zinc-600"
-                        )}>
-                            {wineProvider === 'bottles' && (
-                                <div className="w-2.5 h-2.5 bg-chanox-accent rounded-full" />
+                        {/* External/Bottles Option */}
+                        <div
+                            className={cn(
+                                "flex items-start space-x-3 p-4 rounded-lg border transition-all cursor-pointer",
+                                wineProvider === 'bottles'
+                                    ? "border-chanox-accent bg-chanox-accent/10"
+                                    : "border-chanox-border hover:border-zinc-600"
                             )}
+                            onClick={() => handleProviderChange('bottles')}
+                        >
+                            <RadioGroupItem value="bottles" id="bottles" className="mt-0.5" />
+                            <div className="flex-1">
+                                <Label htmlFor="bottles" className="text-zinc-100 font-medium cursor-pointer">
+                                    External (Bottles / Custom)
+                                </Label>
+                                <p className="text-zinc-500 text-xs mt-1">
+                                    Launch games using an external command.
+                                </p>
+                            </div>
                         </div>
-                        <span className="text-zinc-100 font-medium">External (Bottles / Custom)</span>
-                    </div>
-                    <p className="text-zinc-500 text-xs mt-2 ml-8">
-                        Launch games using an external command.
-                    </p>
-                </button>
+                    </RadioGroup>
 
-                {/* Custom Command Input */}
-                {wineProvider === 'bottles' && (
-                    <div className="mt-4 pl-8">
-                        <label className="text-zinc-300 text-sm font-medium">Custom Command</label>
-                        <p className="text-zinc-500 text-xs mb-2">
-                            Use %EXE% as placeholder for the game executable.
-                        </p>
-                        <input
-                            type="text"
-                            value={externalCommand}
-                            onChange={(e) => handleCommandChange(e.target.value)}
-                            placeholder="e.g. bottles -e %EXE%"
-                            className="w-full px-3 py-2 bg-zinc-800 border border-chanox-border rounded-md text-zinc-200 text-sm focus:outline-none focus:border-chanox-accent"
-                        />
-                    </div>
-                )}
+                    {/* Custom Command Input */}
+                    {wineProvider === 'bottles' && (
+                        <div className="mt-4 pl-7">
+                            <Label className="text-zinc-300 text-sm">Custom Command</Label>
+                            <p className="text-zinc-500 text-xs mb-2">
+                                Use %EXE% as placeholder for the game executable.
+                            </p>
+                            <Input
+                                value={externalCommand}
+                                onChange={(e) => handleCommandChange(e.target.value)}
+                                placeholder="e.g. bottles -e %EXE%"
+                                className="bg-zinc-800 border-chanox-border text-zinc-200"
+                            />
+                        </div>
+                    )}
+                </CardContent>
             </Card>
         </div>
     );
@@ -512,44 +519,47 @@ export default function Settings() {
             {/* Sidebar */}
             <aside className="w-60 bg-chanox-background border-r border-chanox-border flex flex-col">
                 {/* Back Button */}
-                <button
+                <Button
+                    variant="ghost"
                     onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 px-4 py-3 text-zinc-400 hover:text-zinc-200 transition-colors border-b border-chanox-border"
+                    className="justify-start gap-2 px-4 py-3 text-zinc-400 hover:text-zinc-200 rounded-none border-b border-chanox-border"
                 >
                     <ChevronLeft size={18} />
                     <span className="text-sm">Back</span>
-                </button>
+                </Button>
 
                 {/* Menu */}
-                <nav className="flex-1 py-4 px-2 overflow-y-auto">
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-4 mb-2">
-                        Preferences
-                    </p>
-                    {preferencesItems.map((item) => (
-                        <SidebarItem
-                            key={item.id}
-                            label={item.label}
-                            icon={item.icon}
-                            isActive={activeSection === item.id}
-                            onClick={() => setActiveSection(item.id)}
-                        />
-                    ))}
+                <ScrollArea className="flex-1">
+                    <nav className="py-4 px-2">
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-4 mb-2">
+                            Preferences
+                        </p>
+                        {preferencesItems.map((item) => (
+                            <SidebarItem
+                                key={item.id}
+                                label={item.label}
+                                icon={item.icon}
+                                isActive={activeSection === item.id}
+                                onClick={() => setActiveSection(item.id)}
+                            />
+                        ))}
 
-                    <div className="h-px bg-zinc-700/50 my-3 mx-4" />
+                        <Separator className="my-3 mx-4 bg-zinc-700/50" />
 
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-4 mb-2">
-                        Application
-                    </p>
-                    {applicationItems.map((item) => (
-                        <SidebarItem
-                            key={item.id}
-                            label={item.label}
-                            icon={item.icon}
-                            isActive={activeSection === item.id}
-                            onClick={() => setActiveSection(item.id)}
-                        />
-                    ))}
-                </nav>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-4 mb-2">
+                            Application
+                        </p>
+                        {applicationItems.map((item) => (
+                            <SidebarItem
+                                key={item.id}
+                                label={item.label}
+                                icon={item.icon}
+                                isActive={activeSection === item.id}
+                                onClick={() => setActiveSection(item.id)}
+                            />
+                        ))}
+                    </nav>
+                </ScrollArea>
             </aside>
 
             {/* Content Area */}
