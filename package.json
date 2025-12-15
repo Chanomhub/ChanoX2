@@ -86,7 +86,21 @@
             "target": [
                 "nsis"
             ],
-            "icon": "public/icon.png"
+            "icon": "public/icon.ico"
+        },
+        "nsis": {
+            "oneClick": false,
+            "perMachine": false,
+            "allowToChangeInstallationDirectory": true,
+            "include": "public/installer.nsh",
+            "installerIcon": "public/icon.ico",
+            "uninstallerIcon": "public/icon.ico",
+            "installerHeaderIcon": "public/icon.ico",
+            "license": "public/license.txt",
+            "runAfterFinish": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "menuCategory": "ChanomHub"
         },
         "linux": {
             "target": [
@@ -102,6 +116,27 @@
             ],
             "category": "public.app-category.games",
             "icon": "public/icon.png"
+        },
+        "dmg": {
+            "background": "public/dmg-background.png",
+            "icon": "public/icon.png",
+            "iconSize": 100,
+            "contents": [
+                {
+                    "x": 180,
+                    "y": 170
+                },
+                {
+                    "x": 480,
+                    "y": 170,
+                    "type": "link",
+                    "path": "/Applications"
+                }
+            ],
+            "window": {
+                "width": 660,
+                "height": 400
+            }
         }
     },
     "private": true

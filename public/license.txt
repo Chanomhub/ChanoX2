@@ -1,0 +1,28 @@
+ChanoX2 License Agreement
+
+Copyright (c) 2024 ChanomHub. All rights reserved.
+
+This software is provided for personal, non-commercial use only.
+
+By installing ChanoX2, you agree to the following terms:
+
+1. LICENSE GRANT
+   You are granted a limited, non-exclusive license to use this software
+   for personal purposes.
+
+2. RESTRICTIONS
+   - You may not modify, reverse engineer, or decompile this software.
+   - You may not redistribute this software without permission.
+   - You may not use this software for commercial purposes.
+
+3. DISCLAIMER
+   This software is provided "as is" without warranty of any kind.
+   ChanomHub is not responsible for any damages arising from the use
+   of this software.
+
+4. TERMINATION
+   This license is effective until terminated. Your rights under this
+   license will terminate automatically if you fail to comply with any
+   of its terms.
+
+For more information, visit: https://chanomhub.com
