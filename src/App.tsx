@@ -1,10 +1,12 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import { useCallback } from 'react'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { DownloadProvider } from '@/contexts/DownloadContext'
 import { LibraryProvider } from '@/contexts/LibraryContext'
 import { FestivalProvider } from '@/contexts/FestivalContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import Layout from '@/components/common/Layout'
+import { usePendingGameLaunch } from '@/hooks/usePendingGameLaunch'
 
 // Pages
 import Home from '@/pages/Home'
@@ -17,6 +19,21 @@ import Library from '@/pages/Library'
 import Search from '@/pages/Search'
 import Settings from '@/pages/Settings'
 
+// Global pending game launch handler component
+function PendingGameLaunchHandler() {
+    const navigate = useNavigate();
+
+    const handlePendingLaunch = useCallback((_gameId: string) => {
+        console.log('🎮 App: Navigating to library for game:', _gameId);
+        // Navigate to library - the Library page will handle selecting the game
+        navigate('/library');
+    }, [navigate]);
+
+    usePendingGameLaunch(handlePendingLaunch);
+
+    return null;
+}
+
 export default function App() {
     console.log('App rendering');
     return (
@@ -26,6 +43,7 @@ export default function App() {
                     <FestivalProvider>
                         <LanguageProvider>
                             <Layout>
+                                <PendingGameLaunchHandler />
                                 <Routes>
                                     <Route path="/" element={<Home />} />
                                     <Route path="/login" element={<Login />} />
@@ -45,3 +63,4 @@ export default function App() {
         </AuthProvider>
     )
 }
+

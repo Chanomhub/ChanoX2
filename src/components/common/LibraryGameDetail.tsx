@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLibrary } from '@/contexts/LibraryContext';
 import { LibraryItem } from '@/types/libraryItem';
 import { client } from '@/libs/api/client';
@@ -22,7 +22,9 @@ import {
     ExternalLink,
     ChevronRight,
     Code,
-    RefreshCw
+    RefreshCw,
+    Link,
+    Link2Off
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -47,9 +49,11 @@ const formatLastPlayed = (date?: Date) => {
 interface LibraryGameDetailProps {
     libraryItem: LibraryItem;
     onBack: () => void;
+    autoLaunch?: boolean;
+    onAutoLaunchComplete?: () => void;
 }
 
-export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDetailProps) {
+export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onAutoLaunchComplete }: LibraryGameDetailProps) {
     const { toggleFavorite, reExtractGame, deleteArchive, archiveExists, removeFromLibrary, updateLibraryItem } = useLibrary();
 
     const [launchDialogVisible, setLaunchDialogVisible] = useState(false);
@@ -58,6 +62,8 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
     const [loadingOfficialSources, setLoadingOfficialSources] = useState(false);
     const [devMode, setDevMode] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [hasShortcut, setHasShortcut] = useState(false);
+    const [shortcutLoading, setShortcutLoading] = useState(false);
 
     // Custom Hooks
     const { config, launchGame, saveConfig, loadConfig, isRunning, stopGame } = useGameLauncher(libraryItem.id);
@@ -77,6 +83,20 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
         };
         checkArchive();
     }, [libraryItem.id, archiveExists, libraryItem.archivePath]);
+
+    // Check if shortcut exists on mount
+    useEffect(() => {
+        const checkShortcut = async () => {
+            if (window.electronAPI?.hasGameShortcut) {
+                const exists = await window.electronAPI.hasGameShortcut(
+                    String(libraryItem.id),
+                    libraryItem.title
+                );
+                setHasShortcut(exists);
+            }
+        };
+        checkShortcut();
+    }, [libraryItem.id, libraryItem.title]);
 
     // Fetch official download sources if articleId is available
     useEffect(() => {
@@ -98,6 +118,32 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
         };
         fetchOfficialSources();
     }, [libraryItem.articleId]);
+
+    // Auto-launch effect when triggered from shortcut
+    const autoLaunchTriggered = useRef(false);
+    useEffect(() => {
+        if (autoLaunch && config?.executablePath && !isRunning && !autoLaunchTriggered.current) {
+            autoLaunchTriggered.current = true;
+            console.log('🚀 Auto-launching game from shortcut...');
+
+            // Small delay to ensure UI is ready
+            const timer = setTimeout(async () => {
+                updateLibraryItem(libraryItem.id, { lastPlayedAt: new Date() });
+                const result = await launchGame();
+                if (!result.success) {
+                    alert(`Launch Failed: ${result.error || 'Unknown error'}`);
+                }
+                onAutoLaunchComplete?.();
+            }, 500);
+
+            return () => clearTimeout(timer);
+        }
+    }, [autoLaunch, config?.executablePath, isRunning, libraryItem.id, launchGame, updateLibraryItem, onAutoLaunchComplete]);
+
+    // Reset auto-launch trigger when component unmounts or game changes
+    useEffect(() => {
+        autoLaunchTriggered.current = false;
+    }, [libraryItem.id]);
 
     const handlePlayPress = async () => {
         if (libraryItem.isReExtracting) return;
@@ -182,6 +228,51 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
         if (confirmed) {
             await removeFromLibrary(libraryItem.id);
             onBack();
+        }
+    };
+
+    const handleCreateShortcut = async () => {
+        if (!window.electronAPI?.createGameShortcut) return;
+
+        setShortcutLoading(true);
+        try {
+            const result = await window.electronAPI.createGameShortcut(
+                String(libraryItem.id),
+                libraryItem.title,
+                libraryItem.coverImage
+            );
+            if (result.success) {
+                setHasShortcut(true);
+            } else {
+                alert(`Failed to create shortcut: ${result.error}`);
+            }
+        } catch (err) {
+            console.error('Error creating shortcut:', err);
+            alert('Failed to create shortcut');
+        } finally {
+            setShortcutLoading(false);
+        }
+    };
+
+    const handleDeleteShortcut = async () => {
+        if (!window.electronAPI?.deleteGameShortcut) return;
+
+        setShortcutLoading(true);
+        try {
+            const result = await window.electronAPI.deleteGameShortcut(
+                String(libraryItem.id),
+                libraryItem.title
+            );
+            if (result.success) {
+                setHasShortcut(false);
+            } else {
+                alert(`Failed to delete shortcut: ${result.error}`);
+            }
+        } catch (err) {
+            console.error('Error deleting shortcut:', err);
+            alert('Failed to delete shortcut');
+        } finally {
+            setShortcutLoading(false);
         }
     };
 
@@ -532,6 +623,34 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
                         >
                             <Trash2 className="w-4 h-4" />
                             Remove from Library
+                        </button>
+
+                        {/* Desktop Shortcut */}
+                        <button
+                            onClick={hasShortcut ? handleDeleteShortcut : handleCreateShortcut}
+                            disabled={shortcutLoading}
+                            className={cn(
+                                "w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors",
+                                shortcutLoading
+                                    ? "bg-[#2a2e36] text-[#6e7681] cursor-not-allowed"
+                                    : hasShortcut
+                                        ? "bg-[#2a3f55] hover:bg-[#3d2e2e] text-[#f38181]"
+                                        : "bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4]"
+                            )}
+                        >
+                            {shortcutLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : hasShortcut ? (
+                                <Link2Off className="w-4 h-4" />
+                            ) : (
+                                <Link className="w-4 h-4" />
+                            )}
+                            {shortcutLoading
+                                ? 'Processing...'
+                                : hasShortcut
+                                    ? 'Remove Desktop Shortcut'
+                                    : 'Create Desktop Shortcut'
+                            }
                         </button>
                     </div>
 

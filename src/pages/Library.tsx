@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useLibrary } from '@/contexts/LibraryContext';
+import { usePendingGameLaunch } from '@/hooks/usePendingGameLaunch';
 import LibrarySidebar from '@/components/common/LibrarySidebar';
 import LibraryGameDetail from '@/components/common/LibraryGameDetail';
 import { Play, Loader2 } from 'lucide-react';
@@ -8,6 +9,7 @@ export default function Library() {
     const { libraryItems } = useLibrary();
     const [selectedGameId, setSelectedGameId] = useState<number | undefined>();
     const [searchQuery, setSearchQuery] = useState('');
+    const [autoLaunchGameId, setAutoLaunchGameId] = useState<number | undefined>();
 
     // Filter games by search
     const filteredGames = libraryItems.filter(item => {
@@ -23,7 +25,28 @@ export default function Library() {
         } else {
             setSelectedGameId(id);
         }
+        setAutoLaunchGameId(undefined); // Clear auto-launch when manually selecting
     };
+
+    // Handle pending game launch from shortcuts
+    const handlePendingLaunch = useCallback((gameId: string) => {
+        console.log('🎮 Library received pending game launch:', gameId);
+        const numericId = Number(gameId);
+        const game = libraryItems.find(item => item.id === numericId);
+        if (game) {
+            setSelectedGameId(numericId);
+            setAutoLaunchGameId(numericId); // Trigger auto-launch
+        } else {
+            console.warn('⚠️ Game not found in library:', gameId);
+        }
+    }, [libraryItems]);
+
+    usePendingGameLaunch(handlePendingLaunch);
+
+    // Clear auto-launch after it's been handled
+    const handleAutoLaunchComplete = useCallback(() => {
+        setAutoLaunchGameId(undefined);
+    }, []);
 
     return (
         <div className="flex h-full bg-[#1b2838] overflow-hidden">
@@ -39,6 +62,8 @@ export default function Library() {
                     <LibraryGameDetail
                         libraryItem={selectedGame}
                         onBack={() => setSelectedGameId(undefined)}
+                        autoLaunch={autoLaunchGameId === selectedGame.id}
+                        onAutoLaunchComplete={handleAutoLaunchComplete}
                     />
                 ) : (
                     <div className="h-full overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-[#2a475e] scrollbar-track-[#1b2838]">

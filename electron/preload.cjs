@@ -104,4 +104,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // OAuth server control
     startOAuthServer: () => ipcRenderer.invoke('start-oauth-server'),
     stopOAuthServer: () => ipcRenderer.invoke('stop-oauth-server'),
+
+    // Game Shortcuts
+    createGameShortcut: (gameId, title, iconPath) =>
+        ipcRenderer.invoke('create-game-shortcut', { gameId, title, iconPath }),
+    deleteGameShortcut: (gameId, title) =>
+        ipcRenderer.invoke('delete-game-shortcut', { gameId, title }),
+    hasGameShortcut: (gameId, title) =>
+        ipcRenderer.invoke('has-game-shortcut', { gameId, title }),
+
+    // Pending game launch listener (from shortcuts/second instance)
+    onPendingGameLaunch: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('pending-game-launch');
+        ipcRenderer.on('pending-game-launch', handler);
+        return () => ipcRenderer.removeListener('pending-game-launch', handler);
+    },
 });

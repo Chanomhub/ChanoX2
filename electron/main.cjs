@@ -38,6 +38,85 @@ let downloadDirectory = DEFAULT_DIR;
 let oauthServer = null;
 const OAUTH_CALLBACK_PORT = 9876;
 
+// Parse command line arguments for game launch
+function parseLaunchGameArg(args) {
+    const launchArg = args.find(arg => arg.startsWith('--launch-game='));
+    return launchArg ? launchArg.split('=')[1] : null;
+}
+let pendingGameLaunch = parseLaunchGameArg(process.argv.slice(1));
+
+// Shortcut paths
+function getShortcutPath(gameId, title) {
+    // Sanitize title for filename - remove unsafe chars and limit length
+    const safeName = title
+        .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')  // Remove unsafe chars
+        .replace(/\s+/g, '_')                      // Replace spaces with underscores
+        .replace(/_+/g, '_')                       // Collapse multiple underscores
+        .replace(/^_|_$/g, '')                     // Trim underscores from ends
+        .substring(0, 80);                         // Limit length
+
+    if (process.platform === 'win32') {
+        return path.join(app.getPath('desktop'), `${safeName}.lnk`);
+    } else if (process.platform === 'linux') {
+        // Use game title for better readability, keep gameId for uniqueness
+        return path.join(HOME_DIR, 'Desktop', `${safeName}.desktop`);
+    } else if (process.platform === 'darwin') {
+        return path.join(HOME_DIR, 'Desktop', `${safeName}.command`);
+    }
+    return null;
+}
+
+// Get app icon path
+function getAppIconPath() {
+    // In development
+    const devIcon = path.join(__dirname, '../public/icon.png');
+    if (fs.existsSync(devIcon)) return devIcon;
+
+    // In production (resources folder)
+    const prodIcon = path.join(process.resourcesPath, 'icon.png');
+    if (fs.existsSync(prodIcon)) return prodIcon;
+
+    // Fallback to installed icon location on Linux
+    const linuxIcon = '/usr/share/icons/hicolor/256x256/apps/chanox2.png';
+    if (fs.existsSync(linuxIcon)) return linuxIcon;
+
+    return 'application-x-executable'; // System fallback
+}
+
+// Download and cache icon for game shortcuts
+async function downloadGameIcon(gameId, coverImageUrl) {
+    if (!coverImageUrl || !coverImageUrl.startsWith('http')) {
+        return null;
+    }
+
+    try {
+        const iconsDir = path.join(USER_DATA_DIR, 'game-icons');
+        if (!fs.existsSync(iconsDir)) {
+            fs.mkdirSync(iconsDir, { recursive: true });
+        }
+
+        const iconPath = path.join(iconsDir, `${gameId}.png`);
+
+        // Skip if already cached
+        if (fs.existsSync(iconPath)) {
+            return iconPath;
+        }
+
+        // Download the image
+        const response = await fetch(coverImageUrl);
+        if (!response.ok) throw new Error('Failed to download icon');
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        fs.writeFileSync(iconPath, buffer);
+
+        console.log('✅ Downloaded game icon:', iconPath);
+        return iconPath;
+    } catch (err) {
+        console.error('⚠️ Failed to download icon:', err.message);
+        return null;
+    }
+}
+
 // 7zip setup
 const pathTo7zip = require('7zip-bin').path7za.replace('app.asar', 'app.asar.unpacked');
 const Seven = require('node-7z');
@@ -739,6 +818,117 @@ ipcMain.handle('is-game-running', (event, gameId) => {
     return runningGames.has(String(gameId));
 });
 
+// --- Game Shortcuts ---
+ipcMain.handle('create-game-shortcut', async (event, { gameId, title, iconPath }) => {
+    try {
+        const shortcutPath = getShortcutPath(gameId, title);
+        if (!shortcutPath) {
+            return { success: false, error: 'Unsupported platform' };
+        }
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const launchArg = `--launch-game=${gameId}`;
+
+        // In development: electron binary + app path
+        // In production: the packaged app executable
+        let execCommand;
+        if (isDev) {
+            // Development mode: use npm run electron:dev equivalent
+            const appPath = path.join(__dirname, '..');
+            execCommand = `"${process.execPath}" "${appPath}" ${launchArg}`;
+        } else {
+            // Production mode: use the packaged app
+            execCommand = `"${process.execPath}" ${launchArg}`;
+        }
+
+        if (process.platform === 'win32') {
+            // Windows: Create .lnk file
+            const shortcutDetails = {
+                target: process.execPath,
+                args: isDev ? `"${path.join(__dirname, '..')}" ${launchArg}` : launchArg,
+                icon: iconPath || process.execPath,
+                iconIndex: 0,
+                description: `Launch ${title} via ChanoX2`
+            };
+            const success = shell.writeShortcutLink(shortcutPath, shortcutDetails);
+            if (!success) {
+                return { success: false, error: 'Failed to create shortcut' };
+            }
+        } else if (process.platform === 'linux') {
+            // Linux: Create .desktop file
+            // Try to download game cover image as icon, fallback to app icon
+            let finalIconPath = getAppIconPath();
+            if (iconPath && iconPath.startsWith('http')) {
+                const downloadedIcon = await downloadGameIcon(gameId, iconPath);
+                if (downloadedIcon) {
+                    finalIconPath = downloadedIcon;
+                }
+            }
+
+            const desktopEntry = `[Desktop Entry]
+Type=Application
+Name=${title}
+Exec=${execCommand}
+Icon=${finalIconPath}
+Terminal=false
+Categories=Game;
+Comment=Launch ${title} via ChanoX2
+StartupWMClass=ChanoX2
+`;
+            // Ensure Desktop directory exists
+            const desktopDir = path.join(HOME_DIR, 'Desktop');
+            if (!fs.existsSync(desktopDir)) {
+                fs.mkdirSync(desktopDir, { recursive: true });
+            }
+            fs.writeFileSync(shortcutPath, desktopEntry);
+            fs.chmodSync(shortcutPath, '755');
+        } else if (process.platform === 'darwin') {
+            // macOS: Create .command script
+            const scriptContent = `#!/bin/bash
+${execCommand}
+`;
+            fs.writeFileSync(shortcutPath, scriptContent);
+            fs.chmodSync(shortcutPath, '755');
+        }
+
+        console.log('✅ Created game shortcut:', shortcutPath);
+        return { success: true, path: shortcutPath };
+    } catch (err) {
+        console.error('🔥 Failed to create shortcut:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('delete-game-shortcut', async (event, { gameId, title }) => {
+    try {
+        const shortcutPath = getShortcutPath(gameId, title);
+        if (!shortcutPath) {
+            return { success: false, error: 'Unsupported platform' };
+        }
+
+        if (fs.existsSync(shortcutPath)) {
+            fs.unlinkSync(shortcutPath);
+            console.log('✅ Deleted game shortcut:', shortcutPath);
+            return { success: true };
+        }
+        return { success: true }; // Already doesn't exist
+    } catch (err) {
+        console.error('🔥 Failed to delete shortcut:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('has-game-shortcut', async (event, { gameId, title }) => {
+    try {
+        const shortcutPath = getShortcutPath(gameId, title);
+        if (!shortcutPath) return false;
+        return fs.existsSync(shortcutPath);
+    } catch (err) {
+        console.error('Error checking shortcut:', err);
+        return false;
+    }
+});
+
 // --- Auto Update ---
 async function checkForUpdates() {
     let currentVersion = app.getVersion();
@@ -784,6 +974,19 @@ async function checkForUpdates() {
 app.whenReady().then(() => {
     createWindow();
     setTimeout(checkForUpdates, 3000);
+
+    // Send pending game launch after window is ready
+    if (pendingGameLaunch) {
+        mainWindow.webContents.once('did-finish-load', () => {
+            setTimeout(() => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    console.log('🎮 Sending pending game launch:', pendingGameLaunch);
+                    mainWindow.webContents.send('pending-game-launch', { gameId: pendingGameLaunch });
+                    pendingGameLaunch = null;
+                }
+            }, 1500); // Wait for React to mount
+        });
+    }
 });
 
 app.on('window-all-closed', () => {
@@ -799,7 +1002,14 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     app.quit();
 } else {
-    app.on('second-instance', () => {
+    app.on('second-instance', (event, commandLine) => {
+        // Check for --launch-game argument from shortcut
+        const gameId = parseLaunchGameArg(commandLine);
+        if (gameId && mainWindow && !mainWindow.isDestroyed()) {
+            console.log('🎮 Second instance game launch:', gameId);
+            mainWindow.webContents.send('pending-game-launch', { gameId });
+        }
+
         if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
             mainWindow.focus();

@@ -131,6 +131,14 @@ export interface ElectronAPI {
     onOAuthCallback: (callback: (data: OAuthCallbackData) => void) => (() => void) | void;
     startOAuthServer: () => Promise<{ port: number }>;
     stopOAuthServer: () => Promise<boolean>;
+
+    // Game Shortcuts
+    createGameShortcut: (gameId: string, title: string, iconPath?: string) => Promise<{ success: boolean; path?: string; error?: string }>;
+    deleteGameShortcut: (gameId: string, title: string) => Promise<{ success: boolean; error?: string }>;
+    hasGameShortcut: (gameId: string, title: string) => Promise<boolean>;
+
+    // Pending game launch (from shortcuts/second instance)
+    onPendingGameLaunch: (callback: (data: { gameId: string }) => void) => (() => void) | void;
 }
 
 declare global {
