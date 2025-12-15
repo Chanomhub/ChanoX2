@@ -16,6 +16,7 @@ export const useGameLauncher = (gameId: number | string) => {
     const [config, setConfig] = useState<GameConfig | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isRunning, setIsRunning] = useState(false);
 
     const loadConfig = useCallback(async () => {
         setIsLoading(true);
@@ -56,22 +57,79 @@ export const useGameLauncher = (gameId: number | string) => {
             return { success: false, error: 'No executable path configured' };
         }
 
-        console.log('Launching game with:', configToUse);
+        console.log('Launching game with:', { gameId, config: configToUse });
         try {
             if (window.electronAPI) {
                 const result = await window.electronAPI.launchGame({
                     executablePath: configToUse.executablePath,
                     useWine: configToUse.useWine,
                     args: configToUse.args,
-                    locale: configToUse.locale
+                    locale: configToUse.locale,
+                    gameId: String(gameId) // Pass gameId for playtime tracking
                 });
+                if (result.success) {
+                    setIsRunning(true);
+                }
                 return result;
             }
             return { success: false, error: 'Electron API unavailable' };
         } catch (err: any) {
             return { success: false, error: err.message || 'Unknown error' };
         }
-    }, [config]);
+    }, [config, gameId]);
+
+    const stopGame = useCallback(async () => {
+        try {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.stopGame(String(gameId));
+                if (result.success) {
+                    setIsRunning(false);
+                }
+                return result;
+            }
+            return { success: false, error: 'Electron API unavailable' };
+        } catch (err: any) {
+            return { success: false, error: err.message || 'Unknown error' };
+        }
+    }, [gameId]);
+
+    // Check initial running state and setup event listeners
+    useEffect(() => {
+        const checkRunning = async () => {
+            if (window.electronAPI) {
+                const running = await window.electronAPI.isGameRunning(String(gameId));
+                setIsRunning(running);
+            }
+        };
+        checkRunning();
+
+        // Listen for game started/stopped events
+        let cleanupStarted: (() => void) | void;
+        let cleanupStopped: (() => void) | void;
+
+        if (window.electronAPI) {
+            cleanupStarted = window.electronAPI.onGameStarted((data) => {
+                if (data.gameId === String(gameId)) {
+                    console.log('🎮 Game started:', data);
+                    setIsRunning(true);
+                }
+            });
+
+            cleanupStopped = window.electronAPI.onGameStopped((data) => {
+                if (data.gameId === String(gameId)) {
+                    console.log('🎮 Game stopped:', data);
+                    setIsRunning(false);
+                    // Reload config to get updated playtime
+                    loadConfig();
+                }
+            });
+        }
+
+        return () => {
+            if (cleanupStarted) cleanupStarted();
+            if (cleanupStopped) cleanupStopped();
+        };
+    }, [gameId, loadConfig]);
 
     useEffect(() => {
         loadConfig();
@@ -81,8 +139,10 @@ export const useGameLauncher = (gameId: number | string) => {
         config,
         isLoading,
         error,
+        isRunning,
         loadConfig,
         saveConfig,
-        launchGame
+        launchGame,
+        stopGame
     };
 };

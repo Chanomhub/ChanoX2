@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { login as apiLogin, register as apiRegister, loginWithSupabaseToken, User, LoginCredentials, RegisterData } from '../libs/api/auth';
 import { supabase, isSupabaseConfigured } from '../libs/supabase';
 
@@ -7,6 +7,7 @@ interface AuthContextType {
     token: string | null;
     accounts: User[];
     loading: boolean;
+    loginVersion: number; // Increments on every successful login
     login: (credentials: LoginCredentials) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => Promise<void>;
@@ -51,18 +52,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [token, setToken] = useState<string | null>(null);
     const [accounts, setAccounts] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loginVersion, setLoginVersion] = useState(0);
 
-    useEffect(() => {
-        console.log('AuthProvider mounted');
-        loadStoredAuth();
+    // handleSupabaseCallback - exchanges Supabase token with backend
+    const handleSupabaseCallback = useCallback(async (accessToken: string) => {
+        const response = await loginWithSupabaseToken(accessToken);
+        const userId = response.user.id ? Number(response.user.id) : Date.now();
+        const newUser = { ...response.user, id: isNaN(userId) ? Date.now() : userId };
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-                // Optional: Handle auto-login from Supabase callback if not handled by explicit flow
+        // Read fresh accounts from storage (important for OAuth callback scenario)
+        let currentAccounts: User[] = [];
+        const storedAccountsJson = await storage.getItem(ACCOUNTS_KEY);
+        if (storedAccountsJson) {
+            try {
+                currentAccounts = JSON.parse(storedAccountsJson);
+            } catch (e) {
+                console.error('Failed to parse stored accounts', e);
             }
-        });
+        }
 
-        return () => subscription.unsubscribe();
+        const otherAccounts = currentAccounts.filter(a => a.email !== newUser.email);
+        const newAccounts = [...otherAccounts, newUser];
+
+        setAccounts(newAccounts);
+        setUser(newUser);
+        setToken(newUser.token);
+        setLoginVersion(v => {
+            console.log('loginVersion incrementing from', v, 'to', v + 1);
+            return v + 1;
+        });
+        await storage.setItem(ACCOUNTS_KEY, JSON.stringify(newAccounts));
+        await storage.setItem(ACTIVE_USER_ID_KEY, String(newUser.id));
+        console.log('OAuth user saved. Total accounts:', newAccounts.length);
     }, []);
 
     const loadStoredAuth = async () => {
@@ -101,6 +122,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        console.log('AuthProvider mounted');
+        loadStoredAuth();
+
+        // Supabase auth state listener (for web browser flow)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                // Optional: Handle auto-login from Supabase callback if not handled by explicit flow
+            }
+        });
+
+        // Electron OAuth callback listener
+        let cleanupOAuth: (() => void) | void;
+        if (window.electronAPI?.onOAuthCallback) {
+            console.log('Setting up Electron OAuth callback listener');
+            cleanupOAuth = window.electronAPI.onOAuthCallback(async (data) => {
+                console.log('OAuth callback received from Electron');
+                if (data.accessToken) {
+                    try {
+                        await handleSupabaseCallback(data.accessToken);
+                    } catch (error) {
+                        console.error('Failed to process OAuth callback:', error);
+                    }
+                }
+            });
+        }
+
+        return () => {
+            subscription.unsubscribe();
+            if (cleanupOAuth) cleanupOAuth();
+        };
+    }, [handleSupabaseCallback]);
 
     const saveAccounts = async (newAccounts: User[], activeUser: User) => {
         setAccounts(newAccounts);
@@ -161,6 +215,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loginWithGoogle = async () => {
         if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
 
+        const isElectron = !!window.electronAPI;
+
+        if (isElectron) {
+            // Electron: Open OAuth in external browser
+            try {
+                console.log('Starting OAuth server for Electron...');
+                const { port } = await window.electronAPI!.startOAuthServer();
+                const redirectUrl = `http://localhost:${port}/callback`;
+
+                console.log('OAuth redirect URL:', redirectUrl);
+
+                // Get OAuth URL with skipBrowserRedirect
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: redirectUrl,
+                        skipBrowserRedirect: true,
+                        queryParams: {
+                            access_type: 'offline',
+                            prompt: 'select_account', // Let user pick account
+                        },
+                    },
+                });
+
+                if (error) throw error;
+
+                if (data?.url) {
+                    console.log('Opening OAuth URL in external browser');
+                    window.electronAPI!.openExternal(data.url);
+                }
+                // Callback will be handled via IPC event listener
+                return;
+            } catch (err) {
+                console.error('Electron OAuth failed, falling back to in-app:', err);
+                // Fall through to web flow
+            }
+        }
+
+        // Web: Standard in-app OAuth redirect
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -174,22 +267,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) throw error;
     };
 
-    const handleSupabaseCallback = async (accessToken: string) => {
-        const response = await loginWithSupabaseToken(accessToken);
-        const userId = response.user.id ? Number(response.user.id) : Date.now();
-        const newUser = { ...response.user, id: isNaN(userId) ? Date.now() : userId };
-
-        const otherAccounts = accounts.filter(a => a.email !== newUser.email);
-        const newAccounts = [...otherAccounts, newUser];
-        await saveAccounts(newAccounts, newUser);
-    };
-
     return (
         <AuthContext.Provider value={{
             user,
             token,
             accounts,
             loading,
+            loginVersion,
             login,
             register,
             logout,

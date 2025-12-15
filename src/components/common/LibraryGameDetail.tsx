@@ -10,6 +10,7 @@ import { useGameScanner } from '@/hooks/useGameScanner';
 import { Button } from '@/components/ui/Button';
 import {
     Play,
+    Square,
     Settings,
     Info,
     Star,
@@ -19,7 +20,9 @@ import {
     Archive,
     ArrowLeft,
     ExternalLink,
-    ChevronRight
+    ChevronRight,
+    Code,
+    RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -53,10 +56,18 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
     const [hasArchive, setHasArchive] = useState(false);
     const [officialSources, setOfficialSources] = useState<OfficialDownloadSource[]>([]);
     const [loadingOfficialSources, setLoadingOfficialSources] = useState(false);
+    const [devMode, setDevMode] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     // Custom Hooks
-    const { config, launchGame, saveConfig } = useGameLauncher(libraryItem.id);
+    const { config, launchGame, saveConfig, loadConfig, isRunning, stopGame } = useGameLauncher(libraryItem.id);
     const { scanDirectory, results: scanResults } = useGameScanner();
+
+    // Refresh config for dev mode
+    const handleRefreshConfig = async () => {
+        await loadConfig();
+        setRefreshKey(prev => prev + 1);
+    };
 
     // Check if archive exists on mount
     useEffect(() => {
@@ -100,6 +111,16 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
             }
         } else {
             handleOpenLaunchOptions();
+        }
+    };
+
+    const handleStopGame = async () => {
+        const confirmed = window.confirm('หยุดเกม?\\n\\nเกมจะถูกปิดและบันทึกเวลาเล่น');
+        if (confirmed) {
+            const result = await stopGame();
+            if (!result.success) {
+                alert(`Stop Failed: ${result.error || 'Unknown error'}`);
+            }
         }
     };
 
@@ -196,28 +217,38 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
 
             {/* Action Bar */}
             <div className="flex items-center px-8 pb-6 bg-[#1b2838] gap-8">
-                <Button
-                    className={cn(
-                        "px-8 py-6 text-base font-bold tracking-wider rounded-sm transition-colors",
-                        libraryItem.isReExtracting
-                            ? "bg-[#3d4450] text-[#8b929a] cursor-not-allowed hover:bg-[#3d4450]"
-                            : "bg-[#4cff00] hover:bg-[#3de000] text-black"
-                    )}
-                    onClick={handlePlayPress}
-                    disabled={libraryItem.isReExtracting}
-                >
-                    {libraryItem.isReExtracting ? (
-                        <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            RE-EXTRACTING...
-                        </>
-                    ) : (
-                        <>
-                            <Play className="w-5 h-5 mr-2 fill-black" />
-                            PLAY
-                        </>
-                    )}
-                </Button>
+                {isRunning ? (
+                    <Button
+                        className="px-8 py-6 text-base font-bold tracking-wider rounded-sm transition-colors bg-[#f85149] hover:bg-[#da3633] text-white"
+                        onClick={handleStopGame}
+                    >
+                        <Square className="w-5 h-5 mr-2 fill-white" />
+                        STOP
+                    </Button>
+                ) : (
+                    <Button
+                        className={cn(
+                            "px-8 py-6 text-base font-bold tracking-wider rounded-sm transition-colors",
+                            libraryItem.isReExtracting
+                                ? "bg-[#3d4450] text-[#8b929a] cursor-not-allowed hover:bg-[#3d4450]"
+                                : "bg-[#4cff00] hover:bg-[#3de000] text-black"
+                        )}
+                        onClick={handlePlayPress}
+                        disabled={libraryItem.isReExtracting}
+                    >
+                        {libraryItem.isReExtracting ? (
+                            <>
+                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                RE-EXTRACTING...
+                            </>
+                        ) : (
+                            <>
+                                <Play className="w-5 h-5 mr-2 fill-black" />
+                                PLAY
+                            </>
+                        )}
+                    </Button>
+                )}
 
                 <div className="flex gap-8 mr-auto">
                     <div className="flex flex-col">
@@ -253,6 +284,16 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
             <div className="flex px-8 py-3 bg-[#181d26] gap-8 border-b border-[#2a2e36] mb-6">
                 <button className="text-white text-sm font-bold border-b-2 border-[#66c0f4] pb-1 -mb-4 z-10">Overview</button>
                 <button className="text-[#8b929a] text-sm font-medium hover:text-white transition-colors">Files</button>
+                <button
+                    onClick={() => setDevMode(!devMode)}
+                    className={cn(
+                        "ml-auto flex items-center gap-1 text-xs font-medium transition-colors",
+                        devMode ? "text-[#4cff00]" : "text-[#6e7681] hover:text-[#8b929a]"
+                    )}
+                >
+                    <Code className="w-3 h-3" />
+                    Dev
+                </button>
             </div>
 
             {/* Main Content Layout */}
@@ -283,6 +324,115 @@ export default function LibraryGameDetail({ libraryItem, onBack }: LibraryGameDe
                             )}
                         </div>
                     </div>
+
+                    {/* Developer Mode Panel */}
+                    {devMode && (
+                        <div className="bg-[#0d1117] border border-[#30363d] p-4 rounded-sm" key={refreshKey}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-[#4cff00] text-xs font-bold uppercase flex items-center gap-2">
+                                    <Code className="w-3 h-3" />
+                                    Developer Info
+                                </h3>
+                                <button
+                                    onClick={handleRefreshConfig}
+                                    className="flex items-center gap-1 text-xs text-[#8b929a] hover:text-[#4cff00] transition-colors"
+                                >
+                                    <RefreshCw className="w-3 h-3" />
+                                    Refresh
+                                </button>
+                            </div>
+
+                            <div className="space-y-4 font-mono text-xs">
+                                {/* Playtime Tracking */}
+                                <div className="space-y-2">
+                                    <h4 className="text-[#58a6ff] font-bold">⏱️ Playtime Tracking</h4>
+                                    <div className="bg-black/40 p-2 rounded space-y-1">
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">isRunning:</span>
+                                            <span className={cn(
+                                                "font-bold",
+                                                isRunning ? "text-[#4cff00]" : "text-[#6e7681]"
+                                            )}>
+                                                {isRunning ? '🟢 RUNNING' : '⚫ STOPPED'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">playTime (raw):</span>
+                                            <span className="text-[#f0883e]">{config?.playTime ?? 'null'} seconds</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">playTime (formatted):</span>
+                                            <span className="text-[#dcdedf]">{formatPlayTime(config?.playTime)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">lastPlayed:</span>
+                                            <span className="text-[#dcdedf]">{config?.lastPlayed ?? 'Never'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Game Config */}
+                                <div className="space-y-2">
+                                    <h4 className="text-[#58a6ff] font-bold">⚙️ Game Config</h4>
+                                    <div className="bg-black/40 p-2 rounded space-y-1">
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">gameId:</span>
+                                            <span className="text-[#dcdedf]">{libraryItem.id}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[#6e7681]">executablePath:</span>
+                                            <span className="text-[#dcdedf] break-all text-[10px] mt-1">{config?.executablePath ?? 'Not set'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">useWine:</span>
+                                            <span className={cn(config?.useWine ? "text-[#4cff00]" : "text-[#f85149]")}>
+                                                {config?.useWine ? 'true' : 'false'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">args:</span>
+                                            <span className="text-[#dcdedf]">{config?.args?.length ? config.args.join(' ') : '[]'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">locale:</span>
+                                            <span className="text-[#dcdedf]">{config?.locale ?? 'default'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Library Item */}
+                                <div className="space-y-2">
+                                    <h4 className="text-[#58a6ff] font-bold">📚 Library Item</h4>
+                                    <div className="bg-black/40 p-2 rounded space-y-1">
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">id:</span>
+                                            <span className="text-[#dcdedf]">{libraryItem.id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">articleId:</span>
+                                            <span className="text-[#dcdedf]">{libraryItem.articleId ?? 'null'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">lastPlayedAt:</span>
+                                            <span className="text-[#dcdedf]">{libraryItem.lastPlayedAt?.toISOString() ?? 'null'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">addedAt:</span>
+                                            <span className="text-[#dcdedf]">{libraryItem.addedAt?.toISOString() ?? 'null'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Raw Config JSON */}
+                                <div className="space-y-2">
+                                    <h4 className="text-[#58a6ff] font-bold">📄 Raw Config JSON</h4>
+                                    <pre className="bg-black/40 p-2 rounded text-[10px] text-[#8b949e] overflow-x-auto max-h-[150px]">
+                                        {JSON.stringify(config, null, 2) || 'null'}
+                                    </pre>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column (Sidebar Info) */}

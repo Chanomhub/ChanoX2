@@ -39,6 +39,7 @@ export interface LaunchGameOptions {
     useWine?: boolean;
     args?: string[];
     locale?: string;
+    gameId?: string; // For playtime tracking
 }
 
 export interface LaunchGameResult {
@@ -89,8 +90,14 @@ export interface ElectronAPI {
     // Game Launching
     scanGameExecutables: (directory: string) => Promise<GameExecutable[]>;
     launchGame: (options: LaunchGameOptions) => Promise<LaunchGameResult>;
+    stopGame: (gameId: string) => Promise<{ success: boolean; error?: string }>;
+    isGameRunning: (gameId: string) => Promise<boolean>;
     getGameConfig: (gameId: string) => Promise<GameConfig | null>;
     saveGameConfig: (data: { gameId: string; config: GameConfig }) => Promise<boolean>;
+
+    // Game event listeners
+    onGameStarted: (callback: (data: { gameId: string; pid: number }) => void) => (() => void) | void;
+    onGameStopped: (callback: (data: { gameId: string; duration?: number; code?: number; error?: string }) => void) => (() => void) | void;
 
     // Global Settings
     getGlobalSettings: () => Promise<GlobalSettings>;
@@ -121,7 +128,7 @@ export interface ElectronAPI {
     closeWindow: () => void;
 
     // OAuth
-    onOAuthCallback: (callback: (data: OAuthCallbackData) => void) => void;
+    onOAuthCallback: (callback: (data: OAuthCallbackData) => void) => (() => void) | void;
     startOAuthServer: () => Promise<{ port: number }>;
     stopOAuthServer: () => Promise<boolean>;
 }

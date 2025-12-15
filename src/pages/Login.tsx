@@ -1,14 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-    const { login, loginWithGoogle, loading } = useAuth();
+    const { login, loginWithGoogle, loading, loginVersion } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Track initial loginVersion to detect login completion
+    const initialLoginVersionRef = useRef(loginVersion);
+    const hasInitializedRef = useRef(false);
+
+    // Auto-navigate when loginVersion increases (login completed via OAuth or SSO)
+    useEffect(() => {
+        // Skip the initial mount
+        if (!hasInitializedRef.current) {
+            hasInitializedRef.current = true;
+            return;
+        }
+
+        console.log('Login useEffect - loginVersion:', loginVersion, 'initial:', initialLoginVersionRef.current);
+        if (loginVersion > initialLoginVersionRef.current) {
+            console.log('Navigating to home after OAuth login');
+            navigate('/');
+        }
+    }, [loginVersion, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

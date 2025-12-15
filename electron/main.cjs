@@ -32,6 +32,7 @@ const ARCHIVES_DIR = path.join(DEFAULT_DIR, 'archives');
 // State
 let mainWindow = null;
 const activeDownloads = new Map();
+const runningGames = new Map(); // Track running game processes: gameId -> { subprocess, startTime }
 let downloadId = Date.now();
 let downloadDirectory = DEFAULT_DIR;
 let oauthServer = null;
@@ -557,16 +558,31 @@ ipcMain.handle('scan-game-executables', (event, directory) => {
     return scanDir(directory);
 });
 
-ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = [], locale }) => {
+ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = [], locale, gameId: providedGameId }) => {
     const globalSettings = loadJsonFile(SETTINGS_FILE);
     const wineProvider = globalSettings.wineProvider || 'internal';
 
     const allConfigs = loadJsonFile(GAME_CONFIG_FILE);
-    const gameId = Object.keys(allConfigs).find(key => allConfigs[key].executablePath === executablePath);
+    // PRIORITY: Use providedGameId first (from library item), fallback to executablePath lookup
+    let gameId = providedGameId ? String(providedGameId) : null;
+    if (!gameId) {
+        gameId = Object.keys(allConfigs).find(key => allConfigs[key].executablePath === executablePath);
+    }
+
+    console.log('🎮 [launch-game] Starting game:', {
+        executablePath,
+        useWine,
+        gameId,
+        providedGameId,
+        configKeys: Object.keys(allConfigs)
+    });
 
     if (gameId) {
         allConfigs[gameId] = { ...allConfigs[gameId], lastPlayed: new Date().toISOString() };
         saveJsonFile(GAME_CONFIG_FILE, allConfigs);
+        console.log('🎮 [launch-game] Updated lastPlayed for gameId:', gameId);
+    } else {
+        console.warn('⚠️ [launch-game] No gameId found, playtime will NOT be tracked!');
     }
 
     let command = executablePath;
@@ -594,6 +610,14 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
 
     const gameDir = path.dirname(executablePath);
 
+    console.log('🎮 [launch-game] Spawning:', { command, finalArgs: finalArgs.slice(0, 2), gameDir });
+
+    // Check if game is already running
+    if (gameId && runningGames.has(gameId)) {
+        console.log('⚠️ [launch-game] Game already running:', gameId);
+        return { success: false, error: 'Game is already running' };
+    }
+
     return new Promise((resolve) => {
         try {
             const outLog = path.join(USER_DATA_DIR, 'game-launch.log');
@@ -616,25 +640,102 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
                 stdio: ['ignore', out, err]
             });
 
-            subprocess.on('error', (err) => resolve({ success: false, error: err.message }));
+            // Track running game
+            if (gameId) {
+                runningGames.set(gameId, { subprocess, startTime, pid: subprocess.pid });
+                // Notify frontend that game started
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('game-started', { gameId, pid: subprocess.pid });
+                }
+            }
+
+            subprocess.on('error', (spawnErr) => {
+                console.error('🔥 [launch-game] Spawn error:', spawnErr.message);
+                if (gameId) {
+                    runningGames.delete(gameId);
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('game-stopped', { gameId, error: spawnErr.message });
+                    }
+                }
+                resolve({ success: false, error: spawnErr.message });
+            });
+
             subprocess.on('close', (code) => {
                 const duration = Math.floor((Date.now() - startTime) / 1000);
+                console.log('🎮 [launch-game] Process closed:', { code, duration, gameId });
+
+                // Remove from running games and notify frontend
                 if (gameId) {
+                    runningGames.delete(gameId);
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('game-stopped', { gameId, duration, code });
+                    }
+
                     const currentConfigs = loadJsonFile(GAME_CONFIG_FILE);
+                    const previousPlayTime = currentConfigs[gameId]?.playTime || 0;
                     currentConfigs[gameId] = {
                         ...currentConfigs[gameId],
-                        playTime: (currentConfigs[gameId]?.playTime || 0) + duration
+                        playTime: previousPlayTime + duration
                     };
-                    saveJsonFile(GAME_CONFIG_FILE, currentConfigs);
+                    const saved = saveJsonFile(GAME_CONFIG_FILE, currentConfigs);
+                    console.log('🎮 [launch-game] PlayTime saved:', {
+                        gameId,
+                        previousPlayTime,
+                        duration,
+                        newPlayTime: currentConfigs[gameId].playTime,
+                        saved
+                    });
                 }
             });
 
+            subprocess.on('exit', (code, signal) => {
+                console.log('🎮 [launch-game] Process exit:', { code, signal });
+            });
+
             subprocess.unref();
-            setTimeout(() => resolve({ success: true, logsPath: outLog }), 500);
+            setTimeout(() => resolve({ success: true, logsPath: outLog, pid: subprocess.pid }), 500);
         } catch (error) {
+            console.error('🔥 [launch-game] Error:', error.message);
+            if (gameId) runningGames.delete(gameId);
             resolve({ success: false, error: error.message });
         }
     });
+});
+
+// --- Stop Running Game ---
+ipcMain.handle('stop-game', async (event, gameId) => {
+    const gameInfo = runningGames.get(String(gameId));
+    if (!gameInfo) {
+        return { success: false, error: 'Game not running' };
+    }
+
+    try {
+        const { subprocess } = gameInfo;
+        if (subprocess && !subprocess.killed) {
+            // Try graceful kill first
+            if (process.platform === 'win32') {
+                subprocess.kill();
+            } else {
+                // On Unix, kill the entire process group if detached
+                try {
+                    process.kill(-subprocess.pid, 'SIGTERM');
+                } catch (e) {
+                    subprocess.kill('SIGTERM');
+                }
+            }
+            console.log('🎮 [stop-game] Sent SIGTERM to game:', gameId);
+            return { success: true };
+        }
+        return { success: false, error: 'Process already terminated' };
+    } catch (err) {
+        console.error('🔥 [stop-game] Error:', err.message);
+        return { success: false, error: err.message };
+    }
+});
+
+// --- Check if game is running ---
+ipcMain.handle('is-game-running', (event, gameId) => {
+    return runningGames.has(String(gameId));
 });
 
 // --- Auto Update ---

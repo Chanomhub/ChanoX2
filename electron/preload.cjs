@@ -46,8 +46,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Game Launching
     scanGameExecutables: (directory) => ipcRenderer.invoke('scan-game-executables', directory),
     launchGame: (options) => ipcRenderer.invoke('launch-game', options),
+    stopGame: (gameId) => ipcRenderer.invoke('stop-game', gameId),
+    isGameRunning: (gameId) => ipcRenderer.invoke('is-game-running', gameId),
     getGameConfig: (gameId) => ipcRenderer.invoke('get-game-config', gameId),
     saveGameConfig: (data) => ipcRenderer.invoke('save-game-config', data),
+
+    // Game event listeners
+    onGameStarted: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('game-started');
+        ipcRenderer.on('game-started', handler);
+        return () => ipcRenderer.removeListener('game-started', handler);
+    },
+    onGameStopped: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('game-stopped');
+        ipcRenderer.on('game-stopped', handler);
+        return () => ipcRenderer.removeListener('game-stopped', handler);
+    },
 
     // Global Settings
     getGlobalSettings: () => ipcRenderer.invoke('get-global-settings'),
@@ -77,9 +93,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     maximizeWindow: () => ipcRenderer.send('window-maximize'),
     closeWindow: () => ipcRenderer.send('window-close'),
 
-    // OAuth callback listener
+    // OAuth callback listener - returns cleanup function to prevent duplicate listeners
     onOAuthCallback: (callback) => {
-        ipcRenderer.on('oauth-callback', (event, data) => callback(data));
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('oauth-callback');
+        ipcRenderer.on('oauth-callback', handler);
+        return () => ipcRenderer.removeListener('oauth-callback', handler);
     },
 
     // OAuth server control
