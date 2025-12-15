@@ -7,9 +7,8 @@
 ; Branding and Visual Customization
 ; =============================================
 
-; Set custom icons
-!define MUI_ICON "${BUILD_RESOURCES_DIR}\icon.ico"
-!define MUI_UNICON "${BUILD_RESOURCES_DIR}\icon.ico"
+; Note: MUI_ICON and MUI_UNICON are already defined by electron-builder
+; via package.json build.nsis.installerIcon and uninstallerIcon options
 
 ; Sidebar image for Welcome and Finish pages (164x314 pixels, BMP format)
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${BUILD_RESOURCES_DIR}\installer-sidebar.bmp"
