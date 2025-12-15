@@ -66,8 +66,28 @@ export default function Home() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-full">
-                <Loader2 className="w-8 h-8 animate-spin text-[#66c0f4]" />
+            <div className="flex flex-col justify-center items-center h-full gap-4">
+                <Loader2 className="w-12 h-12 animate-spin text-[#66c0f4]" />
+                <p className="text-lg text-zinc-400">กำลังโหลดข้อมูล...</p>
+            </div>
+        );
+    }
+
+    // Empty state when no articles
+    if (articles.length === 0) {
+        return (
+            <div className="flex flex-col justify-center items-center h-full gap-6 text-center">
+                <div className="text-6xl">🎮</div>
+                <h2 className="text-2xl font-semibold text-white">ยังไม่มีข้อมูล</h2>
+                <p className="text-zinc-400 max-w-md">
+                    ไม่สามารถโหลดข้อมูลได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง
+                </p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="px-6 py-2 bg-[#66c0f4] hover:bg-[#5ab0e4] text-white rounded-md font-medium transition-colors"
+                >
+                    ลองใหม่
+                </button>
             </div>
         );
     }

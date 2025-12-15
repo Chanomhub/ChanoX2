@@ -11,6 +11,7 @@ import {
     OfficialDownloadSourcesResponse
 } from '@/types/graphql';
 import { useDownloads } from '@/contexts/DownloadContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ArticleDownloadDialog } from '@/components/common/ArticleDownloadDialog';
 import HtmlRenderer from '@/components/common/HtmlRenderer';
 import { ElectronDownloader } from '@/lib/electronDownloader';
@@ -32,6 +33,7 @@ import { Loader2 } from 'lucide-react';
 export default function ArticleDetail() {
     const { slug } = useParams<{ slug: string }>();
     const { openDownloadLink } = useDownloads();
+    const { language } = useLanguage();
 
     const [article, setArticle] = useState<ArticleDetailType | null>(null);
     const [downloads, setDownloads] = useState<ApiDownload[]>([]);
@@ -69,14 +71,14 @@ export default function ArticleDetail() {
                 fetchingRef.current = false;
             });
         }
-    }, [slug]);
+    }, [slug, language]);
 
     const fetchArticle = async () => {
         try {
             setLoading(true);
             const articleData = await client.request<ArticleResponse>(GET_ARTICLE, {
                 slug: slug,
-                language: 'en', // Defaulting to EN for now
+                language: language,
             });
 
             if (articleData && articleData.article) {

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     User, Settings as SettingsIcon, HardDrive, MonitorCog, Bell, Shield,
     ChevronLeft, Check, Loader2, ExternalLink, FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
 import { useSettingsStore, SettingsSection } from '@/stores/settingsStore';
 import packageJson from '../../package.json';
 
@@ -22,10 +24,7 @@ interface SidebarItemProps {
     onClick: () => void;
 }
 
-const LANGUAGES = [
-    { code: 'en', label: 'English' },
-    { code: 'th', label: 'ไทย' },
-];
+
 
 // Sidebar Item Component
 function SidebarItem({ label, icon, isActive, onClick }: SidebarItemProps) {
@@ -135,11 +134,12 @@ function AccountSection() {
 
 // General Section
 function GeneralSection() {
+    const { t } = useTranslation();
+    const { language, setLanguage } = useLanguage();
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [releaseUrl, setReleaseUrl] = useState<string | null>(null);
-    const [language, setLanguage] = useState('en');
     const currentVersion = packageJson.version;
 
     useEffect(() => {
@@ -207,11 +207,11 @@ function GeneralSection() {
                 </div>
             </Card>
 
-            <SectionHeader title="Language" />
+            <SectionHeader title={t('language')} />
 
             {/* Language Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {LANGUAGES.map((lang) => (
+                {SUPPORTED_LANGUAGES.map((lang) => (
                     <button
                         key={lang.code}
                         onClick={() => setLanguage(lang.code)}
@@ -222,9 +222,12 @@ function GeneralSection() {
                                 : "border-chanox-border bg-chanox-surface text-zinc-300 hover:border-zinc-600"
                         )}
                     >
-                        <span className={cn(language === lang.code && "font-medium")}>
-                            {lang.label}
-                        </span>
+                        <div className="flex flex-col items-start">
+                            <span className={cn(language === lang.code && "font-medium")}>
+                                {lang.nativeLabel}
+                            </span>
+                            <span className="text-xs text-zinc-500">{lang.label}</span>
+                        </div>
                         {language === lang.code && (
                             <div className="w-5 h-5 bg-chanox-accent rounded-full flex items-center justify-center">
                                 <Check size={12} className="text-white" />
