@@ -7,22 +7,38 @@
 ; Branding and Visual Customization
 ; =============================================
 
-; Note: MUI_ICON and MUI_UNICON are already defined by electron-builder
-; via package.json build.nsis.installerIcon and uninstallerIcon options
+; Note: Many constants are already defined by electron-builder
+; We use !ifndef to only define them if not already set
 
 ; Sidebar image for Welcome and Finish pages (164x314 pixels, BMP format)
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${BUILD_RESOURCES_DIR}\installer-sidebar.bmp"
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${BUILD_RESOURCES_DIR}\installer-sidebar.bmp"
+!ifndef MUI_WELCOMEFINISHPAGE_BITMAP
+  !define MUI_WELCOMEFINISHPAGE_BITMAP "${BUILD_RESOURCES_DIR}\installer-sidebar.bmp"
+!endif
+!ifndef MUI_UNWELCOMEFINISHPAGE_BITMAP
+  !define MUI_UNWELCOMEFINISHPAGE_BITMAP "${BUILD_RESOURCES_DIR}\installer-sidebar.bmp"
+!endif
 
 ; Header image (150x57 pixels, BMP format)
-!define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "${BUILD_RESOURCES_DIR}\installer-header.bmp"
-!define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
-!define MUI_HEADERIMAGE_RIGHT
+!ifndef MUI_HEADERIMAGE
+  !define MUI_HEADERIMAGE
+!endif
+!ifndef MUI_HEADERIMAGE_BITMAP
+  !define MUI_HEADERIMAGE_BITMAP "${BUILD_RESOURCES_DIR}\installer-header.bmp"
+!endif
+!ifndef MUI_HEADERIMAGE_BITMAP_NOSTRETCH
+  !define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
+!endif
+!ifndef MUI_HEADERIMAGE_RIGHT
+  !define MUI_HEADERIMAGE_RIGHT
+!endif
 
 ; Abort warning
-!define MUI_ABORTWARNING
-!define MUI_ABORTWARNING_TEXT "Are you sure you want to cancel ChanoX2 installation?"
+!ifndef MUI_ABORTWARNING
+  !define MUI_ABORTWARNING
+!endif
+!ifndef MUI_ABORTWARNING_TEXT
+  !define MUI_ABORTWARNING_TEXT "Are you sure you want to cancel ChanoX2 installation?"
+!endif
 
 ; =============================================
 ; Custom Welcome Page
