@@ -21,6 +21,10 @@ const HOME_DIR = app.getPath('home');
 const DEFAULT_DIR = path.join(HOME_DIR, 'ChanoX2Library');
 const USER_DATA_DIR = app.getPath('userData');
 
+// Optimization: Disable site isolation to reduce memory usage
+// This allows the renderer process to be shared/consolidated where possible.
+app.commandLine.appendSwitch('disable-site-isolation-trials');
+
 // File paths
 const GAME_CONFIG_FILE = path.join(USER_DATA_DIR, 'games-config.json');
 const SETTINGS_FILE = path.join(USER_DATA_DIR, 'settings.json');

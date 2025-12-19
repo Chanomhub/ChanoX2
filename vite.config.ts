@@ -13,6 +13,8 @@ export default defineConfig({
     base: './',
     build: {
         outDir: 'dist',
+        sourcemap: false, // Disable source maps for production
+        target: 'esnext', // Use modern JS for smaller bundles
         rollupOptions: {
             output: {
                 manualChunks: {
@@ -38,6 +40,9 @@ export default defineConfig({
                 }
             }
         }
+    },
+    esbuild: {
+        drop: ['console', 'debugger'], // Remove logs and debugger in production
     },
     server: {
         port: 5173,
