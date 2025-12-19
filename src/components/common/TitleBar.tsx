@@ -1,24 +1,41 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check } from 'lucide-react';
+import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check, Bell, Trash2, CheckCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export default function TitleBar() {
     const navigate = useNavigate();
     const { user, accounts, switchAccount, logout, isAuthenticated } = useAuth();
+    const {
+        notifications,
+        unreadCount,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+        deleteAllNotifications
+    } = useNotification();
+
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [notificationOpen, setNotificationOpen] = useState(false);
+
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const notificationRef = useRef<HTMLDivElement>(null);
 
     const handleMinimize = () => window.electronAPI?.minimizeWindow();
     const handleMaximize = () => window.electronAPI?.maximizeWindow();
     const handleClose = () => window.electronAPI?.closeWindow();
 
-    // Close dropdown when clicking outside
+    // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setDropdownOpen(false);
+            }
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+                setNotificationOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -45,6 +62,20 @@ export default function TitleBar() {
         setDropdownOpen(false);
     };
 
+    const renderNotificationContent = (notification: any) => {
+        // Basic rendering based on type
+        return (
+            <div className="flex-1 min-w-0">
+                <p className={cn("text-xs mb-1 break-words", !notification.isRead ? "text-white font-medium" : "text-zinc-400")}>
+                    {notification.message}
+                </p>
+                <p className="text-[10px] text-zinc-500">
+                    {format(new Date(notification.createdAt), 'MMM d, HH:mm')}
+                </p>
+            </div>
+        );
+    };
+
     return (
         <div
             className="flex items-center justify-between h-8 bg-[#171d25] select-none"
@@ -62,6 +93,98 @@ export default function TitleBar() {
                 className="flex items-center h-full"
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
+                {/* Notification Bell */}
+                {isAuthenticated && (
+                    <div className="relative h-full" ref={notificationRef}>
+                        <button
+                            onClick={() => setNotificationOpen(!notificationOpen)}
+                            className="w-10 h-full flex items-center justify-center hover:bg-white/10 transition-colors relative"
+                            title="Notifications"
+                        >
+                            <Bell size={14} className={cn("transition-colors", unreadCount > 0 ? "text-white" : "text-zinc-400")} />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                            )}
+                        </button>
+
+                        {/* Notification Dropdown */}
+                        {notificationOpen && (
+                            <div className="absolute right-0 top-full mt-1 w-80 bg-[#1b2838] border border-chanox-border rounded-md shadow-lg z-50 flex flex-col max-h-[80vh]">
+                                {/* Header */}
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-chanox-border bg-[#171d25]">
+                                    <h3 className="text-xs font-semibold text-white">Notifications</h3>
+                                    <div className="flex items-center gap-1">
+                                        {unreadCount > 0 && (
+                                            <button
+                                                onClick={markAllAsRead}
+                                                className="p-1 text-zinc-400 hover:text-chanox-accent hover:bg-white/5 rounded transition-colors"
+                                                title="Mark all as read"
+                                            >
+                                                <CheckCheck size={12} />
+                                            </button>
+                                        )}
+                                        {notifications?.length > 0 && (
+                                            <button
+                                                onClick={deleteAllNotifications}
+                                                className="p-1 text-zinc-400 hover:text-red-400 hover:bg-white/5 rounded transition-colors"
+                                                title="Clear all"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* List */}
+                                <div className="overflow-y-auto flex-1 p-0">
+                                    {notifications.length === 0 ? (
+                                        <div className="p-8 text-center text-zinc-500">
+                                            <p className="text-xs">No notifications</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col">
+                                            {notifications.map(notif => (
+                                                <div
+                                                    key={notif.id}
+                                                    className={cn(
+                                                        "relative px-3 py-3 border-b border-chanox-border/50 hover:bg-white/5 transition-colors group flex gap-3",
+                                                        !notif.isRead && "bg-chanox-accent/5"
+                                                    )}
+                                                >
+                                                    {/* Status Dot */}
+                                                    <div className={cn("mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0", !notif.isRead ? "bg-chanox-accent" : "bg-transparent")} />
+
+                                                    {renderNotificationContent(notif)}
+
+                                                    {/* Actions (hover) */}
+                                                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-start">
+                                                        {!notif.isRead && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
+                                                                className="p-1 text-zinc-400 hover:text-chanox-accent rounded"
+                                                                title="Mark as read"
+                                                            >
+                                                                <Check size={12} />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
+                                                            className="p-1 text-zinc-400 hover:text-red-400 rounded"
+                                                            title="Delete"
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* User Account Dropdown */}
                 {isAuthenticated && user ? (
                     <div className="relative h-full" ref={dropdownRef}>

@@ -5,6 +5,7 @@ import { DownloadProvider } from '@/contexts/DownloadContext'
 import { LibraryProvider } from '@/contexts/LibraryContext'
 import { FestivalProvider } from '@/contexts/FestivalContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import { NotificationProvider } from '@/contexts/NotificationContext'
 import Layout from '@/components/common/Layout'
 import { usePendingGameLaunch } from '@/hooks/usePendingGameLaunch'
 
@@ -42,20 +43,22 @@ export default function App() {
                 <DownloadProvider>
                     <FestivalProvider>
                         <LanguageProvider>
-                            <Layout>
-                                <PendingGameLaunchHandler />
-                                <Routes>
-                                    <Route path="/" element={<Home />} />
-                                    <Route path="/login" element={<Login />} />
-                                    <Route path="/register" element={<Register />} />
-                                    <Route path="/callback" element={<Callback />} />
-                                    <Route path="/article/:slug" element={<ArticleDetail />} />
-                                    <Route path="/downloads" element={<Downloads />} />
-                                    <Route path="/library" element={<Library />} />
-                                    <Route path="/search" element={<Search />} />
-                                    <Route path="/settings" element={<Settings />} />
-                                </Routes>
-                            </Layout>
+                            <NotificationProvider>
+                                <Layout>
+                                    <PendingGameLaunchHandler />
+                                    <Routes>
+                                        <Route path="/" element={<Home />} />
+                                        <Route path="/login" element={<Login />} />
+                                        <Route path="/register" element={<Register />} />
+                                        <Route path="/callback" element={<Callback />} />
+                                        <Route path="/article/:slug" element={<ArticleDetail />} />
+                                        <Route path="/downloads" element={<Downloads />} />
+                                        <Route path="/library" element={<Library />} />
+                                        <Route path="/search" element={<Search />} />
+                                        <Route path="/settings" element={<Settings />} />
+                                    </Routes>
+                                </Layout>
+                            </NotificationProvider>
                         </LanguageProvider>
                     </FestivalProvider>
                 </DownloadProvider>

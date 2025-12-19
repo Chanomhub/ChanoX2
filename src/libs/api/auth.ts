@@ -34,7 +34,7 @@ export interface AuthResponse {
     expiresIn?: number;
 }
 
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
     data: T;
     statusCode: number;
     timestamp: string;
