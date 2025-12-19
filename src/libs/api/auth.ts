@@ -21,11 +21,23 @@ export interface User {
     backgroundImage?: string;
     points: number;
     token: string;
+    refreshToken?: string;
+    tokenExpiresAt?: number;
     roles: string[];
+    shrtflyApiKey?: string;
+    socialMediaLinks?: any[]; // user provided json
 }
 
 export interface AuthResponse {
     user: User;
+    refreshToken?: string;
+    expiresIn?: number;
+}
+
+interface ApiResponse<T> {
+    data: T;
+    statusCode: number;
+    timestamp: string;
 }
 
 /**
@@ -47,7 +59,8 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
         throw new Error(error.message || 'Login failed');
     }
 
-    return response.json();
+    const json: ApiResponse<AuthResponse> = await response.json();
+    return json.data;
 }
 
 /**
@@ -69,7 +82,8 @@ export async function register(data: RegisterData): Promise<AuthResponse> {
         throw new Error(error.message || 'Registration failed');
     }
 
-    return response.json();
+    const json: ApiResponse<AuthResponse> = await response.json();
+    return json.data;
 }
 
 /**
@@ -88,7 +102,9 @@ export async function getCurrentUser(token: string): Promise<AuthResponse> {
         throw new Error('Failed to get user info');
     }
 
-    return response.json();
+    const json: ApiResponse<AuthResponse> = await response.json();
+    // Assuming /user endpoint also follows the new structure
+    return json.data || json; // Fallback if structure differs
 }
 
 /**
@@ -110,7 +126,8 @@ export async function updateUser(token: string, userData: Partial<User>): Promis
         throw new Error('Failed to update user');
     }
 
-    return response.json();
+    const json: ApiResponse<AuthResponse> = await response.json();
+    return json.data || json;
 }
 
 /**
@@ -133,5 +150,6 @@ export async function loginWithSupabaseToken(supabaseAccessToken: string): Promi
         throw new Error(error.message || 'Supabase login failed');
     }
 
-    return response.json();
+    const json: ApiResponse<AuthResponse> = await response.json();
+    return json.data;
 }

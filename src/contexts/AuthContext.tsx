@@ -58,7 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleSupabaseCallback = useCallback(async (accessToken: string) => {
         const response = await loginWithSupabaseToken(accessToken);
         const userId = response.user.id ? Number(response.user.id) : Date.now();
-        const newUser = { ...response.user, id: isNaN(userId) ? Date.now() : userId };
+        const newUser = {
+            ...response.user,
+            id: isNaN(userId) ? Date.now() : userId,
+            refreshToken: response.refreshToken,
+            tokenExpiresAt: response.expiresIn ? Date.now() + (response.expiresIn * 1000) : undefined
+        };
 
         // Read fresh accounts from storage (important for OAuth callback scenario)
         let currentAccounts: User[] = [];
@@ -167,7 +172,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (credentials: LoginCredentials) => {
         const response = await apiLogin(credentials);
         const userId = response.user.id ? Number(response.user.id) : Date.now();
-        const newUser = { ...response.user, id: isNaN(userId) ? Date.now() : userId };
+        const newUser = {
+            ...response.user,
+            id: isNaN(userId) ? Date.now() : userId,
+            refreshToken: response.refreshToken,
+            tokenExpiresAt: response.expiresIn ? Date.now() + (response.expiresIn * 1000) : undefined
+        };
 
         const otherAccounts = accounts.filter(a => a.email !== newUser.email);
         const newAccounts = [...otherAccounts, newUser];
@@ -177,7 +187,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const register = async (data: RegisterData) => {
         const response = await apiRegister(data);
         const userId = response.user.id ? Number(response.user.id) : Date.now();
-        const newUser = { ...response.user, id: isNaN(userId) ? Date.now() : userId };
+        const newUser = {
+            ...response.user,
+            id: isNaN(userId) ? Date.now() : userId,
+            refreshToken: response.refreshToken,
+            tokenExpiresAt: response.expiresIn ? Date.now() + (response.expiresIn * 1000) : undefined
+        };
 
         const otherAccounts = accounts.filter(a => a.email !== newUser.email);
         const newAccounts = [...otherAccounts, newUser];
