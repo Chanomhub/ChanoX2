@@ -3,13 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     User, Settings as SettingsIcon, HardDrive, MonitorCog, Bell, Shield,
-    ChevronLeft, Check, Loader2, ExternalLink, FolderOpen
+    ChevronLeft, Check, Loader2, ExternalLink, FolderOpen, Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
 import { useSettingsStore, SettingsSection } from '@/stores/settingsStore';
 import packageJson from '../../package.json';
+
+import { format } from 'date-fns';
+import { useNotification } from '@/contexts/NotificationContext';
 
 // shadcn components
 import { Button } from '@/components/ui/Button';
@@ -468,12 +471,100 @@ function LinuxSection() {
     );
 }
 
-// Placeholder Section
-function PlaceholderSection({ title }: { title: string }) {
+// Notifications Section
+function NotificationsSection() {
+    const { notifications, deleteAllNotifications, markAsRead, deleteNotification } = useNotification();
+
+    return (
+        <div>
+            <SectionHeader title="Notifications History" />
+
+            <Card className="bg-chanox-surface border-chanox-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-base text-zinc-100">Recent Notifications</CardTitle>
+                    {notifications.length > 0 && (
+                        <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={deleteAllNotifications}
+                            className="bg-red-500/10 text-red-400 hover:bg-red-500/20 border-transparent h-8"
+                        >
+                            <Trash2 size={14} className="mr-2" />
+                            Clear All
+                        </Button>
+                    )}
+                </CardHeader>
+                <CardContent>
+                    {notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
+                            <Bell size={48} className="mb-4 opacity-20" />
+                            <p>No notifications history</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                            {notifications.map((notification) => (
+                                <div
+                                    key={notification.id}
+                                    className={cn(
+                                        "flex gap-4 p-4 rounded-lg border transition-all",
+                                        notification.isRead
+                                            ? "border-chanox-border bg-white/5"
+                                            : "border-chanox-accent/30 bg-chanox-accent/5"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                                        notification.isRead ? "bg-zinc-800 text-zinc-500" : "bg-chanox-accent/20 text-chanox-accent"
+                                    )}>
+                                        <Bell size={14} />
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start gap-4">
+                                            <p className={cn("text-sm font-medium", notification.isRead ? "text-zinc-300" : "text-white")}>
+                                                {notification.message}
+                                            </p>
+                                            <span className="text-[10px] text-zinc-500 whitespace-nowrap">
+                                                {format(new Date(notification.createdAt), 'MMM d, yyyy HH:mm')}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-500 font-mono">
+                                                {notification.type}
+                                            </span>
+                                            <div className="flex-1" />
+                                            {!notification.isRead && (
+                                                <button
+                                                    onClick={() => markAsRead(notification.id)}
+                                                    className="text-xs text-chanox-accent hover:underline"
+                                                >
+                                                    Mark read
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => deleteNotification(notification.id)}
+                                                className="text-xs text-zinc-500 hover:text-red-400 transition-colors"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+// Placeholder Section (Renamed or removed if no longer used by others)
+function SecuritySection() {
     return (
         <div className="flex flex-col items-center justify-center h-64 opacity-50">
-            <span className="text-5xl mb-4">🚧</span>
-            <p className="text-zinc-400">{title} - Coming Soon</p>
+            <span className="text-5xl mb-4">🛡️</span>
+            <p className="text-zinc-400">Security Settings - Coming Soon</p>
         </div>
     );
 }
@@ -503,9 +594,9 @@ export default function Settings() {
             case 'linux':
                 return <LinuxSection />;
             case 'notifications':
-                return <PlaceholderSection title="Notifications" />;
+                return <NotificationsSection />;
             case 'security':
-                return <PlaceholderSection title="Security" />;
+                return <SecuritySection />;
             default:
                 return <GeneralSection />;
         }

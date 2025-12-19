@@ -59,6 +59,7 @@ export async function markAsRead(token: string, id: number): Promise<void> {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
         },
+        body: JSON.stringify({})
     });
     if (!response.ok) throw new Error('Failed to mark notification as read');
 }
@@ -70,6 +71,7 @@ export async function markAllAsRead(token: string): Promise<void> {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
         },
+        body: JSON.stringify({})
     });
     if (!response.ok) throw new Error('Failed to mark all notifications as read');
 }
@@ -78,7 +80,6 @@ export async function deleteNotification(token: string, id: number): Promise<voi
     const response = await fetch(`${API_BASE}/notifications/${id}`, {
         method: 'DELETE',
         headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
         },
     });
@@ -89,7 +90,6 @@ export async function deleteAllNotifications(token: string): Promise<void> {
     const response = await fetch(`${API_BASE}/notifications`, {
         method: 'DELETE',
         headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
         },
     });
