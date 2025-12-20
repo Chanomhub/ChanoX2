@@ -4,12 +4,13 @@
  * Transforms image URLs to use Cloudflare Workers CDN.
  * Supports:
  * - Old CDN: https://cdn.chanomhub.online/{hash}.jpg
- * - New CDN (Cloudflare Workers): https://img.chanomhub.com/i/{hash}.jpg
+ * - New CDN (Cloudflare Images): https://img.chanomhub.com/cdn-cgi/image/format=auto/{hash}.jpg
  * - Hash only: {hash}.jpg (will be prefixed with new CDN)
  */
 
-const OLD_CDN_DOMAIN = 'cdn.chanomhub.online';
-const NEW_CDN_BASE = 'https://img.chanomhub.com/i';
+const CDN_DOMAIN = 'cdn.chanomhub.online';
+// Toggle this to false to fallback to original images if optimized CDN has issues/quota limits
+const ENABLE_IMAGE_OPTIMIZATION = true;
 
 // Fields that contain image URLs and should be transformed
 const IMAGE_FIELDS = ['coverImage', 'mainImage', 'backgroundImage', 'image', 'url'];
@@ -20,25 +21,38 @@ const IMAGE_FIELDS = ['coverImage', 'mainImage', 'backgroundImage', 'image', 'ur
 function extractImagePath(url: string): string | null {
     if (!url) return null;
 
-    // Already using new CDN - extract path after /i/
+    // 1. Check for optimization path from our CDN
+    if (url.includes(`${CDN_DOMAIN}/cdn-cgi/image`)) {
+        // match everything after format=auto/ or other params
+        const match = url.match(new RegExp(`${CDN_DOMAIN}\/cdn-cgi\/image\/[^/]+\/(.+?)(?:\\?|$)`));
+        return match?.[1] || null;
+    }
+
+    // 2. Check for legacy cloudflare worker path (img.chanomhub.com/i/)
     if (url.includes('img.chanomhub.com/i/')) {
         const match = url.match(/img\.chanomhub\.com\/i\/(.+?)(?:\?|$)/);
         return match?.[1] || null;
     }
 
-    // Old CDN format - extract path after domain
-    if (url.includes(OLD_CDN_DOMAIN)) {
-        const match = url.match(/cdn\.chanomhub\.online\/(.+?)(?:\?|$)/);
-        return match?.[1] || null;
+    // 3. Check for standard CDN path (cdn.chanomhub.online)
+    // Avoid matching if it was already caught by step 1 (though logic shouldn't reach here if 1 matched)
+    if (url.includes(CDN_DOMAIN)) {
+        const match = url.match(new RegExp(`${CDN_DOMAIN}\/(.+?)(?:\\?|$)`));
+        // Be careful not to match the cdn-cgi part as the filename if regex is loose, 
+        // but simple extraction after domain should work for raw files.
+        // However, if we have nested paths that look like cdn-cgi but aren't, it's tricky. 
+        // Assuming raw files are valid if they don't start with cdn-cgi.
+        if (match?.[1] && !match[1].startsWith('cdn-cgi/')) {
+            return match[1];
+        }
+        // If it starts with cdn-cgi but didn't match step 1, it might be malformed or handled by regex in step 1.
     }
 
-    // Check if it's a relative path or hash only (no http/https)
+    // 4. Check for hash/filename only
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        // Remove leading slash if present
         return url.replace(/^\//, '');
     }
 
-    // External URL - return as-is (will be handled by caller)
     return null;
 }
 
@@ -59,8 +73,15 @@ export function resolveImageUrl(url: string | null | undefined): string | null {
         return url;
     }
 
-    // Build the new CDN URL
-    return `${NEW_CDN_BASE}/${imagePath}`;
+    // Build the new URL based on configuration
+    const baseUrl = `https://${CDN_DOMAIN}`;
+
+    if (ENABLE_IMAGE_OPTIMIZATION) {
+        return `${baseUrl}/cdn-cgi/image/format=auto/${imagePath}`;
+    }
+
+    // Fallback to original image
+    return `${baseUrl}/${imagePath}`;
 }
 
 /**
@@ -75,8 +96,8 @@ function isImageField(key: string): boolean {
  */
 function isImageUrl(value: unknown): value is string {
     if (typeof value !== 'string') return false;
-    return value.includes(OLD_CDN_DOMAIN) ||
-        value.includes('img.chanomhub.com') ||
+    return value.includes(CDN_DOMAIN) ||
+        value.includes('img.chanomhub.com') || // Keep checking legacy domain
         /^[a-f0-9]{64}\.(jpg|jpeg|png|gif|webp)$/i.test(value);
 }
 
