@@ -8,7 +8,7 @@
  * - Hash only: {hash}.jpg (will be prefixed with new CDN)
  */
 
-const CDN_DOMAIN = 'cdn.chanomhub.online';
+const CDN_DOMAIN = 'cdn.chanomhub.com';
 // Toggle this to false to fallback to original images if optimized CDN has issues/quota limits
 const ENABLE_IMAGE_OPTIMIZATION = true;
 
