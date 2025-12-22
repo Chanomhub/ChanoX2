@@ -103,6 +103,9 @@ export interface ElectronAPI {
     getGlobalSettings: () => Promise<GlobalSettings>;
     saveGlobalSettings: (settings: GlobalSettings) => Promise<boolean>;
 
+    // Bottles CLI
+    listBottles: () => Promise<{ success: boolean; bottles: string[]; error?: string }>;
+
     // Downloads Persistence
     getDownloads: () => Promise<unknown[]>;
     saveDownloads: (downloads: unknown[]) => Promise<boolean>;

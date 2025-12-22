@@ -599,6 +599,27 @@ ipcMain.handle('remove-auth-data', (event, key) => {
     return saveJsonFile(AUTH_FILE, data);
 });
 
+// --- Bottles CLI Integration ---
+ipcMain.handle('list-bottles', async () => {
+    try {
+        const { execSync } = require('child_process');
+        const output = execSync('bottles-cli list bottles 2>/dev/null', { encoding: 'utf8', timeout: 10000 });
+        // Parse output like: "Found 1 bottles:\n- GAME\n- Another Bottle"
+        const lines = output.split('\n');
+        const bottles = [];
+        for (const line of lines) {
+            const match = line.match(/^-\s+(.+)$/);
+            if (match) {
+                bottles.push(match[1].trim());
+            }
+        }
+        return { success: true, bottles };
+    } catch (error) {
+        console.log('bottles-cli not found or failed:', error.message);
+        return { success: false, bottles: [], error: error.message };
+    }
+});
+
 // --- Game Scanning & Launching ---
 function scanDir(dir, depth = 0, maxDepth = 3) {
     if (depth > maxDepth) return [];
@@ -674,8 +695,8 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
 
     if (useWine) {
         if (wineProvider === 'bottles') {
-            const customCmd = globalSettings.externalWineCommand || 'flatpak run com.usebottles.bottles -e %EXE%';
-            let cmdString = customCmd.replace('%EXE%', executablePath);
+            const customCmd = globalSettings.externalWineCommand || 'bottles-cli run -b Gaming -e %EXE%';
+            let cmdString = customCmd.replace('%EXE%', `"${executablePath}"`);
             if (!customCmd.includes('%EXE%')) cmdString = `${customCmd} "${executablePath}"`;
 
             const parts = cmdString.match(/(?:[^\s"]+|"[^"]*")+/g) || [];

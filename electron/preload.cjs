@@ -69,6 +69,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getGlobalSettings: () => ipcRenderer.invoke('get-global-settings'),
     saveGlobalSettings: (settings) => ipcRenderer.invoke('save-global-settings', settings),
 
+    // Bottles CLI
+    listBottles: () => ipcRenderer.invoke('list-bottles'),
+
     // Downloads Persistence
     getDownloads: () => ipcRenderer.invoke('get-downloads'),
     saveDownloads: (downloads) => ipcRenderer.invoke('save-downloads', downloads),
