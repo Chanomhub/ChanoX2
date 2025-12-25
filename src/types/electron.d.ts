@@ -80,6 +80,8 @@ export interface ElectronAPI {
     getDiskSpace: (path: string) => Promise<DiskSpaceInfo | null>;
     setDownloadDirectory: (path: string) => Promise<boolean>;
     getDownloadDirectory: () => Promise<string>;
+    selectGameFolder: () => Promise<string | null>;
+    selectGameArchive: () => Promise<string | null>;
 
     // Download event listeners - return cleanup function
     onDownloadStarted: (callback: (data: DownloadStartedData) => void) => (() => void) | void;

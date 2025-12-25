@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getDiskSpace: (path) => ipcRenderer.invoke('get-disk-space', path),
     setDownloadDirectory: (path) => ipcRenderer.invoke('set-download-directory', path),
     getDownloadDirectory: () => ipcRenderer.invoke('get-download-directory'),
+    selectGameFolder: () => ipcRenderer.invoke('select-game-folder'),
+    selectGameArchive: () => ipcRenderer.invoke('select-game-archive'),
 
     // Download event listeners - returns cleanup function to prevent duplicate listeners
     onDownloadStarted: (callback) => {

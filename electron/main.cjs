@@ -336,6 +336,25 @@ ipcMain.handle('select-download-directory', async () => {
     return result.canceled ? null : result.filePaths[0];
 });
 
+ipcMain.handle('select-game-folder', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory']
+    });
+    return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle('select-game-archive', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile'],
+        filters: [
+            { name: 'Archives', extensions: ['zip', '7z', 'rar', 'tar', 'gz', 'iso'] }
+        ]
+    });
+    return result.canceled ? null : result.filePaths[0];
+});
+
 ipcMain.handle('get-disk-space', async (event, checkPath) => {
     try {
         const stats = await fs.promises.statfs(checkPath);

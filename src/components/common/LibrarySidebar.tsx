@@ -2,8 +2,14 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 import { ScrollArea } from '@/components/ui/ScrollArea';
-import { Home, MessageSquare, Search, Filter, Plus, Clock, Star } from 'lucide-react';
+import { Home, MessageSquare, Search, Filter, Plus, Clock, Star, Folder, File } from 'lucide-react';
 import { useLibrary } from '@/contexts/LibraryContext';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface LibrarySidebarProps {
     onSelectGame: (id: number) => void;
@@ -20,7 +26,7 @@ export default function LibrarySidebar({
     onSelectGame,
     collapsed = false
 }: LibrarySidebarProps) {
-    const { libraryItems } = useLibrary();
+    const { libraryItems, addToLibrary } = useLibrary();
     const [isChatVisible, setIsChatVisible] = useState(false);
     // Suppress unused warning
     void isChatVisible;
@@ -37,6 +43,43 @@ export default function LibrarySidebar({
             if (!a.isFavorite && b.isFavorite) return 1;
             return (a.title || '').localeCompare(b.title || '');
         });
+
+    const handleAddGameFolder = async () => {
+        if (!window.electronAPI) return;
+        try {
+            const path = await window.electronAPI.selectGameFolder();
+            if (path) {
+                // Use folder name as title
+                const name = path.split(/[/\\]/).pop() || 'Unknown Game';
+                addToLibrary({
+                    title: name,
+                    extractedPath: path,
+                });
+            }
+        } catch (error) {
+            console.error('Failed to add game folder:', error);
+        }
+    };
+
+    const handleAddGameArchive = async () => {
+        if (!window.electronAPI) return;
+        try {
+            const path = await window.electronAPI.selectGameArchive();
+            if (path) {
+                // Use filename as title, remove extension
+                const filename = path.split(/[/\\]/).pop() || 'Unknown Game';
+                const name = filename.substring(0, filename.lastIndexOf('.')) || filename;
+
+                addToLibrary({
+                    title: name,
+                    extractedPath: path, // Point to archive initially, user can re-extract/install
+                    archivePath: path
+                });
+            }
+        } catch (error) {
+            console.error('Failed to add game archive:', error);
+        }
+    };
 
     if (collapsed) {
         return (
@@ -80,6 +123,27 @@ export default function LibrarySidebar({
                         ))}
                     </div>
                 </ScrollArea>
+
+                {/* Collapsed Footer - still allows adding games via context menu potentially, or simplified */}
+                <div className="p-3 border-t border-[#2b2f38] bg-[#161920] flex justify-center">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="flex items-center justify-center text-[#6e7681] hover:text-white transition-colors">
+                                <Plus className="w-5 h-5" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" side="right" className="bg-[#1f2126] border-[#2b2f38] text-[#dcdedf]">
+                            <DropdownMenuItem onClick={handleAddGameFolder} className="hover:bg-[#2b2f38] cursor-pointer gap-2">
+                                <Folder className="w-4 h-4" />
+                                <span>Add from Folder</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleAddGameArchive} className="hover:bg-[#2b2f38] cursor-pointer gap-2">
+                                <File className="w-4 h-4" />
+                                <span>Add from Archive</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </div>
         );
     }
@@ -184,10 +248,24 @@ export default function LibrarySidebar({
 
             {/* Footer */}
             <div className="p-3 border-t border-[#2b2f38] bg-[#161920]">
-                <button className="flex items-center text-[#6e7681] hover:text-white transition-colors gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span className="text-xs font-bold">Add a Game</span>
-                </button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button className="flex items-center text-[#6e7681] hover:text-white transition-colors gap-2 w-full">
+                            <Plus className="w-4 h-4" />
+                            <span className="text-xs font-bold">Add a Game</span>
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" side="top" className="w-[200px] bg-[#1f2126] border-[#2b2f38] text-[#dcdedf]">
+                        <DropdownMenuItem onClick={handleAddGameFolder} className="hover:bg-[#2b2f38] cursor-pointer gap-2">
+                            <Folder className="w-4 h-4" />
+                            <span>Add from Folder</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleAddGameArchive} className="hover:bg-[#2b2f38] cursor-pointer gap-2">
+                            <File className="w-4 h-4" />
+                            <span>Add from Archive</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     );
