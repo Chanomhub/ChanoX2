@@ -73,7 +73,7 @@ This section guides you through submitting an enhancement suggestion for ChanoX2
 1.  **Fork** the repository on GitHub.
 2.  **Clone** your fork locally:
     ```bash
-    git clone https://github.com/your-username/chanox2.git
+    git clone https://github.com/Chanomhub/ChanoX2.git
     cd chanox2
     ```
 3.  **Install dependencies**:
