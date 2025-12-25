@@ -341,7 +341,52 @@ ipcMain.handle('select-game-folder', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory']
     });
-    return result.canceled ? null : result.filePaths[0];
+
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    const selectedPath = result.filePaths[0];
+
+    // 1. System Folder Protection - OS Specific
+    const systemDirs = platformHandler.getBlockedSystemDirectories(app);
+
+    // Normalize paths for comparison (remove trailing slashes)
+    const normalizedSelected = path.normalize(selectedPath);
+    const isSystemDir = systemDirs.some(dir => {
+        const normalizedSystem = path.normalize(dir);
+        return normalizedSelected === normalizedSystem;
+    });
+
+    if (isSystemDir) {
+        dialog.showMessageBox(mainWindow, {
+            type: 'error',
+            title: 'Invalid Folder',
+            message: 'You cannot select a system or root user directory as a game.',
+            detail: 'Please select a specific folder inside containing the game files.'
+        });
+        return null;
+    }
+
+    // 2. Scan for executables validation
+    const executables = scanDir(selectedPath, 0, 2); // Scan up to depth 2 is usually enough for a quick check
+    const hasGameExecutable = executables.length > 0;
+
+    if (!hasGameExecutable) {
+        const userChoice = await dialog.showMessageBox(mainWindow, {
+            type: 'warning',
+            title: 'No Game Found',
+            message: 'No game executables found in this folder.',
+            detail: 'This folder does not appear to contain any recognized game launchers (.exe, .x86_64, etc). Are you sure you want to add this folder?',
+            buttons: ['Cancel', 'Add Anyway'],
+            defaultId: 0,
+            cancelId: 0
+        });
+
+        if (userChoice.response === 0) {
+            return null;
+        }
+    }
+
+    return selectedPath;
 });
 
 ipcMain.handle('select-game-archive', async () => {

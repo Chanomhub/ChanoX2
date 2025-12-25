@@ -84,5 +84,26 @@ module.exports = {
             return { type: 'mac-app' };
         }
         return null;
+    },
+
+    /**
+     * Get list of system directories that should be blocked
+     */
+    getBlockedSystemDirectories(app) {
+        return [
+            '/',
+            '/Applications',
+            '/System',
+            '/Library',
+            '/bin',
+            '/sbin',
+            '/usr',
+            '/var',
+            '/private',
+            app.getPath('home'),
+            app.getPath('downloads'),
+            app.getPath('documents'),
+            app.getPath('desktop')
+        ];
     }
 };

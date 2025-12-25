@@ -38,5 +38,21 @@ module.exports = {
             return { type: 'windows-exe' };
         }
         return null;
+    },
+
+    /**
+     * Get list of system directories that should be blocked
+     */
+    getBlockedSystemDirectories(app) {
+        return [
+            'C:\\Windows',
+            'C:\\Program Files',
+            'C:\\Program Files (x86)',
+            'C:\\ProgramData',
+            app.getPath('home'),
+            app.getPath('downloads'),
+            app.getPath('documents'),
+            app.getPath('desktop')
+        ];
     }
 };

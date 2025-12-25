@@ -90,5 +90,32 @@ module.exports = {
         }
 
         return null;
+    },
+
+    /**
+     * Get list of system directories that should be blocked
+     */
+    getBlockedSystemDirectories(app) {
+        return [
+            '/',
+            '/bin',
+            '/boot',
+            '/dev',
+            '/etc',
+            '/lib',
+            '/lib64',
+            '/proc',
+            '/root',
+            '/run',
+            '/sbin',
+            '/sys',
+            '/tmp',
+            '/usr',
+            '/var',
+            app.getPath('home'),
+            app.getPath('downloads'),
+            app.getPath('documents'),
+            app.getPath('desktop')
+        ];
     }
 };
