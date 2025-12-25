@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 import { ScrollArea } from '@/components/ui/ScrollArea';
-import { Home, MessageSquare, Search, Filter, Plus, Clock } from 'lucide-react';
+import { Home, MessageSquare, Search, Filter, Plus, Clock, Star } from 'lucide-react';
 import { useLibrary } from '@/contexts/LibraryContext';
 
 interface LibrarySidebarProps {
@@ -158,7 +158,7 @@ export default function LibrarySidebar({
                         <button
                             key={game.id}
                             className={cn(
-                                "flex items-center px-4 py-1.5 gap-2 w-full text-left transition-colors hover:bg-[#1f242e]",
+                                "flex items-center px-4 py-1.5 gap-2 w-full text-left transition-colors hover:bg-[#1f242e] min-w-0 overflow-hidden",
                                 selectedGameId === game.id && "bg-[#3d4450] hover:bg-[#3d4450]"
                             )}
                             onClick={() => onSelectGame(game.id)}
@@ -168,12 +168,15 @@ export default function LibrarySidebar({
                                     <img src={game.coverImage} className="w-full h-full object-cover" alt="" />
                                 )}
                             </div>
-                            <span className={cn(
-                                "text-[13px] truncate flex-1",
+                            <div className={cn(
+                                "text-[13px] text-left truncate flex-1 min-w-0 w-0 flex items-center gap-1.5",
                                 selectedGameId === game.id ? "text-white" : "text-[#969696]"
                             )}>
-                                {game.title}
-                            </span>
+                                <span className="truncate">{game.title}</span>
+                                {game.isFavorite && (
+                                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                )}
+                            </div>
                         </button>
                     ))}
                 </div>
