@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useLibrary } from '@/contexts/LibraryContext';
 import { LibraryItem } from '@/types/libraryItem';
 import { client } from '@/libs/api/client';
-import { GET_OFFICIAL_DOWNLOAD_SOURCES } from '@/libs/api/queries';
-import { OfficialDownloadSource, OfficialDownloadSourcesResponse } from '@/types/graphql';
+import { GET_OFFICIAL_DOWNLOAD_SOURCES, GET_ARTICLE } from '@/libs/api/queries';
+import { OfficialDownloadSource, OfficialDownloadSourcesResponse, ArticleResponse } from '@/types/graphql';
+import HtmlRenderer from '@/components/common/HtmlRenderer';
+import { useLanguage } from '@/contexts/LanguageContext';
 import GameLaunchDialog, { GameLaunchConfig } from './GameLaunchDialog';
 import { useGameLauncher } from '@/hooks/useGameLauncher';
 import { useGameScanner } from '@/hooks/useGameScanner';
@@ -55,6 +57,7 @@ interface LibraryGameDetailProps {
 
 export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onAutoLaunchComplete }: LibraryGameDetailProps) {
     const { toggleFavorite, reExtractGame, deleteArchive, archiveExists, removeFromLibrary, updateLibraryItem } = useLibrary();
+    const { language } = useLanguage();
 
     const [launchDialogVisible, setLaunchDialogVisible] = useState(false);
     const [hasArchive, setHasArchive] = useState(false);
@@ -118,6 +121,31 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
         };
         fetchOfficialSources();
     }, [libraryItem.articleId]);
+
+    // Fetch missing article content (description/body)
+    useEffect(() => {
+        const fetchContent = async () => {
+            // Only fetch if we have an ID but missing content
+            if (libraryItem.articleId && (!libraryItem.description && !libraryItem.body)) {
+                try {
+                    const data = await client.request<ArticleResponse>(GET_ARTICLE, {
+                        id: Number(libraryItem.articleId),
+                        language
+                    });
+                    if (data.article) {
+                        console.log('Fetched missing article content for library item:', libraryItem.title);
+                        updateLibraryItem(libraryItem.id, {
+                            description: data.article.description,
+                            body: data.article.body
+                        });
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch missing article content:', err);
+                }
+            }
+        };
+        fetchContent();
+    }, [libraryItem.articleId, libraryItem.description, libraryItem.body, libraryItem.id, language, updateLibraryItem]);
 
     // Auto-launch effect when triggered from shortcut
     const autoLaunchTriggered = useRef(false);
@@ -392,32 +420,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
 
                 {/* Left Column (Main Feed) */}
                 <div className="flex-1 space-y-6">
-                    {/* Game Path Info */}
-                    <div className="bg-black/20 p-4 rounded-sm">
-                        <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-3">Installation</h3>
-                        <div className="space-y-2 text-xs">
-                            <div className="flex justify-between">
-                                <span className="text-[#6e7681]">Game Folder:</span>
-                                <span className="text-[#dcdedf] truncate max-w-[300px]" title={libraryItem.extractedPath}>
-                                    {libraryItem.extractedPath}
-                                </span>
-                            </div>
-                            {libraryItem.archivePath && (
-                                <div className="flex justify-between">
-                                    <span className="text-[#6e7681]">Archive:</span>
-                                    <span className={cn(
-                                        "truncate max-w-[300px]",
-                                        hasArchive ? "text-[#dcdedf]" : "text-[#8b929a] line-through"
-                                    )} title={libraryItem.archivePath}>
-                                        {libraryItem.archivePath}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Developer Mode Panel */}
-                    {devMode && (
+                    {/* Dev Mode Panel OR Article Content */}
+                    {devMode ? (
                         <div className="bg-[#0d1117] border border-[#30363d] p-4 rounded-sm" key={refreshKey}>
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-[#4cff00] text-xs font-bold uppercase flex items-center gap-2">
@@ -523,7 +527,44 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                 </div>
                             </div>
                         </div>
+                    ) : (
+                        (libraryItem.description || libraryItem.body) && (
+                            <div className="bg-black/20 p-6 rounded-sm">
+                                <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2 uppercase tracking-wider">About This Game</h2>
+                                <div className="text-[#acb2b8] text-sm leading-6 space-y-4">
+                                    {libraryItem.body ? (
+                                        <HtmlRenderer html={libraryItem.body} />
+                                    ) : (
+                                        <p>{libraryItem.description}</p>
+                                    )}
+                                </div>
+                            </div>
+                        )
                     )}
+
+                    {/* Game Path Info */}
+                    <div className="bg-black/20 p-4 rounded-sm">
+                        <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-3">Installation</h3>
+                        <div className="space-y-2 text-xs">
+                            <div className="flex justify-between">
+                                <span className="text-[#6e7681]">Game Folder:</span>
+                                <span className="text-[#dcdedf] truncate max-w-[300px]" title={libraryItem.extractedPath}>
+                                    {libraryItem.extractedPath}
+                                </span>
+                            </div>
+                            {libraryItem.archivePath && (
+                                <div className="flex justify-between">
+                                    <span className="text-[#6e7681]">Archive:</span>
+                                    <span className={cn(
+                                        "truncate max-w-[300px]",
+                                        hasArchive ? "text-[#dcdedf]" : "text-[#8b929a] line-through"
+                                    )} title={libraryItem.archivePath}>
+                                        {libraryItem.archivePath}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Right Column (Sidebar Info) */}

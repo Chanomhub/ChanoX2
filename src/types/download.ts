@@ -15,6 +15,8 @@ export interface Download {
     // Metadata
     articleId?: number;
     articleTitle?: string;
+    articleDescription?: string;
+    articleBody?: string;
     coverImage?: string;
     engine?: string;
     gameVersion?: string;

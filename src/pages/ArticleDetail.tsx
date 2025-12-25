@@ -407,7 +407,9 @@ export default function ArticleDetail() {
                             article?.title,
                             article?.coverImage || article?.mainImage || article?.backgroundImage || undefined,
                             article?.engine?.name || undefined,
-                            article?.ver || undefined
+                            article?.ver || undefined,
+                            article?.description || undefined,
+                            article?.body || undefined
                         );
                     }}
                     articleTitle={article?.title}
