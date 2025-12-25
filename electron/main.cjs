@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const { spawn } = require('child_process');
+const platformHandler = require('./platforms/index.cjs');
 
 // Set app name to ensure userData path is correct
 app.name = 'ChanoX2';
@@ -50,24 +51,9 @@ function parseLaunchGameArg(args) {
 let pendingGameLaunch = parseLaunchGameArg(process.argv.slice(1));
 
 // Shortcut paths
+// Shortcut paths
 function getShortcutPath(gameId, title) {
-    // Sanitize title for filename - remove unsafe chars and limit length
-    const safeName = title
-        .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')  // Remove unsafe chars
-        .replace(/\s+/g, '_')                      // Replace spaces with underscores
-        .replace(/_+/g, '_')                       // Collapse multiple underscores
-        .replace(/^_|_$/g, '')                     // Trim underscores from ends
-        .substring(0, 80);                         // Limit length
-
-    if (process.platform === 'win32') {
-        return path.join(app.getPath('desktop'), `${safeName}.lnk`);
-    } else if (process.platform === 'linux') {
-        // Use game title for better readability, keep gameId for uniqueness
-        return path.join(HOME_DIR, 'Desktop', `${safeName}.desktop`);
-    } else if (process.platform === 'darwin') {
-        return path.join(HOME_DIR, 'Desktop', `${safeName}.command`);
-    }
-    return null;
+    return platformHandler.getShortcutPath(app, title);
 }
 
 // Get app icon path
@@ -621,6 +607,7 @@ ipcMain.handle('list-bottles', async () => {
 });
 
 // --- Game Scanning & Launching ---
+
 function scanDir(dir, depth = 0, maxDepth = 3) {
     if (depth > maxDepth) return [];
     let executables = [];
@@ -632,24 +619,23 @@ function scanDir(dir, depth = 0, maxDepth = 3) {
             const fullPath = path.join(dir, file);
             try {
                 const stats = fs.statSync(fullPath);
-                if (stats.isDirectory()) {
-                    if (process.platform === 'darwin' && file.endsWith('.app')) {
-                        executables.push({ path: fullPath, type: 'mac-app' });
-                    } else {
-                        executables = executables.concat(scanDir(fullPath, depth + 1, maxDepth));
-                    }
-                } else {
-                    const lower = file.toLowerCase();
-                    if (lower.endsWith('.exe')) {
-                        executables.push({ path: fullPath, type: 'windows-exe' });
-                    } else if (process.platform !== 'win32') {
-                        const isExecutable = !!(stats.mode & 0o100);
-                        const ignoredExts = ['.sh', '.so', '.txt', '.png', '.jpg', '.json', '.xml', '.html', '.css', '.js'];
-                        const hasIgnoredExt = ignoredExts.some(ext => lower.endsWith(ext));
 
-                        if ((isExecutable && !hasIgnoredExt) || lower.endsWith('.x86_64') || lower.endsWith('.x86')) {
-                            executables.push({ path: fullPath, type: 'native-binary' });
+                // Directory Handling
+                if (stats.isDirectory()) {
+                    // Check if directory itself is a game app (e.g. .app on Mac)
+                    if (platformHandler.isGameDirectory) {
+                        const gameDir = platformHandler.isGameDirectory(fullPath);
+                        if (gameDir) {
+                            executables.push({ path: fullPath, type: gameDir.type });
+                            continue; // Treat as file, don't recurse inside
                         }
+                    }
+                    executables = executables.concat(scanDir(fullPath, depth + 1, maxDepth));
+                } else {
+                    // File Handling
+                    const gameExec = platformHandler.isGameExecutable(file, stats);
+                    if (gameExec) {
+                        executables.push({ path: fullPath, type: gameExec.type });
                     }
                 }
             } catch (e) { /* ignore */ }
@@ -690,28 +676,12 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
         console.warn('⚠️ [launch-game] No gameId found, playtime will NOT be tracked!');
     }
 
-    let command = executablePath;
-    let finalArgs = args;
-
-    if (useWine) {
-        if (wineProvider === 'bottles') {
-            const customCmd = globalSettings.externalWineCommand || 'bottles-cli run -b Gaming -e %EXE%';
-            let cmdString = customCmd.replace('%EXE%', `"${executablePath}"`);
-            if (!customCmd.includes('%EXE%')) cmdString = `${customCmd} "${executablePath}"`;
-
-            const parts = cmdString.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-            if (parts.length > 0) {
-                command = parts[0].replace(/"/g, '');
-                finalArgs = [...parts.slice(1).map(arg => arg.replace(/"/g, '')), ...args];
-            }
-        } else {
-            command = 'wine';
-            finalArgs = [executablePath, ...args];
-        }
-    } else if (process.platform === 'darwin' && executablePath.endsWith('.app')) {
-        command = 'open';
-        finalArgs = ['-a', executablePath, ...args];
-    }
+    // Prepare launch command via platform handler
+    const { command, finalArgs, detached } = platformHandler.prepareLaunch(
+        executablePath,
+        args,
+        { useWine, wineProvider, globalSettings }
+    );
 
     const gameDir = path.dirname(executablePath);
 
@@ -741,7 +711,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
             const subprocess = spawn(command, finalArgs, {
                 cwd: gameDir,
                 env: cleanEnv,
-                detached: wineProvider !== 'bottles',
+                detached,
                 stdio: ['ignore', out, err]
             });
 

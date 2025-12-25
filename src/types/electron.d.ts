@@ -56,7 +56,7 @@ export interface GameConfig {
 }
 
 export interface GlobalSettings {
-    wineProvider?: 'internal' | 'bottles';
+    wineProvider?: 'internal' | 'bottles' | 'custom';
     externalWineCommand?: string;
     [key: string]: unknown;
 }

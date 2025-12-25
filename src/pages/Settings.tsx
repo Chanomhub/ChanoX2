@@ -13,15 +13,15 @@ import packageJson from '../../package.json';
 
 import { format } from 'date-fns';
 import { useNotification } from '@/contexts/NotificationContext';
+import { LinuxSettings } from './settings/LinuxSettings';
+import { MacSettings } from './settings/MacSettings';
 
 // shadcn components
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/Input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
+
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 
@@ -251,6 +251,7 @@ function GeneralSection() {
 
 // Storage Section
 function StorageSection() {
+    // ... (content of storage section - keeping it, but need to be careful with replace range)
     const { downloadPath, setDownloadPath } = useSettingsStore();
     const [diskSpace, setDiskSpace] = useState<{ free: number; total: number } | null>(null);
 
@@ -349,220 +350,9 @@ function StorageSection() {
     );
 }
 
-// Linux Settings Section
-function LinuxSection() {
-    const [wineProvider, setWineProvider] = useState<'internal' | 'bottles'>('internal');
-    const [externalCommand, setExternalCommand] = useState('bottles-cli run -b Gaming -e %EXE%');
-    const [availableBottles, setAvailableBottles] = useState<string[]>([]);
-    const [selectedBottle, setSelectedBottle] = useState<string>('');
-    const [loadingBottles, setLoadingBottles] = useState(false);
+// Linux/Mac Sections moved to separate files
 
-    useEffect(() => {
-        loadSettings();
-    }, []);
 
-    useEffect(() => {
-        if (wineProvider === 'bottles') {
-            loadBottles();
-        }
-    }, [wineProvider]);
-
-    const loadSettings = async () => {
-        if (window.electronAPI) {
-            const settings = await window.electronAPI.getGlobalSettings();
-            if (settings.wineProvider) {
-                setWineProvider(settings.wineProvider);
-            }
-            if (settings.externalWineCommand) {
-                setExternalCommand(settings.externalWineCommand);
-                // Extract bottle name from command
-                const match = settings.externalWineCommand.match(/-b\s+([^\s]+)/);
-                if (match) {
-                    setSelectedBottle(match[1]);
-                }
-            }
-        }
-    };
-
-    const loadBottles = async () => {
-        if (!window.electronAPI) return;
-        setLoadingBottles(true);
-        try {
-            const result = await window.electronAPI.listBottles();
-            if (result.success && result.bottles.length > 0) {
-                setAvailableBottles(result.bottles);
-                // Auto-select first bottle if none selected
-                if (!selectedBottle && result.bottles.length > 0) {
-                    const firstBottle = result.bottles[0];
-                    setSelectedBottle(firstBottle);
-                    const newCommand = `bottles-cli run -b ${firstBottle} -e %EXE%`;
-                    setExternalCommand(newCommand);
-                    saveSettings('bottles', newCommand);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to load bottles:', error);
-        } finally {
-            setLoadingBottles(false);
-        }
-    };
-
-    const saveSettings = async (provider: 'internal' | 'bottles', command: string) => {
-        if (window.electronAPI) {
-            await window.electronAPI.saveGlobalSettings({
-                wineProvider: provider,
-                externalWineCommand: command
-            });
-        }
-    };
-
-    const handleProviderChange = (provider: 'internal' | 'bottles') => {
-        setWineProvider(provider);
-        saveSettings(provider, externalCommand);
-    };
-
-    const handleBottleSelect = (bottleName: string) => {
-        setSelectedBottle(bottleName);
-        const newCommand = `bottles-cli run -b ${bottleName} -e %EXE%`;
-        setExternalCommand(newCommand);
-        saveSettings(wineProvider, newCommand);
-    };
-
-    const handleCommandChange = (text: string) => {
-        setExternalCommand(text);
-        saveSettings(wineProvider, text);
-        // Extract bottle name if changed manually
-        const match = text.match(/-b\s+([^\s]+)/);
-        if (match) {
-            setSelectedBottle(match[1]);
-        }
-    };
-
-    // Only show on Linux
-    const isLinux = navigator.platform.toLowerCase().includes('linux');
-    if (!isLinux && !window.electronAPI) return null;
-
-    return (
-        <div>
-            <SectionHeader title="Linux Settings" />
-
-            <Card className="bg-chanox-surface border-chanox-border">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-base text-zinc-100">Wine Provider</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <RadioGroup
-                        value={wineProvider}
-                        onValueChange={(value) => handleProviderChange(value as 'internal' | 'bottles')}
-                        className="space-y-3"
-                    >
-                        {/* Internal Wine Option */}
-                        <div
-                            className={cn(
-                                "flex items-start space-x-3 p-4 rounded-lg border transition-all cursor-pointer",
-                                wineProvider === 'internal'
-                                    ? "border-chanox-accent bg-chanox-accent/10"
-                                    : "border-chanox-border hover:border-zinc-600"
-                            )}
-                            onClick={() => handleProviderChange('internal')}
-                        >
-                            <RadioGroupItem value="internal" id="internal" className="mt-0.5" />
-                            <div className="flex-1">
-                                <Label htmlFor="internal" className="text-zinc-100 font-medium cursor-pointer">
-                                    Internal Wine
-                                </Label>
-                                <p className="text-zinc-500 text-xs mt-1">
-                                    Use the system's installed Wine or bundled version.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* External/Bottles Option */}
-                        <div
-                            className={cn(
-                                "flex items-start space-x-3 p-4 rounded-lg border transition-all cursor-pointer",
-                                wineProvider === 'bottles'
-                                    ? "border-chanox-accent bg-chanox-accent/10"
-                                    : "border-chanox-border hover:border-zinc-600"
-                            )}
-                            onClick={() => handleProviderChange('bottles')}
-                        >
-                            <RadioGroupItem value="bottles" id="bottles" className="mt-0.5" />
-                            <div className="flex-1">
-                                <Label htmlFor="bottles" className="text-zinc-100 font-medium cursor-pointer">
-                                    Bottles
-                                </Label>
-                                <p className="text-zinc-500 text-xs mt-1">
-                                    Launch games using Bottles wine manager.
-                                </p>
-                            </div>
-                        </div>
-                    </RadioGroup>
-
-                    {/* Bottles Selection */}
-                    {wineProvider === 'bottles' && (
-                        <div className="mt-4 pl-7 space-y-4">
-                            {/* Bottle Dropdown */}
-                            <div>
-                                <Label className="text-zinc-300 text-sm">Select Bottle</Label>
-                                <p className="text-zinc-500 text-xs mb-2">
-                                    Choose which bottle to use for running games.
-                                </p>
-                                {loadingBottles ? (
-                                    <div className="flex items-center gap-2 text-zinc-400 text-sm py-2">
-                                        <Loader2 size={16} className="animate-spin" />
-                                        Loading bottles...
-                                    </div>
-                                ) : availableBottles.length > 0 ? (
-                                    <div className="flex flex-wrap gap-2">
-                                        {availableBottles.map((bottle) => (
-                                            <button
-                                                key={bottle}
-                                                onClick={() => handleBottleSelect(bottle)}
-                                                className={cn(
-                                                    "px-3 py-1.5 rounded-full text-sm transition-all",
-                                                    selectedBottle === bottle
-                                                        ? "bg-chanox-accent text-black font-medium"
-                                                        : "bg-zinc-700 text-zinc-300 hover:bg-zinc-600"
-                                                )}
-                                            >
-                                                {bottle}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-zinc-500 text-sm py-2">
-                                        No bottles found. Make sure Bottles is installed and has at least one bottle.
-                                        <button
-                                            onClick={loadBottles}
-                                            className="ml-2 text-chanox-accent hover:underline"
-                                        >
-                                            Retry
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Custom Command (Advanced) */}
-                            <div>
-                                <Label className="text-zinc-300 text-sm">Command (Advanced)</Label>
-                                <p className="text-zinc-500 text-xs mb-2">
-                                    Auto-generated command. Edit for custom configurations.
-                                </p>
-                                <Input
-                                    value={externalCommand}
-                                    onChange={(e) => handleCommandChange(e.target.value)}
-                                    placeholder="e.g. bottles-cli run -b Gaming -e %EXE%"
-                                    className="bg-zinc-800 border-chanox-border text-zinc-200 font-mono text-xs"
-                                />
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
 
 // Notifications Section
 function NotificationsSection() {
@@ -667,11 +457,15 @@ export default function Settings() {
     const navigate = useNavigate();
     const { activeSection, setActiveSection } = useSettingsStore();
 
+    const isLinux = window.navigator.platform.toLowerCase().includes('linux');
+    const isMac = window.navigator.platform.toUpperCase().includes('MAC');
+
     const sidebarItems: { id: SettingsSection; label: string; icon: React.ReactNode; group: string }[] = [
         { id: 'account', label: 'Account', icon: <User size={18} />, group: 'PREFERENCES' },
         { id: 'general', label: 'General', icon: <SettingsIcon size={18} />, group: 'PREFERENCES' },
         { id: 'storage', label: 'Storage', icon: <HardDrive size={18} />, group: 'PREFERENCES' },
-        { id: 'linux', label: 'Linux', icon: <MonitorCog size={18} />, group: 'PREFERENCES' },
+        ...(isLinux ? [{ id: 'linux' as const, label: 'Linux', icon: <MonitorCog size={18} />, group: 'PREFERENCES' }] : []),
+        ...(isMac ? [{ id: 'mac' as const, label: 'MacOS', icon: <MonitorCog size={18} />, group: 'PREFERENCES' }] : []),
         { id: 'notifications', label: 'Notifications', icon: <Bell size={18} />, group: 'APPLICATION' },
         { id: 'security', label: 'Security', icon: <Shield size={18} />, group: 'APPLICATION' },
     ];
@@ -685,7 +479,9 @@ export default function Settings() {
             case 'storage':
                 return <StorageSection />;
             case 'linux':
-                return <LinuxSection />;
+                return <LinuxSettings />;
+            case 'mac':
+                return <MacSettings />;
             case 'notifications':
                 return <NotificationsSection />;
             case 'security':

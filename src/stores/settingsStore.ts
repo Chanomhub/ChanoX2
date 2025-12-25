@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'notifications' | 'security';
+export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'mac' | 'notifications' | 'security';
 
 interface SettingsStore {
     isOpen: boolean;
