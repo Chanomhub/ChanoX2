@@ -28,7 +28,18 @@ module.exports = {
         let finalArgs = args;
         let detached = false;
 
-        if (useWine) {
+        // Auto-detect native Linux binaries to prevent accidental Wine launch
+        const lower = executablePath.toLowerCase();
+        const isNative = lower.endsWith('.appimage') ||
+            lower.endsWith('.x86_64') ||
+            lower.endsWith('.x86') ||
+            lower.endsWith('.sh') || // Ren'Py / Shell scripts
+            (lower.indexOf('.') === -1 && !useWine); // No extension, likely binary
+
+        // If explicitly native, disable Wine
+        const shouldRunWine = isNative ? false : useWine;
+
+        if (shouldRunWine) {
             if (wineProvider === 'bottles') {
                 const customCmd = globalSettings.externalWineCommand || 'bottles-cli run -b Gaming -e %EXE%';
                 let cmdString = customCmd.replace('%EXE%', `"${executablePath}"`);
@@ -64,6 +75,9 @@ module.exports = {
         } else {
             // Native launch
             detached = true; // Ideally detach
+
+            // For AppImages, we might need no-sandbox if it causes issues, but standard is just run it.
+            // Some AppImages need specific args, but usually not.
         }
 
         return { command, finalArgs, detached };
@@ -78,10 +92,28 @@ module.exports = {
         const isExecutable = !!(stats.mode & 0o100);
 
         // Exclude common non-game extensions
-        const ignoredExts = ['.sh', '.so', '.txt', '.png', '.jpg', '.json', '.xml', '.html', '.css', '.js'];
+        const ignoredExts = [
+            '.sh', '.so', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico',
+            '.json', '.xml', '.html', '.css', '.js', '.ts', '.md', '.markdown',
+            '.config', '.cfg', '.ini', '.log', '.dat', '.db', '.sqlite',
+            '.mp3', '.wav', '.ogg', '.mp4', '.mkv', '.avi', '.mov',
+            '.zip', '.rar', '.7z', '.tar', '.gz', '.xz', '.pdf', '.doc', '.docx'
+        ];
         const hasIgnoredExt = ignoredExts.some(ext => lower.endsWith(ext));
 
-        if ((isExecutable && !hasIgnoredExt) || lower.endsWith('.x86_64') || lower.endsWith('.x86') || lower.endsWith('.appimage')) {
+        // Accept if:
+        // 1. Is executable AND not ignored
+        // 2. Known binary extension (.x86_64, .x86, .appimage, .bin)
+        // 3. NO extension AND not ignored (likely a linux binary like "godot_game")
+        const hasNoExtension = !lower.includes('.');
+
+        if ((isExecutable && !hasIgnoredExt) ||
+            lower.endsWith('.x86_64') ||
+            lower.endsWith('.x86') ||
+            lower.endsWith('.appimage') ||
+            lower.endsWith('.bin') ||
+            lower.endsWith('.sh') ||
+            (hasNoExtension && !hasIgnoredExt)) {
             return { type: 'native-binary' };
         }
 
@@ -117,5 +149,23 @@ module.exports = {
             app.getPath('documents'),
             app.getPath('desktop')
         ];
+    },
+
+    /**
+     * Ensure file is executable (important for AppImages)
+     */
+    ensureExecutable(filePath) {
+        try {
+            if (fs.existsSync(filePath)) {
+                // Check if it's an AppImage or we want to force executable for everything we launch
+                // For now, let's just do it for everything that looks like a linux executable file
+                // 0o755 = rwxr-xr-x
+                fs.chmodSync(filePath, '755');
+                return true;
+            }
+        } catch (error) {
+            console.error('Failed to set executable permissions:', error);
+        }
+        return false;
     }
 };

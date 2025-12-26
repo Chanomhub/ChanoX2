@@ -591,13 +591,35 @@ ipcMain.handle('save-library', (event, library) => saveJsonFile(LIBRARY_FILE, li
 ipcMain.handle('move-archive-to-storage', async (event, { sourcePath, filename }) => {
     try {
         const destPath = path.join(ARCHIVES_DIR, filename);
+
         // If source and dest are the same, no need to move
         if (sourcePath === destPath) return { success: true, newPath: destPath };
+
         // Check if source exists
-        if (!fs.existsSync(sourcePath)) return { success: false, error: 'Source file not found' };
-        // Move file
-        await fs.promises.rename(sourcePath, destPath);
-        return { success: true, newPath: destPath };
+        if (!fs.existsSync(sourcePath)) {
+            console.log('move-archive-to-storage: Source file not found, skipping move:', sourcePath);
+            return { success: true, newPath: sourcePath, skipped: true }; // Return success but indicate skipped
+        }
+
+        // Ensure destination directory exists
+        if (!fs.existsSync(ARCHIVES_DIR)) {
+            fs.mkdirSync(ARCHIVES_DIR, { recursive: true });
+        }
+
+        // Try rename first (fast, same filesystem)
+        try {
+            await fs.promises.rename(sourcePath, destPath);
+            return { success: true, newPath: destPath };
+        } catch (renameErr) {
+            // If rename fails (cross-device or other issue), try copy+delete
+            if (renameErr.code === 'EXDEV' || renameErr.code === 'ENOENT') {
+                console.log('move-archive-to-storage: rename failed, trying copy:', renameErr.code);
+                await fs.promises.copyFile(sourcePath, destPath);
+                await fs.promises.unlink(sourcePath);
+                return { success: true, newPath: destPath };
+            }
+            throw renameErr;
+        }
     } catch (err) {
         console.error('Failed to move archive:', err);
         return { success: false, error: err.message };
@@ -710,6 +732,21 @@ function scanDir(dir, depth = 0, maxDepth = 3) {
 
 ipcMain.handle('scan-game-executables', (event, directory) => {
     if (!directory || !fs.existsSync(directory)) return [];
+
+    // Check if path is a file (for non-archive downloads like AppImage)
+    const stats = fs.statSync(directory);
+    if (stats.isFile()) {
+        // Return the file itself as an executable if it's a valid game file
+        const filename = path.basename(directory);
+        const gameExec = platformHandler.isGameExecutable(filename, stats);
+        if (gameExec) {
+            return [{ path: directory, type: gameExec.type }];
+        }
+        // If not recognized as executable, scan parent dir
+        const parentDir = path.dirname(directory);
+        return scanDir(parentDir);
+    }
+
     return scanDir(directory);
 });
 
@@ -738,6 +775,11 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
         console.log('🎮 [launch-game] Updated lastPlayed for gameId:', gameId);
     } else {
         console.warn('⚠️ [launch-game] No gameId found, playtime will NOT be tracked!');
+    }
+
+    // Ensure executable permissions (Linux/AppImage)
+    if (platformHandler.ensureExecutable) {
+        platformHandler.ensureExecutable(executablePath);
     }
 
     // Prepare launch command via platform handler

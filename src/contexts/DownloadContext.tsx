@@ -23,9 +23,14 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
 
     // Callback when extraction completes - add to library and move archive
     const onExtractionComplete = useCallback(async (download: Download, extractedPath: string) => {
-        // Move archive to storage subfolder if it exists
+        // Move archive to storage subfolder - ONLY for archives, not for AppImages/executables
         let finalArchivePath = download.savePath;
-        if (download.savePath && window.electronAPI) {
+        const archiveExtensions = ['.zip', '.rar', '.7z', '.tar', '.gz', '.xz', '.tgz', '.tar.gz', '.tar.xz'];
+        const isArchive = download.filename && archiveExtensions.some(ext =>
+            download.filename.toLowerCase().endsWith(ext)
+        );
+
+        if (isArchive && download.savePath && window.electronAPI) {
             const filename = download.filename;
             const result = await window.electronAPI.moveArchiveToStorage(download.savePath, filename);
             if (result.success && result.newPath) {
@@ -41,7 +46,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
             description: download.articleDescription,
             body: download.articleBody,
             extractedPath: extractedPath,
-            archivePath: finalArchivePath,
+            archivePath: isArchive ? finalArchivePath : undefined, // Only store archive path for archives
             engine: download.engine,
             gameVersion: download.gameVersion,
         });
