@@ -73,6 +73,27 @@ module.exports = {
      * Check if a file is a valid game executable
      */
     isGameExecutable(file, stats) {
+        const lower = file.toLowerCase();
+        // Check if executable bit is set (0o100)
+        const isExecutable = !!(stats.mode & 0o100);
+
+        // Exclude common non-game extensions
+        const ignoredExts = [
+            '.sh', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico',
+            '.json', '.xml', '.html', '.css', '.js', '.ts', '.md',
+            '.config', '.cfg', '.ini', '.log', '.dat', '.db',
+            '.mp3', '.wav', '.ogg', '.mp4', '.mkv', '.avi', '.mov',
+            '.zip', '.rar', '.7z', '.tar', '.gz', '.xz', '.pdf', '.dylib', '.so'
+        ];
+        const hasIgnoredExt = ignoredExts.some(ext => lower.endsWith(ext));
+
+        // macOS binaries often have no extension
+        const hasNoExtension = !lower.includes('.');
+
+        if ((isExecutable && !hasIgnoredExt) || (hasNoExtension && isExecutable)) {
+            return { type: 'mac-binary' };
+        }
+
         return null;
     },
 
@@ -105,5 +126,22 @@ module.exports = {
             app.getPath('documents'),
             app.getPath('desktop')
         ];
+    },
+
+    /**
+     * Ensure file is executable (important for command-line games)
+     */
+    ensureExecutable(filePath) {
+        const fs = require('fs');
+        try {
+            if (fs.existsSync(filePath)) {
+                // 0o755 = rwxr-xr-x
+                fs.chmodSync(filePath, '755');
+                return true;
+            }
+        } catch (error) {
+            console.error('Failed to set executable permissions:', error);
+        }
+        return false;
     }
 };

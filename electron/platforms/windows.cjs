@@ -34,8 +34,19 @@ module.exports = {
      * Check if a file is a valid game executable
      */
     isGameExecutable(file, stats) {
-        if (file.toLowerCase().endsWith('.exe')) {
-            return { type: 'windows-exe' };
+        const lower = file.toLowerCase();
+
+        if (lower.endsWith('.exe')) {
+            // Skip common installers and tools
+            const ignoredPatterns = [
+                'unins', 'setup', 'install', 'update', 'patch', 'config',
+                'launcher', 'crash', 'report', 'vc_redist', 'dxsetup',
+                'directx', 'dotnet', 'vcredist', 'ue4prereq', 'unreal'
+            ];
+            const isIgnored = ignoredPatterns.some(pattern => lower.includes(pattern));
+            if (!isIgnored) {
+                return { type: 'windows-exe' };
+            }
         }
         return null;
     },
