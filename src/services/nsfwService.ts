@@ -1,19 +1,21 @@
 import * as nsfwjs from 'nsfwjs';
 
-// Sensitivity thresholds for each level
+// Sensitivity thresholds for each level (optimized for anime content)
+// Hentai thresholds are lower because the model is specifically trained for anime NSFW
 // low = less sensitive (blocks only very explicit content)
 // medium = balanced (default, reasonable detection)
 // high = more sensitive (blocks suggestive content too)
 const THRESHOLDS = {
-    low: { hentai: 0.5, porn: 0.5, sexy: 0.8, combined: 0.8 },
-    medium: { hentai: 0.3, porn: 0.3, sexy: 0.5, combined: 0.6 },
-    high: { hentai: 0.15, porn: 0.15, sexy: 0.3, combined: 0.4 },
+    low: { hentai: 0.4, porn: 0.5, sexy: 0.8, combined: 0.8 },
+    medium: { hentai: 0.2, porn: 0.3, sexy: 0.5, combined: 0.6 },
+    high: { hentai: 0.1, porn: 0.15, sexy: 0.3, combined: 0.4 },
 };
 
 export type NsfwSensitivityLevel = 'low' | 'medium' | 'high';
 
 // Cache key for localStorage
 const CACHE_STORAGE_KEY = 'nsfwCheckCache';
+const CUSTOM_MODEL_KEY = 'nsfwCustomModelUrl';
 const MAX_CACHE_SIZE = 500;
 
 // Load cache from localStorage on startup
@@ -48,28 +50,84 @@ class NSFWService {
     private model: nsfwjs.NSFWJS | null = null;
     private loadingPromise: Promise<nsfwjs.NSFWJS> | null = null;
     private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    private customModelUrl: string | null = null;
+    private currentModelUrl: string | null = null;
 
     constructor() {
-        // Optional: Preload model or wait for first use
+        // Load custom model URL from storage
+        this.customModelUrl = localStorage.getItem(CUSTOM_MODEL_KEY);
+        if (this.customModelUrl) {
+            console.log('🔧 Dev Mode: Custom NSFW model configured:', this.customModelUrl);
+        }
+    }
+
+    /**
+     * Set a custom model URL (Dev Mode)
+     * @param url Path or URL to TensorFlow.js model (e.g., 'file:///path/to/model/' or 'http://localhost:8080/model/')
+     */
+    setCustomModelUrl(url: string | null): void {
+        this.customModelUrl = url;
+        if (url) {
+            localStorage.setItem(CUSTOM_MODEL_KEY, url);
+            console.log('🔧 Dev Mode: Custom model URL set:', url);
+        } else {
+            localStorage.removeItem(CUSTOM_MODEL_KEY);
+            console.log('🔧 Dev Mode: Custom model URL cleared, using default nsfwjs');
+        }
+        // Force model reload on next check
+        this.model = null;
+        this.loadingPromise = null;
+        this.currentModelUrl = null;
+        this.clearCache();
+    }
+
+    /**
+     * Get the current custom model URL
+     */
+    getCustomModelUrl(): string | null {
+        return this.customModelUrl;
+    }
+
+    /**
+     * Check if dev mode (custom model) is enabled
+     */
+    isDevMode(): boolean {
+        return !!this.customModelUrl;
     }
 
     /**
      * Load the NSFW model if not already loaded
      */
     async loadModel(): Promise<nsfwjs.NSFWJS> {
-        if (this.model) {
+        const targetUrl = this.customModelUrl || 'default';
+
+        // If model is loaded and URL hasn't changed, return it
+        if (this.model && this.currentModelUrl === targetUrl) {
             return this.model;
+        }
+
+        // If model URL changed, reset and reload
+        if (this.currentModelUrl !== targetUrl) {
+            this.model = null;
+            this.loadingPromise = null;
         }
 
         if (this.loadingPromise) {
             return this.loadingPromise;
         }
 
-        this.loadingPromise = nsfwjs.load();
+        // Load model from custom URL or default
+        if (this.customModelUrl) {
+            console.log('🔧 Loading custom NSFW model from:', this.customModelUrl);
+            this.loadingPromise = nsfwjs.load(this.customModelUrl);
+        } else {
+            this.loadingPromise = nsfwjs.load();
+        }
 
         try {
             this.model = await this.loadingPromise;
-            console.log('NSFW Model loaded successfully');
+            this.currentModelUrl = targetUrl;
+            console.log(`✅ NSFW Model loaded successfully${this.customModelUrl ? ' (custom)' : ' (default)'}`);
             return this.model;
         } catch (error) {
             console.error('Failed to load NSFW model:', error);
@@ -147,7 +205,8 @@ class NSFWService {
             }
 
             // Log for debugging
-            console.log(`NSFW Check [${sensitivityLevel}]:`, cacheKey?.substring(0, 50) || 'unknown', '→', isUnsafe ? 'NSFW' : 'Safe',
+            const devLabel = this.isDevMode() ? '[DEV] ' : '';
+            console.log(`${devLabel}NSFW Check [${sensitivityLevel}]:`, cacheKey?.substring(0, 50) || 'unknown', '→', isUnsafe ? 'NSFW' : 'Safe',
                 `(H:${(hentaiProb * 100).toFixed(0)}% P:${(pornProb * 100).toFixed(0)}% S:${(sexyProb * 100).toFixed(0)}%)`);
 
             return isUnsafe;
@@ -173,7 +232,16 @@ class NSFWService {
     getCacheStats(): { size: number; maxSize: number } {
         return { size: nsfwCache.size, maxSize: MAX_CACHE_SIZE };
     }
+
+    /**
+     * Get model info for dev mode
+     */
+    getModelInfo(): { isCustom: boolean; url: string | null } {
+        return {
+            isCustom: this.isDevMode(),
+            url: this.customModelUrl
+        };
+    }
 }
 
 export const nsfwService = new NSFWService();
-

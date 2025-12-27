@@ -306,10 +306,88 @@ function GeneralSection() {
                                     </p>
                                 </div>
                             )}
+
+                            {/* Dev Mode: Custom Model */}
+                            {nsfwFilterEnabled && (
+                                <DevModeModelSection />
+                            )}
                         </div>
                     </div>
                 </CardContent>
             </Card>
+        </div>
+    );
+}
+
+// Dev Mode Model Section Component
+function DevModeModelSection() {
+    const [customModelUrl, setCustomModelUrl] = useState('');
+    const [isDevMode, setIsDevMode] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        // Load current state from nsfwService
+        import('@/services/nsfwService').then(({ nsfwService }) => {
+            const info = nsfwService.getModelInfo();
+            setIsDevMode(info.isCustom);
+            setCustomModelUrl(info.url || '');
+        });
+    }, []);
+
+    const handleSave = async () => {
+        if (!customModelUrl.trim()) return;
+        setIsSaving(true);
+        try {
+            const { nsfwService } = await import('@/services/nsfwService');
+            nsfwService.setCustomModelUrl(customModelUrl.trim());
+            setIsDevMode(true);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleClear = async () => {
+        const { nsfwService } = await import('@/services/nsfwService');
+        nsfwService.setCustomModelUrl(null);
+        setCustomModelUrl('');
+        setIsDevMode(false);
+    };
+
+    return (
+        <div className="mt-4 pt-4 border-t border-zinc-800">
+            <div className="flex items-center gap-2 mb-2">
+                <span className="text-zinc-400 text-sm">🔧 Dev Mode: Custom Model</span>
+                {isDevMode && (
+                    <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full">Active</span>
+                )}
+            </div>
+            <p className="text-xs text-zinc-600 mb-3">
+                Use your own TensorFlow.js model for NSFW detection. Model must have classes: Hentai, Porn, Sexy, Neutral, Drawing.
+            </p>
+            <div className="flex gap-2">
+                <input
+                    type="text"
+                    value={customModelUrl}
+                    onChange={(e) => setCustomModelUrl(e.target.value)}
+                    placeholder="http://localhost:8080/model/ or file:///path/to/model/"
+                    className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+                />
+                <button
+                    onClick={handleSave}
+                    disabled={!customModelUrl.trim() || isSaving}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm rounded-lg transition-colors"
+                >
+                    {isSaving ? 'Loading...' : 'Apply'}
+                </button>
+                {isDevMode && (
+                    <button
+                        onClick={handleClear}
+                        className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-sm rounded-lg transition-colors"
+                    >
+                        Reset
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
