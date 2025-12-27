@@ -6,21 +6,35 @@ import { cn } from '@/lib/utils';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     fallbackIcon?: React.ReactNode;
+    fallbackSrc?: string; // Fallback URL if primary src fails (e.g., local file deleted)
 }
 
-export function SafeImage({ className, src, alt, ...props }: SafeImageProps) {
-    const { nsfwFilterEnabled } = useSettingsStore();
+export function SafeImage({ className, src, fallbackSrc, alt, ...props }: SafeImageProps) {
+    const { nsfwFilterEnabled, nsfwFilterLevel } = useSettingsStore();
     const [isChecking, setIsChecking] = useState(false);
     const [isNSFW, setIsNSFW] = useState(false);
     const imgRef = useRef<HTMLImageElement>(null);
     const [showAnyway, setShowAnyway] = useState(false);
+    const [currentSrc, setCurrentSrc] = useState(src);
+    const [hasErrored, setHasErrored] = useState(false);
 
     // Reset state when src changes
     useEffect(() => {
         setIsChecking(false);
         setIsNSFW(false);
         setShowAnyway(false);
+        setCurrentSrc(src);
+        setHasErrored(false);
     }, [src]);
+
+    const handleError = () => {
+        // If primary src fails and we have a fallback, try it
+        if (!hasErrored && fallbackSrc && currentSrc !== fallbackSrc) {
+            console.log('Image failed to load, trying fallback:', fallbackSrc);
+            setCurrentSrc(fallbackSrc);
+            setHasErrored(true);
+        }
+    };
 
     const handleLoad = async (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
         if (!nsfwFilterEnabled) return;
@@ -37,7 +51,7 @@ export function SafeImage({ className, src, alt, ...props }: SafeImageProps) {
                 img.crossOrigin = 'anonymous';
             }
 
-            const isUnsafe = await nsfwService.isNSFW(img);
+            const isUnsafe = await nsfwService.isNSFW(img, undefined, nsfwFilterLevel);
             setIsNSFW(isUnsafe);
         } catch (error) {
             console.error('Failed to check image safety:', error);
@@ -46,14 +60,15 @@ export function SafeImage({ className, src, alt, ...props }: SafeImageProps) {
         }
     };
 
-    // If filter is disabled, render normal image without extra logic overhead
+    // If filter is disabled, render normal image with fallback support
     if (!nsfwFilterEnabled) {
         return (
             <img
-                src={src}
+                src={currentSrc}
                 alt={alt}
                 className={className}
                 loading="lazy"
+                onError={handleError}
                 {...props}
             />
         );
@@ -63,10 +78,11 @@ export function SafeImage({ className, src, alt, ...props }: SafeImageProps) {
         <div className={cn("relative overflow-hidden", className)}>
             <img
                 ref={imgRef}
-                src={src}
+                src={currentSrc}
                 alt={alt}
                 crossOrigin="anonymous"
                 onLoad={handleLoad}
+                onError={handleError}
                 className={cn(
                     "w-full h-full object-cover transition-all duration-300",
                     // Hide while checking or if NSFW (and not overridden)

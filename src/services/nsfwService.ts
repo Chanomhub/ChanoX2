@@ -1,12 +1,53 @@
 import * as nsfwjs from 'nsfwjs';
 
-// Cache for NSFW check results (URL -> isNSFW)
-const nsfwCache = new Map<string, boolean>();
+// Sensitivity thresholds for each level
+// low = less sensitive (blocks only very explicit content)
+// medium = balanced (default, reasonable detection)
+// high = more sensitive (blocks suggestive content too)
+const THRESHOLDS = {
+    low: { hentai: 0.5, porn: 0.5, sexy: 0.8, combined: 0.8 },
+    medium: { hentai: 0.3, porn: 0.3, sexy: 0.5, combined: 0.6 },
+    high: { hentai: 0.15, porn: 0.15, sexy: 0.3, combined: 0.4 },
+};
+
+export type NsfwSensitivityLevel = 'low' | 'medium' | 'high';
+
+// Cache key for localStorage
+const CACHE_STORAGE_KEY = 'nsfwCheckCache';
 const MAX_CACHE_SIZE = 500;
+
+// Load cache from localStorage on startup
+function loadCacheFromStorage(): Map<string, boolean> {
+    try {
+        const stored = localStorage.getItem(CACHE_STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            console.log(`📦 Loaded ${Object.keys(parsed).length} NSFW cache entries from storage`);
+            return new Map(Object.entries(parsed));
+        }
+    } catch (err) {
+        console.warn('Failed to load NSFW cache from storage:', err);
+    }
+    return new Map();
+}
+
+// Save cache to localStorage
+function saveCacheToStorage(cache: Map<string, boolean>): void {
+    try {
+        const obj = Object.fromEntries(cache);
+        localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(obj));
+    } catch (err) {
+        console.warn('Failed to save NSFW cache to storage:', err);
+    }
+}
+
+// Cache for NSFW check results (URL -> isNSFW)
+const nsfwCache = loadCacheFromStorage();
 
 class NSFWService {
     private model: nsfwjs.NSFWJS | null = null;
     private loadingPromise: Promise<nsfwjs.NSFWJS> | null = null;
+    private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
         // Optional: Preload model or wait for first use
@@ -38,12 +79,29 @@ class NSFWService {
     }
 
     /**
+     * Debounced save to avoid too frequent writes
+     */
+    private scheduleCacheSave(): void {
+        if (this.saveDebounceTimer) {
+            clearTimeout(this.saveDebounceTimer);
+        }
+        this.saveDebounceTimer = setTimeout(() => {
+            saveCacheToStorage(nsfwCache);
+        }, 1000);
+    }
+
+    /**
      * Check an image element for NSFW content
      * @param imgElement Must be an HTMLImageElement, HTMLVideoElement, or HTMLCanvasElement
      * @param imageUrl Optional URL to use as cache key
+     * @param sensitivityLevel Sensitivity level for detection
      * @returns True if NSFW content is detected, False otherwise
      */
-    async isNSFW(imgElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement, imageUrl?: string): Promise<boolean> {
+    async isNSFW(
+        imgElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
+        imageUrl?: string,
+        sensitivityLevel: NsfwSensitivityLevel = 'medium'
+    ): Promise<boolean> {
         // Check cache first
         const cacheKey = imageUrl || (imgElement instanceof HTMLImageElement ? imgElement.src : undefined);
 
@@ -56,30 +114,24 @@ class NSFWService {
             const model = await this.loadModel();
             const predictions = await model.classify(imgElement);
 
-            // Classes: Drawing, Hentai, Neutral, Porn, Sexy
-            // Calculate combined NSFW score (Hentai + Porn + Sexy)
-            let nsfwScore = 0;
-            for (const pred of predictions) {
-                if (['Hentai', 'Porn', 'Sexy'].includes(pred.className)) {
-                    nsfwScore += pred.probability;
-                }
-            }
+            // Get thresholds for current sensitivity level
+            const threshold = THRESHOLDS[sensitivityLevel];
 
             // Find individual class probabilities
             const hentaiProb = predictions.find(p => p.className === 'Hentai')?.probability || 0;
             const pornProb = predictions.find(p => p.className === 'Porn')?.probability || 0;
             const sexyProb = predictions.find(p => p.className === 'Sexy')?.probability || 0;
 
-            // Consider NSFW if:
-            // 1. Hentai or Porn probability > 30%
-            // 2. Sexy probability > 50%
-            // 3. Combined NSFW score > 60%
+            // Calculate combined NSFW score
+            const nsfwScore = hentaiProb + pornProb + sexyProb;
+
+            // Consider NSFW based on sensitivity level thresholds
             let isUnsafe = false;
-            if (hentaiProb > 0.3 || pornProb > 0.3) {
+            if (hentaiProb > threshold.hentai || pornProb > threshold.porn) {
                 isUnsafe = true;
-            } else if (sexyProb > 0.5) {
+            } else if (sexyProb > threshold.sexy) {
                 isUnsafe = true;
-            } else if (nsfwScore > 0.6) {
+            } else if (nsfwScore > threshold.combined) {
                 isUnsafe = true;
             }
 
@@ -91,10 +143,11 @@ class NSFWService {
                     if (firstKey) nsfwCache.delete(firstKey);
                 }
                 nsfwCache.set(cacheKey, isUnsafe);
+                this.scheduleCacheSave();
             }
 
             // Log for debugging
-            console.log('NSFW Check:', cacheKey?.substring(0, 50) || 'unknown', '→', isUnsafe ? 'NSFW' : 'Safe',
+            console.log(`NSFW Check [${sensitivityLevel}]:`, cacheKey?.substring(0, 50) || 'unknown', '→', isUnsafe ? 'NSFW' : 'Safe',
                 `(H:${(hentaiProb * 100).toFixed(0)}% P:${(pornProb * 100).toFixed(0)}% S:${(sexyProb * 100).toFixed(0)}%)`);
 
             return isUnsafe;
@@ -110,6 +163,7 @@ class NSFWService {
      */
     clearCache(): void {
         nsfwCache.clear();
+        localStorage.removeItem(CACHE_STORAGE_KEY);
         console.log('NSFW cache cleared');
     }
 
@@ -122,3 +176,4 @@ class NSFWService {
 }
 
 export const nsfwService = new NSFWService();
+

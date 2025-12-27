@@ -144,7 +144,7 @@ function AccountSection() {
 function GeneralSection() {
     const { t } = useTranslation();
     const { language, setLanguage } = useLanguage();
-    const { nsfwFilterEnabled, setNsfwFilterEnabled } = useSettingsStore();
+    const { nsfwFilterEnabled, setNsfwFilterEnabled, nsfwFilterLevel, setNsfwFilterLevel } = useSettingsStore();
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -276,6 +276,36 @@ function GeneralSection() {
                                 <Shield size={12} />
                                 <span>Processing happens entirely on your device. No images are uploaded.</span>
                             </div>
+
+                            {/* Sensitivity Level Selector */}
+                            {nsfwFilterEnabled && (
+                                <div className="mt-4 pt-4 border-t border-zinc-800">
+                                    <label className="text-zinc-400 text-sm block mb-2">Sensitivity Level</label>
+                                    <div className="flex gap-2">
+                                        {(['low', 'medium', 'high'] as const).map((level) => (
+                                            <button
+                                                key={level}
+                                                onClick={() => setNsfwFilterLevel(level)}
+                                                className={cn(
+                                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize",
+                                                    nsfwFilterLevel === level
+                                                        ? level === 'low' ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                                                            : level === 'medium' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50"
+                                                                : "bg-red-500/20 text-red-400 border border-red-500/50"
+                                                        : "bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-500"
+                                                )}
+                                            >
+                                                {level === 'low' ? '🟢 Low' : level === 'medium' ? '🟡 Medium' : '🔴 High'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-zinc-600 mt-2">
+                                        {nsfwFilterLevel === 'low' && 'Blocks only explicit content. Some suggestive images may pass.'}
+                                        {nsfwFilterLevel === 'medium' && 'Balanced detection. Blocks explicit and most suggestive content.'}
+                                        {nsfwFilterLevel === 'high' && 'Strict filtering. Blocks even mildly suggestive content.'}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </CardContent>

@@ -107,6 +107,44 @@ async function downloadGameIcon(gameId, coverImageUrl) {
     }
 }
 
+// Download and cache cover image for library (offline support)
+async function downloadCoverImage(gameId, coverImageUrl) {
+    if (!coverImageUrl || !coverImageUrl.startsWith('http')) {
+        return null;
+    }
+
+    try {
+        const coversDir = path.join(USER_DATA_DIR, 'game-covers');
+        if (!fs.existsSync(coversDir)) {
+            fs.mkdirSync(coversDir, { recursive: true });
+        }
+
+        // Get file extension from URL or default to jpg
+        const urlPath = new URL(coverImageUrl).pathname;
+        const ext = path.extname(urlPath) || '.jpg';
+        const coverPath = path.join(coversDir, `${gameId}${ext}`);
+
+        // Skip if already cached
+        if (fs.existsSync(coverPath)) {
+            console.log('📦 Cover already cached:', coverPath);
+            return coverPath;
+        }
+
+        // Download the image
+        const response = await fetch(coverImageUrl);
+        if (!response.ok) throw new Error('Failed to download cover');
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        fs.writeFileSync(coverPath, buffer);
+
+        console.log('✅ Downloaded cover image:', coverPath);
+        return coverPath;
+    } catch (err) {
+        console.error('⚠️ Failed to download cover:', err.message);
+        return null;
+    }
+}
+
 // 7zip setup
 const pathTo7zip = require('7zip-bin').path7za.replace('app.asar', 'app.asar.unpacked');
 const Seven = require('node-7z');
@@ -586,6 +624,12 @@ ipcMain.handle('save-downloads', (event, downloads) => saveJsonFile(DOWNLOADS_FI
 // --- Library Persistence ---
 ipcMain.handle('get-library', () => loadJsonFile(LIBRARY_FILE, []));
 ipcMain.handle('save-library', (event, library) => saveJsonFile(LIBRARY_FILE, library));
+
+// Download cover image for offline support
+ipcMain.handle('download-cover-image', async (event, { gameId, coverImageUrl }) => {
+    const localPath = await downloadCoverImage(gameId, coverImageUrl);
+    return { success: !!localPath, localPath };
+});
 
 // Move archive to archives subfolder
 ipcMain.handle('move-archive-to-storage', async (event, { sourcePath, filename }) => {

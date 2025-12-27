@@ -115,6 +115,7 @@ export interface ElectronAPI {
     // Library Persistence
     getLibrary: () => Promise<unknown[]>;
     saveLibrary: (library: unknown[]) => Promise<boolean>;
+    downloadCoverImage: (gameId: number | string, coverImageUrl: string) => Promise<{ success: boolean; localPath?: string }>;
 
     // File Management
     moveArchiveToStorage: (sourcePath: string, filename: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;

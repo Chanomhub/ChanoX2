@@ -81,6 +81,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Library Persistence
     getLibrary: () => ipcRenderer.invoke('get-library'),
     saveLibrary: (library) => ipcRenderer.invoke('save-library', library),
+    downloadCoverImage: (gameId, coverImageUrl) => ipcRenderer.invoke('download-cover-image', { gameId, coverImageUrl }),
 
     // File Management
     moveArchiveToStorage: (sourcePath, filename) => ipcRenderer.invoke('move-archive-to-storage', { sourcePath, filename }),

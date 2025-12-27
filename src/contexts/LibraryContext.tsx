@@ -4,7 +4,7 @@ import { ElectronDownloader } from '@/lib/electronDownloader';
 
 interface LibraryContextType {
     libraryItems: LibraryItem[];
-    addToLibrary: (item: Omit<LibraryItem, 'id' | 'addedAt'>) => void;
+    addToLibrary: (item: Omit<LibraryItem, 'id' | 'addedAt'>) => Promise<void>;
     removeFromLibrary: (id: number) => Promise<void>;
     updateLibraryItem: (id: number, updates: Partial<LibraryItem>) => void;
     reExtractGame: (id: number) => Promise<void>;
@@ -51,12 +51,26 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         }
     }, [libraryItems]);
 
-    const addToLibrary = (item: Omit<LibraryItem, 'id' | 'addedAt'>) => {
+    const addToLibrary = async (item: Omit<LibraryItem, 'id' | 'addedAt'>) => {
         const newItem: LibraryItem = {
             ...item,
             id: Date.now(),
             addedAt: new Date(),
         };
+
+        // Download cover image for offline support
+        if (item.coverImage && window.electronAPI?.downloadCoverImage) {
+            try {
+                const result = await window.electronAPI.downloadCoverImage(newItem.id, item.coverImage);
+                if (result.success && result.localPath) {
+                    newItem.localCoverImage = result.localPath;
+                    console.log('✅ Cover image cached for offline:', result.localPath);
+                }
+            } catch (err) {
+                console.warn('⚠️ Failed to cache cover image:', err);
+            }
+        }
+
         setLibraryItems(prev => {
             // Avoid duplicates based on extractedPath
             if (prev.some(i => i.extractedPath === item.extractedPath)) {
