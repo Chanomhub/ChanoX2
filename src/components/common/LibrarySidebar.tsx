@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/Input';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 import { Home, MessageSquare, Search, Filter, Plus, Clock, Star, Folder, File } from 'lucide-react';
 import { useLibrary } from '@/contexts/LibraryContext';
+import { SafeImage } from '@/components/common/SafeImage';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -109,7 +110,7 @@ export default function LibrarySidebar({
                                 title={game.title}
                             >
                                 {game.coverImage ? (
-                                    <img
+                                    <SafeImage
                                         src={game.coverImage}
                                         alt={game.title}
                                         className="w-full h-full object-cover rounded"
@@ -229,7 +230,7 @@ export default function LibrarySidebar({
                         >
                             <div className="w-4 h-4 bg-[#2a2e36] flex-shrink-0">
                                 {game.coverImage && (
-                                    <img src={game.coverImage} className="w-full h-full object-cover" alt="" />
+                                    <SafeImage src={game.coverImage} className="w-full h-full object-cover" alt="" />
                                 )}
                             </div>
                             <div className={cn(

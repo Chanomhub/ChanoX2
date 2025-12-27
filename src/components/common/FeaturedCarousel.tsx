@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Article } from '@/types/graphql';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SafeImage } from '@/components/common/SafeImage';
 
 
 interface FeaturedCarouselProps {
@@ -57,7 +58,7 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
                     {/* Image */}
                     <div className="w-[65%] relative">
                         {currentArticle.coverImage ? (
-                            <img
+                            <SafeImage
                                 src={currentArticle.coverImage}
                                 alt={currentArticle.title}
                                 className="w-full h-full object-cover"

@@ -106,9 +106,9 @@ export default function Home() {
             {/* Featured Carousel */}
             <FeaturedCarousel articles={featuredArticles} />
 
-            {/* From Developers Section */}
+            {/* From recommend Section */}
             <HorizontalScroll
-                title="FROM DEVELOPERS AND PUBLISHERS YOU KNOW"
+                title="Recommend"
                 articles={developersSection}
             />
 

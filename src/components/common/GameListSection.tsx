@@ -4,6 +4,7 @@ import { Article } from '@/types/graphql';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
+import { SafeImage } from '@/components/common/SafeImage';
 
 interface GameListSectionProps {
     articles: Article[];
@@ -100,7 +101,7 @@ export default function GameListSection({
                         >
                             <div className="w-[120px] h-[45px] relative flex-shrink-0">
                                 {article.coverImage ? (
-                                    <img
+                                    <SafeImage
                                         src={article.coverImage}
                                         alt={article.title}
                                         className="w-full h-full object-cover"

@@ -4,6 +4,7 @@ import { usePendingGameLaunch } from '@/hooks/usePendingGameLaunch';
 import LibrarySidebar from '@/components/common/LibrarySidebar';
 import LibraryGameDetail from '@/components/common/LibraryGameDetail';
 import { Play, Loader2 } from 'lucide-react';
+import { SafeImage } from '@/components/common/SafeImage';
 
 export default function Library() {
     const { libraryItems } = useLibrary();
@@ -89,7 +90,7 @@ export default function Library() {
                                         >
                                             <div className="w-full h-[220px] bg-[#2a475e] rounded shadow-lg overflow-hidden relative mb-2">
                                                 {item.coverImage ? (
-                                                    <img
+                                                    <SafeImage
                                                         src={item.coverImage}
                                                         className="w-full h-full object-cover"
                                                         alt={item.title}

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
+import { SafeImage } from '@/components/common/SafeImage';
 
 const formatPlayTime = (seconds?: number) => {
     if (!seconds) return "0.0 hrs";
@@ -317,7 +318,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
             {/* Hero Section */}
             <div className="relative h-[300px] w-full flex-shrink-0">
                 {libraryItem.coverImage ? (
-                    <img
+                    <SafeImage
                         src={libraryItem.coverImage}
                         className="w-full h-full object-cover opacity-80"
                         alt={libraryItem.title}

@@ -4,6 +4,7 @@ import { Search as SearchIcon, Loader2, X } from 'lucide-react';
 import { client } from '@/libs/api/client';
 import { GET_ARTICLES } from '@/libs/api/queries';
 import { Article, ArticlesResponse } from '@/types/graphql';
+import { SafeImage } from '@/components/common/SafeImage';
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -119,7 +120,7 @@ export default function Search() {
                                 {/* Cover Image */}
                                 <div className="aspect-video bg-zinc-800 overflow-hidden">
                                     {article.coverImage ? (
-                                        <img
+                                        <SafeImage
                                             src={article.coverImage}
                                             alt={article.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

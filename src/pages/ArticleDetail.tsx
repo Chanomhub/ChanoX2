@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { SafeImage } from '@/components/common/SafeImage';
 
 export default function ArticleDetail() {
     const { slug } = useParams<{ slug: string }>();
@@ -153,7 +154,7 @@ export default function ArticleDetail() {
                 <div className="lg:flex-[1.8] min-w-0">
                     <div className="relative aspect-video bg-black rounded-sm overflow-hidden mb-2 group">
                         {currentImage ? (
-                            <img
+                            <SafeImage
                                 src={currentImage}
                                 alt={article.title}
                                 className="w-full h-full object-contain bg-[#0f1922]"
@@ -197,7 +198,7 @@ export default function ArticleDetail() {
                                             : "border-transparent opacity-60 hover:opacity-100"
                                     )}
                                 >
-                                    <img src={img.url} className="w-full h-full object-cover" />
+                                    <SafeImage src={img.url} className="w-full h-full object-cover" />
                                 </button>
                             ))}
                         </div>
@@ -208,7 +209,7 @@ export default function ArticleDetail() {
                 <div className="lg:flex-1 bg-[#1b2838] p-4 rounded-sm border border-black/20 h-fit">
                     <div className="w-full aspect-[16/9] mb-4 bg-black/20 rounded overflow-hidden">
                         {article.coverImage ? (
-                            <img src={article.coverImage} className="w-full h-full object-cover" alt="Cover" />
+                            <SafeImage src={article.coverImage} className="w-full h-full object-cover" alt="Cover" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
                                 <Gamepad2 className="w-10 h-10 text-[#8b929a]" />

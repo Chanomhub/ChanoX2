@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     User, Settings as SettingsIcon, HardDrive, MonitorCog, Bell, Shield,
-    ChevronLeft, Check, Loader2, ExternalLink, FolderOpen, Trash2
+    ChevronLeft, Check, Loader2, ExternalLink, FolderOpen, Trash2, EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { Label } from '@/components/ui/label';
 
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/ScrollArea';
@@ -142,6 +144,7 @@ function AccountSection() {
 function GeneralSection() {
     const { t } = useTranslation();
     const { language, setLanguage } = useLanguage();
+    const { nsfwFilterEnabled, setNsfwFilterEnabled } = useSettingsStore();
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -219,7 +222,7 @@ function GeneralSection() {
             <SectionHeader title={t('language')} />
 
             {/* Language Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
                 {SUPPORTED_LANGUAGES.map((lang) => (
                     <button
                         key={lang.code}
@@ -245,6 +248,38 @@ function GeneralSection() {
                     </button>
                 ))}
             </div>
+
+            <SectionHeader title="Content Filtering" />
+
+            <Card className="bg-chanox-surface border-chanox-border">
+                <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 bg-red-500/10 rounded-lg">
+                            <EyeOff className="w-5 h-5 text-red-400" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                                <Label htmlFor="nsfw-filter" className="text-zinc-100 font-medium cursor-pointer">
+                                    NSFW Filter
+                                </Label>
+                                <Checkbox
+                                    id="nsfw-filter"
+                                    checked={nsfwFilterEnabled}
+                                    onCheckedChange={(checked) => setNsfwFilterEnabled(checked as boolean)}
+                                />
+                            </div>
+                            <p className="text-zinc-500 text-sm">
+                                Automatically scale and blur images that may contain sensitive or adult content.
+                                Uses local AI processing (TensorFlow.js) to classify images.
+                            </p>
+                            <div className="mt-3 flex items-center gap-2 text-xs text-zinc-600 bg-zinc-900/50 p-2 rounded">
+                                <Shield size={12} />
+                                <span>Processing happens entirely on your device. No images are uploaded.</span>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
