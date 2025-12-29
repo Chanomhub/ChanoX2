@@ -126,4 +126,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('pending-game-launch', handler);
         return () => ipcRenderer.removeListener('pending-game-launch', handler);
     },
+
+    // Winetricks
+    checkWinetricksInstalled: () => ipcRenderer.invoke('check-winetricks-installed'),
+    getWinetricksPackages: () => ipcRenderer.invoke('get-winetricks-packages'),
+    installWinetricksPackage: (packageId, winePrefix) =>
+        ipcRenderer.invoke('install-winetricks-package', { packageId, winePrefix }),
+    cancelWinetricksInstall: () => ipcRenderer.invoke('cancel-winetricks-install'),
+    onWinetricksProgress: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('winetricks-progress');
+        ipcRenderer.on('winetricks-progress', handler);
+        return () => ipcRenderer.removeListener('winetricks-progress', handler);
+    },
 });

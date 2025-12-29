@@ -736,6 +736,139 @@ ipcMain.handle('list-bottles', async () => {
     }
 });
 
+// --- Winetricks Integration ---
+const WINETRICKS_PACKAGES = [
+    { id: 'vcrun2022', name: 'Visual C++ 2015-2022', category: 'dlls', description: 'Microsoft Visual C++ 2015-2022 Redistributable (x64)' },
+    { id: 'vcrun2019', name: 'Visual C++ 2019', category: 'dlls', description: 'Microsoft Visual C++ 2019 Redistributable' },
+    { id: 'vcrun2017', name: 'Visual C++ 2017', category: 'dlls', description: 'Microsoft Visual C++ 2017 Redistributable' },
+    { id: 'vcrun2015', name: 'Visual C++ 2015', category: 'dlls', description: 'Microsoft Visual C++ 2015 Redistributable' },
+    { id: 'vcrun2013', name: 'Visual C++ 2013', category: 'dlls', description: 'Microsoft Visual C++ 2013 Redistributable' },
+    { id: 'vcrun2012', name: 'Visual C++ 2012', category: 'dlls', description: 'Microsoft Visual C++ 2012 Redistributable' },
+    { id: 'vcrun2010', name: 'Visual C++ 2010', category: 'dlls', description: 'Microsoft Visual C++ 2010 Redistributable' },
+    { id: 'dxvk', name: 'DXVK', category: 'dlls', description: 'Vulkan-based D3D9/D3D10/D3D11 implementation for better performance' },
+    { id: 'dotnet48', name: '.NET Framework 4.8', category: 'dlls', description: 'Microsoft .NET Framework 4.8' },
+    { id: 'dotnet40', name: '.NET Framework 4.0', category: 'dlls', description: 'Microsoft .NET Framework 4.0' },
+    { id: 'd3dx9', name: 'DirectX 9', category: 'dlls', description: 'All d3dx9 DLLs from DirectX 9' },
+    { id: 'd3dx10', name: 'DirectX 10', category: 'dlls', description: 'All d3dx10 DLLs from DirectX 10' },
+    { id: 'd3dx11_43', name: 'DirectX 11', category: 'dlls', description: 'd3dx11_43 DLL from DirectX SDK' },
+    { id: 'd3dcompiler_47', name: 'D3D Compiler 47', category: 'dlls', description: 'd3dcompiler_47.dll' },
+    { id: 'xact', name: 'XACT', category: 'dlls', description: 'MS XACT Engine (x3daudio, xapofx)' },
+    { id: 'xact_x64', name: 'XACT x64', category: 'dlls', description: 'MS XACT Engine 64-bit' },
+    { id: 'physx', name: 'PhysX', category: 'dlls', description: 'NVIDIA PhysX engine' },
+    { id: 'corefonts', name: 'Core Fonts', category: 'fonts', description: 'Microsoft core fonts (Arial, Times, etc.)' },
+    { id: 'tahoma', name: 'Tahoma', category: 'fonts', description: 'Microsoft Tahoma font' },
+    { id: 'cjkfonts', name: 'CJK Fonts', category: 'fonts', description: 'Chinese, Japanese, Korean fonts' }
+];
+
+// Running winetricks installations (for progress tracking)
+let activeWinetricksProcess = null;
+
+ipcMain.handle('check-winetricks-installed', async () => {
+    try {
+        const { execSync } = require('child_process');
+        const output = execSync('winetricks --version 2>&1', { encoding: 'utf8', timeout: 5000 });
+        const version = output.trim().split('\n')[0];
+        return { installed: true, version };
+    } catch (error) {
+        console.log('winetricks not found:', error.message);
+        return { installed: false };
+    }
+});
+
+ipcMain.handle('get-winetricks-packages', async () => {
+    return WINETRICKS_PACKAGES;
+});
+
+ipcMain.handle('install-winetricks-package', async (event, { packageId, winePrefix }) => {
+    // Cancel any existing installation
+    if (activeWinetricksProcess) {
+        try {
+            activeWinetricksProcess.kill('SIGTERM');
+        } catch (e) { /* ignore */ }
+        activeWinetricksProcess = null;
+    }
+
+    return new Promise((resolve) => {
+        try {
+            const env = { ...process.env };
+
+            // Set wine prefix if provided
+            if (winePrefix) {
+                env.WINEPREFIX = winePrefix;
+            }
+
+            // Run winetricks in unattended mode
+            const args = ['-q', packageId];
+
+            console.log('🍷 [winetricks] Installing:', packageId, winePrefix ? `(prefix: ${winePrefix})` : '(default prefix)');
+
+            activeWinetricksProcess = spawn('winetricks', args, {
+                env,
+                stdio: ['ignore', 'pipe', 'pipe']
+            });
+
+            let output = '';
+            let errorOutput = '';
+
+            activeWinetricksProcess.stdout.on('data', (data) => {
+                const text = data.toString();
+                output += text;
+                // Send progress to renderer
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('winetricks-progress', { output: text, packageId });
+                }
+            });
+
+            activeWinetricksProcess.stderr.on('data', (data) => {
+                const text = data.toString();
+                errorOutput += text;
+                // Also send stderr as progress
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('winetricks-progress', { output: text, packageId, isError: true });
+                }
+            });
+
+            activeWinetricksProcess.on('close', (code) => {
+                console.log('🍷 [winetricks] Process closed with code:', code);
+                activeWinetricksProcess = null;
+
+                if (code === 0) {
+                    resolve({ success: true, package: packageId });
+                } else {
+                    resolve({
+                        success: false,
+                        package: packageId,
+                        error: errorOutput || `Process exited with code ${code}`
+                    });
+                }
+            });
+
+            activeWinetricksProcess.on('error', (err) => {
+                console.error('🍷 [winetricks] Spawn error:', err.message);
+                activeWinetricksProcess = null;
+                resolve({ success: false, package: packageId, error: err.message });
+            });
+
+        } catch (error) {
+            console.error('🍷 [winetricks] Error:', error.message);
+            resolve({ success: false, package: packageId, error: error.message });
+        }
+    });
+});
+
+ipcMain.handle('cancel-winetricks-install', async () => {
+    if (activeWinetricksProcess) {
+        try {
+            activeWinetricksProcess.kill('SIGTERM');
+            activeWinetricksProcess = null;
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+    return { success: true };
+});
+
 // --- Game Scanning & Launching ---
 
 function scanDir(dir, depth = 0, maxDepth = 3) {

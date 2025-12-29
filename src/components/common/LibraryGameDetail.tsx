@@ -7,6 +7,7 @@ import { OfficialDownloadSource, OfficialDownloadSourcesResponse, ArticleRespons
 import HtmlRenderer from '@/components/common/HtmlRenderer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import GameLaunchDialog, { GameLaunchConfig } from './GameLaunchDialog';
+import WinetricksDialog from './WinetricksDialog';
 import { useGameLauncher } from '@/hooks/useGameLauncher';
 import { useGameScanner } from '@/hooks/useGameScanner';
 import { Button } from '@/components/ui/Button';
@@ -26,7 +27,8 @@ import {
     Code,
     RefreshCw,
     Link,
-    Link2Off
+    Link2Off,
+    Wine
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -68,10 +70,15 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     const [refreshKey, setRefreshKey] = useState(0);
     const [hasShortcut, setHasShortcut] = useState(false);
     const [shortcutLoading, setShortcutLoading] = useState(false);
+    const [winetricksDialogOpen, setWinetricksDialogOpen] = useState(false);
 
     // Custom Hooks
     const { config, launchGame, saveConfig, loadConfig, isRunning, stopGame } = useGameLauncher(libraryItem.id);
     const { scanDirectory, results: scanResults } = useGameScanner();
+
+    // Check if on Linux (for Wine Dependencies button)
+    const isLinux = navigator.platform.toLowerCase().includes('linux');
+    const isWindowsGame = config?.useWine === true || config?.executablePath?.toLowerCase().endsWith('.exe');
 
     // Refresh config for dev mode
     const handleRefreshConfig = async () => {
@@ -694,6 +701,17 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                     : 'Create Desktop Shortcut'
                             }
                         </button>
+
+                        {/* Wine Dependencies (Linux only) */}
+                        {isLinux && isWindowsGame && (
+                            <button
+                                onClick={() => setWinetricksDialogOpen(true)}
+                                className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors"
+                            >
+                                <Wine className="w-4 h-4" />
+                                Wine Dependencies
+                            </button>
+                        )}
                     </div>
 
                 </div>
@@ -708,6 +726,11 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                 gameTitle={libraryItem.title}
                 defaultEngine={libraryItem.engine}
                 defaultVersion={libraryItem.gameVersion}
+            />
+
+            <WinetricksDialog
+                open={winetricksDialogOpen}
+                onOpenChange={setWinetricksDialogOpen}
             />
         </div>
     );

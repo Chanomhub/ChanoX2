@@ -66,6 +66,26 @@ export interface OAuthCallbackData {
     refreshToken: string;
 }
 
+export interface WinetricksPackage {
+    id: string;
+    name: string;
+    category: 'dlls' | 'fonts' | 'settings' | 'apps';
+    description: string;
+    installed?: boolean;
+}
+
+export interface WinetricksInstallResult {
+    success: boolean;
+    package: string;
+    error?: string;
+}
+
+export interface WinetricksProgressData {
+    output: string;
+    packageId: string;
+    isError?: boolean;
+}
+
 export interface ElectronAPI {
     // Download control
     cancelDownload: (id: number) => void;
@@ -145,6 +165,13 @@ export interface ElectronAPI {
 
     // Pending game launch (from shortcuts/second instance)
     onPendingGameLaunch: (callback: (data: { gameId: string }) => void) => (() => void) | void;
+
+    // Winetricks
+    checkWinetricksInstalled: () => Promise<{ installed: boolean; version?: string }>;
+    getWinetricksPackages: () => Promise<WinetricksPackage[]>;
+    installWinetricksPackage: (packageId: string, winePrefix?: string) => Promise<WinetricksInstallResult>;
+    cancelWinetricksInstall: () => Promise<{ success: boolean; error?: string }>;
+    onWinetricksProgress: (callback: (data: WinetricksProgressData) => void) => (() => void) | void;
 }
 
 declare global {
