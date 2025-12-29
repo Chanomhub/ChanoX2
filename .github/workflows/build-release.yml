@@ -130,6 +130,7 @@ jobs:
         with:
           files: artifacts/**/*
           generate_release_notes: true
+          append_body: false
           draft: false
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
         env:
