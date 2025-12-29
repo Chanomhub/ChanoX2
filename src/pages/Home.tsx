@@ -22,7 +22,7 @@ export default function Home() {
         }];
     };
 
-    const { data, error, size, setSize, isLoading } = useSWRInfinite<ArticlesResponse>(
+    const { data, size, setSize, isLoading } = useSWRInfinite<ArticlesResponse>(
         getKey,
         ([query, variables]) => fetcher(query, variables)
     );
