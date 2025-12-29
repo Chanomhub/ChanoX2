@@ -1,13 +1,12 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
+import useSWR from 'swr';
+import { fetcher } from '@/libs/swr-fetcher';
 import { useParams, Link } from 'react-router-dom';
-import { client } from '@/libs/api/client';
 import { GET_ARTICLE, GET_DOWNLOADS, GET_OFFICIAL_DOWNLOAD_SOURCES } from '@/libs/api/queries';
 import {
-    ArticleDetail as ArticleDetailType,
     ArticleResponse,
     Download as ApiDownload,
     DownloadsResponse,
-    OfficialDownloadSource,
     OfficialDownloadSourcesResponse
 } from '@/types/graphql';
 import { useDownloads } from '@/contexts/DownloadContext';
@@ -36,15 +35,43 @@ export default function ArticleDetail() {
     const { openDownloadLink } = useDownloads();
     const { language } = useLanguage();
 
-    const [article, setArticle] = useState<ArticleDetailType | null>(null);
-    const [downloads, setDownloads] = useState<ApiDownload[]>([]);
-    const [officialSources, setOfficialSources] = useState<OfficialDownloadSource[]>([]);
     const [selectedDownload, setSelectedDownload] = useState<ApiDownload | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
     const downloadsRef = useRef<HTMLDivElement>(null);
+
+    // Fetch Article
+    const { data: articleData, error: articleError, isLoading: articleLoading } = useSWR<ArticleResponse>(
+        slug ? [GET_ARTICLE, { slug, language }] : null,
+        ([query, variables]) => fetcher(query, variables)
+    );
+
+    const article = articleData?.article;
+
+    // Dependent Fetching: Downloads & Official Sources
+    // Only fetch when we have an article ID
+    const articleId = article ? Number(article.id) : null;
+
+    const { data: downloadsData } = useSWR<DownloadsResponse>(
+        articleId ? [GET_DOWNLOADS, { articleId }] : null,
+        ([query, variables]) => fetcher(query, variables)
+    );
+
+    const { data: officialSourcesData } = useSWR<OfficialDownloadSourcesResponse>(
+        articleId ? [GET_OFFICIAL_DOWNLOAD_SOURCES, { articleId }] : null,
+        ([query, variables]) => fetcher(query, variables)
+    );
+
+    const downloads = useMemo(() =>
+        downloadsData?.downloads.filter(d => d.isActive) || [],
+        [downloadsData]
+    );
+
+    const officialSources = officialSourcesData?.officialDownloadSources || [];
+
+    // Derived states
+    const loading = articleLoading;
+    const error = articleError ? (articleError.message || 'Unknown error') : (!article && !loading ? 'Article not found' : null);
 
     // Combine all images for the gallery
     const allImages = useMemo(() => {
@@ -62,51 +89,11 @@ export default function ArticleDetail() {
         return images;
     }, [article]);
 
-    // Prevent duplicate fetches from StrictMode
-    const fetchingRef = useRef(false);
-
-    useEffect(() => {
-        if (slug && !fetchingRef.current) {
-            fetchingRef.current = true;
-            fetchArticle().finally(() => {
-                fetchingRef.current = false;
-            });
-        }
-    }, [slug, language]);
-
-    const fetchArticle = async () => {
-        try {
-            setLoading(true);
-            const articleData = await client.request<ArticleResponse>(GET_ARTICLE, {
-                slug: slug,
-                language: language,
-            });
-
-            if (articleData && articleData.article) {
-                setArticle(articleData.article);
-
-                // Fetch downloads in parallel (reduces from 3 sequential to 1 + 1 parallel = 2 round trips)
-                const articleId = Number(articleData.article.id);
-                const [downloadsData, officialData] = await Promise.all([
-                    client.request<DownloadsResponse>(GET_DOWNLOADS, { articleId }),
-                    client.request<OfficialDownloadSourcesResponse>(GET_OFFICIAL_DOWNLOAD_SOURCES, { articleId })
-                ]);
-                setDownloads(downloadsData.downloads.filter(d => d.isActive));
-                setOfficialSources(officialData.officialDownloadSources);
-            } else {
-                setError('Article not found');
-            }
-            setLoading(false);
-        } catch (err: any) {
-            console.error('Error fetching article:', err);
-            setError(err.message || 'Unknown error');
-            setLoading(false);
-        }
-    };
-
     const scrollToDownloads = () => {
         downloadsRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+
 
     if (loading) {
         return (
