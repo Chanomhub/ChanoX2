@@ -1,66 +1,42 @@
-import { useState, useEffect, useRef } from 'react';
-import { client } from '@/libs/api/client';
+import useSWRInfinite from 'swr/infinite';
+import { fetcher } from '@/libs/swr-fetcher';
 import { GET_ARTICLES } from '@/libs/api/queries';
-import { Article, ArticlesResponse } from '@/types/graphql';
+import { ArticlesResponse } from '@/types/graphql';
 import FeaturedCarousel from '@/components/common/FeaturedCarousel';
 import HorizontalScroll from '@/components/common/HorizontalScroll';
 import GameListSection from '@/components/common/GameListSection';
 import { Loader2 } from 'lucide-react';
 
 export default function Home() {
-    const [articles, setArticles] = useState<Article[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
-    const fetchingRef = useRef(false);
+    const getKey = (pageIndex: number, previousPageData: ArticlesResponse | null) => {
+        // Reached the end
+        if (previousPageData && !previousPageData.articles.length) return null;
 
-    useEffect(() => {
-        if (!fetchingRef.current) {
-            fetchingRef.current = true;
-            fetchArticles().finally(() => {
-                fetchingRef.current = false;
-            });
-        }
-    }, []);
+        // First page: limit 20, offset 0
+        if (pageIndex === 0) return [GET_ARTICLES, { limit: 20, offset: 0 }];
 
-    const fetchArticles = async () => {
-        try {
-            const data = await client.request<ArticlesResponse>(GET_ARTICLES, {
-                limit: 20,
-                offset: 0,
-            });
-            setArticles(data.articles);
-            setHasMore(data.articles.length === 20);
-            setLoading(false);
-        } catch (error) {
-            console.error('Error fetching articles:', error);
-            setLoading(false);
-        }
+        // Subsequent pages: limit 10, offset starts at 20 + ((pageIndex - 1) * 10)
+        return [GET_ARTICLES, {
+            limit: 10,
+            offset: 20 + ((pageIndex - 1) * 10)
+        }];
     };
 
-    const handleLoadMore = async () => {
-        if (loadingMore || !hasMore) return;
+    const { data, error, size, setSize, isLoading } = useSWRInfinite<ArticlesResponse>(
+        getKey,
+        ([query, variables]) => fetcher(query, variables)
+    );
 
-        setLoadingMore(true);
-        try {
-            const currentCount = articles.length;
-            const data = await client.request<ArticlesResponse>(GET_ARTICLES, {
-                limit: 10,
-                offset: currentCount,
-            });
+    const articles = data ? data.flatMap(page => page.articles) : [];
+    const loading = isLoading;
+    const loadingMore = size > 0 && data && typeof data[size - 1] === 'undefined';
+    const isEmpty = data?.[0]?.articles.length === 0;
+    const isReachingEnd = isEmpty || (data && data[data.length - 1]?.articles.length < (size === 1 ? 20 : 10));
+    const hasMore = !isReachingEnd;
 
-            if (data.articles.length > 0) {
-                setArticles((prev) => [...prev, ...data.articles]);
-                if (data.articles.length < 10) {
-                    setHasMore(false);
-                }
-            } else {
-                setHasMore(false);
-            }
-        } catch (error) {
-            console.error('Error loading more articles:', error);
-        } finally {
-            setLoadingMore(false);
+    const handleLoadMore = () => {
+        if (!loadingMore && hasMore) {
+            setSize(size + 1);
         }
     };
 
