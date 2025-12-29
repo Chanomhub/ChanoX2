@@ -1,5 +1,16 @@
 name: Update Flathub
 
+# This workflow runs after a release is published.
+# It requires FLATHUB_TOKEN secret - a GitHub Personal Access Token with 'repo' scope
+# that has write access to flathub/com.chanomhub.chanox2
+#
+# To get write access:
+# 1. First, submit initial PR to flathub/flathub manually
+# 2. After approval, Flathub creates repo and invites you as collaborator
+# 3. Create PAT: GitHub Settings → Developer settings → Personal access tokens → Generate new token
+# 4. Select 'repo' scope
+# 5. Add as secret: Your repo → Settings → Secrets → FLATHUB_TOKEN
+
 on:
   release:
     types: [published]
@@ -50,53 +61,42 @@ jobs:
           echo "Icon SHA256: $SHA256"
 
       - name: Clone Flathub repo
+        env:
+          FLATHUB_TOKEN: ${{ secrets.FLATHUB_TOKEN }}
         run: |
-          git clone https://github.com/flathub/com.chanomhub.chanox2.git flathub-repo || {
-            echo "Flathub repo doesn't exist yet. Create initial PR manually first."
-            exit 1
-          }
+          git clone "https://x-access-token:${FLATHUB_TOKEN}@github.com/flathub/com.chanomhub.chanox2.git" flathub-repo
 
       - name: Update manifest
         working-directory: flathub-repo
         run: |
           # Update version in tar.gz URL
-          sed -i "s|/releases/download/v[^/]*/ChanoX2-[^.]*|/releases/download/v${{ steps.version.outputs.version }}/ChanoX2-${{ steps.version.outputs.version }}|g" com.chanomhub.chanox2.yml
+          sed -i "s|/releases/download/v[^/]*/ChanoX2-[^.]*\.tar\.gz|/releases/download/v${{ steps.version.outputs.version }}/ChanoX2-${{ steps.version.outputs.version }}.tar.gz|g" com.chanomhub.chanox2.yml
           
-          # Update SHA256 for tar.gz
-          sed -i "s/sha256: [a-f0-9]\{64\}/sha256: ${{ steps.sha256.outputs.sha256 }}/1" com.chanomhub.chanox2.yml
-          
-          # Update icon SHA256 (second occurrence)
-          # Using awk to replace the second sha256
-          awk -v new_sha="${{ steps.icon_sha256.outputs.sha256 }}" '
-            /sha256:/ { count++ }
-            count == 2 && /sha256:/ { sub(/sha256: [a-f0-9]{64}/, "sha256: " new_sha); count = 99 }
-            { print }
-          ' com.chanomhub.chanox2.yml > tmp && mv tmp com.chanomhub.chanox2.yml
+          # Update first SHA256 (tar.gz)
+          sed -i "0,/sha256: [a-f0-9]\{64\}/s//sha256: ${{ steps.sha256.outputs.sha256 }}/" com.chanomhub.chanox2.yml
 
       - name: Update metainfo release
         working-directory: flathub-repo
         run: |
           DATE=$(date +%Y-%m-%d)
-          # Add new release entry
-          sed -i "s|<releases>|<releases>\n    <release version=\"${{ steps.version.outputs.version }}\" date=\"$DATE\">\n      <description>\n        <p>See release notes on GitHub</p>\n      </description>\n    </release>|" com.chanomhub.chanox2.metainfo.xml
+          # Add new release entry if not exists
+          if ! grep -q "version=\"${{ steps.version.outputs.version }}\"" com.chanomhub.chanox2.metainfo.xml; then
+            sed -i "s|<releases>|<releases>\n    <release version=\"${{ steps.version.outputs.version }}\" date=\"$DATE\">\n      <description>\n        <p>See release notes on GitHub</p>\n      </description>\n    </release>|" com.chanomhub.chanox2.metainfo.xml
+          fi
 
-      - name: Create Pull Request
+      - name: Push update
         working-directory: flathub-repo
         env:
-          GH_TOKEN: ${{ secrets.FLATHUB_TOKEN }}
+          FLATHUB_TOKEN: ${{ secrets.FLATHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          BRANCH="update-v${{ steps.version.outputs.version }}"
-          git checkout -b "$BRANCH"
           git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
           git commit -m "Update to version ${{ steps.version.outputs.version }}"
-          
-          git push origin "$BRANCH"
-          
-          gh pr create \
-            --title "Update to version ${{ steps.version.outputs.version }}" \
-            --body "Automated update from upstream release v${{ steps.version.outputs.version }}" \
-            --base master \
-            --head "$BRANCH"
+          git push
