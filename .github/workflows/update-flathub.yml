@@ -1,0 +1,102 @@
+name: Update Flathub
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update (e.g., 1.4.1)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  update-flathub:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.release.prerelease }}
+    
+    steps:
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="v${{ github.event.inputs.version }}"
+          fi
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Download tar.gz from release
+        run: |
+          wget -q "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/ChanoX2-${{ steps.version.outputs.version }}.tar.gz" -O chanox2.tar.gz
+          
+      - name: Calculate SHA256
+        id: sha256
+        run: |
+          SHA256=$(sha256sum chanox2.tar.gz | cut -d' ' -f1)
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "SHA256: $SHA256"
+
+      - name: Download icon SHA256
+        id: icon_sha256
+        run: |
+          wget -q "https://raw.githubusercontent.com/${{ github.repository }}/main/public/icon.png" -O icon.png
+          SHA256=$(sha256sum icon.png | cut -d' ' -f1)
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "Icon SHA256: $SHA256"
+
+      - name: Clone Flathub repo
+        run: |
+          git clone https://github.com/flathub/com.chanomhub.chanox2.git flathub-repo || {
+            echo "Flathub repo doesn't exist yet. Create initial PR manually first."
+            exit 1
+          }
+
+      - name: Update manifest
+        working-directory: flathub-repo
+        run: |
+          # Update version in tar.gz URL
+          sed -i "s|/releases/download/v[^/]*/ChanoX2-[^.]*|/releases/download/v${{ steps.version.outputs.version }}/ChanoX2-${{ steps.version.outputs.version }}|g" com.chanomhub.chanox2.yml
+          
+          # Update SHA256 for tar.gz
+          sed -i "s/sha256: [a-f0-9]\{64\}/sha256: ${{ steps.sha256.outputs.sha256 }}/1" com.chanomhub.chanox2.yml
+          
+          # Update icon SHA256 (second occurrence)
+          # Using awk to replace the second sha256
+          awk -v new_sha="${{ steps.icon_sha256.outputs.sha256 }}" '
+            /sha256:/ { count++ }
+            count == 2 && /sha256:/ { sub(/sha256: [a-f0-9]{64}/, "sha256: " new_sha); count = 99 }
+            { print }
+          ' com.chanomhub.chanox2.yml > tmp && mv tmp com.chanomhub.chanox2.yml
+
+      - name: Update metainfo release
+        working-directory: flathub-repo
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          # Add new release entry
+          sed -i "s|<releases>|<releases>\n    <release version=\"${{ steps.version.outputs.version }}\" date=\"$DATE\">\n      <description>\n        <p>See release notes on GitHub</p>\n      </description>\n    </release>|" com.chanomhub.chanox2.metainfo.xml
+
+      - name: Create Pull Request
+        working-directory: flathub-repo
+        env:
+          GH_TOKEN: ${{ secrets.FLATHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          BRANCH="update-v${{ steps.version.outputs.version }}"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "Update to version ${{ steps.version.outputs.version }}"
+          
+          git push origin "$BRANCH"
+          
+          gh pr create \
+            --title "Update to version ${{ steps.version.outputs.version }}" \
+            --body "Automated update from upstream release v${{ steps.version.outputs.version }}" \
+            --base master \
+            --head "$BRANCH"
