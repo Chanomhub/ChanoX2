@@ -62,13 +62,22 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Install Flatpak dependencies (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder elfutils
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+          flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
+
       - name: Build Electron (Linux)
         if: matrix.platform == 'linux'
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 20
+          timeout_minutes: 30
           max_attempts: 3
-          command: npm run electron:build -- --linux AppImage deb tar.gz
+          command: npm run electron:build -- --linux AppImage deb tar.gz flatpak
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -100,6 +109,7 @@ jobs:
             release/*.AppImage
             release/*.deb
             release/*.tar.gz
+            release/*.flatpak
             release/*.exe
             release/*.dmg
           if-no-files-found: ignore

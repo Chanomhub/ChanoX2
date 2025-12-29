@@ -111,10 +111,31 @@
         "linux": {
             "target": [
                 "AppImage",
-                "deb"
+                "deb",
+                "flatpak"
             ],
             "category": "Game",
             "icon": "public/icon.png"
+        },
+        "flatpak": {
+            "base": "org.electronjs.Electron2.BaseApp",
+            "baseVersion": "24.08",
+            "runtime": "org.freedesktop.Platform",
+            "runtimeVersion": "24.08",
+            "sdk": "org.freedesktop.Sdk",
+            "finishArgs": [
+                "--share=ipc",
+                "--socket=x11",
+                "--socket=wayland",
+                "--socket=pulseaudio",
+                "--share=network",
+                "--device=dri",
+                "--filesystem=home",
+                "--filesystem=xdg-download",
+                "--filesystem=/tmp",
+                "--talk-name=org.freedesktop.Notifications",
+                "--talk-name=org.kde.StatusNotifierWatcher"
+            ]
         },
         "mac": {
             "target": [
