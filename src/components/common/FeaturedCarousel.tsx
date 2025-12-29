@@ -4,6 +4,7 @@ import { Article } from '@/types/graphql';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SafeImage } from '@/components/common/SafeImage';
+import { getOptimizedImageUrl } from '@/libs/image';
 
 
 interface FeaturedCarouselProps {
@@ -56,10 +57,10 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
 
                 <Link to={`/article/${currentArticle.slug}`} className="flex-1 flex flex-row bg-[#0f1922] rounded overflow-hidden shadow-lg hover:shadow-[0_0_15px_rgba(102,192,244,0.4)] transition-shadow duration-300 h-[320px]">
                     {/* Image */}
-                    <div className="w-[65%] relative">
+                    <div className="w-[65%] h-full relative">
                         {currentArticle.coverImage ? (
                             <SafeImage
-                                src={currentArticle.coverImage}
+                                src={getOptimizedImageUrl(currentArticle.coverImage, { height: 320, fit: 'cover' })}
                                 alt={currentArticle.title}
                                 className="w-full h-full object-cover"
                             />

@@ -135,5 +135,49 @@ export function transformImageUrls<T>(data: T): T {
         return result as T;
     }
 
+
     return data;
+}
+
+export interface ImageOptions {
+    width?: number;
+    height?: number;
+    quality?: number;
+    format?: 'auto' | 'webp' | 'avif' | 'json';
+    fit?: 'scale-down' | 'contain' | 'cover' | 'crop' | 'pad';
+}
+
+export function getOptimizedImageUrl(src: string, options: ImageOptions = {}): string {
+    if (!src) return '';
+
+    // Check if it's already optimized or a local blob/data URL which we can't optimize via CF easily
+    if (src.startsWith('data:') || src.startsWith('blob:')) return src;
+
+    const params: string[] = [];
+
+    // Default to auto format and 80 quality if not specified
+    if (!options.format) params.push('format=auto');
+    if (!options.quality) params.push('quality=80');
+
+    if (options.width) params.push(`width=${options.width}`);
+    if (options.height) params.push(`height=${options.height}`);
+    if (options.quality && options.quality !== 80) params.push(`quality=${options.quality}`);
+    if (options.format && options.format !== 'auto') params.push(`format=${options.format}`);
+    if (options.fit) params.push(`fit=${options.fit}`);
+
+    const baseUrl = `https://${CDN_DOMAIN}`;
+    const imagePath = extractImagePath(src);
+
+    if (!imagePath) {
+        // If we can't extract a path, consistent with previous logic, we might just return the src
+        // But the user wants to ensure valid CDN URLs. 
+        // If it is a full http URL that isn't our CDN, we can try to proxy it if we want to resize it.
+        if (src.startsWith('http')) {
+            return `${baseUrl}/cdn-cgi/image/${params.join(',')}/${src}`;
+        }
+        // Fallback
+        return src;
+    }
+
+    return `${baseUrl}/cdn-cgi/image/${params.join(',')}/${imagePath}`;
 }

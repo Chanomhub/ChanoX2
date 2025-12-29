@@ -84,7 +84,7 @@ export function SafeImage({ className, src, fallbackSrc, alt, ...props }: SafeIm
                 onLoad={handleLoad}
                 onError={handleError}
                 className={cn(
-                    "w-full h-full object-cover transition-all duration-300",
+                    "absolute inset-0 w-full h-full object-cover transition-all duration-300",
                     // Hide while checking or if NSFW (and not overridden)
                     (isChecking || (isNSFW && !showAnyway)) ? "blur-xl opacity-50" : "blur-0 opacity-100"
                 )}
