@@ -47,8 +47,8 @@ modules:
       - install -Dm644 com.chanomhub.chanox2.metainfo.xml /app/share/metainfo/com.chanomhub.chanox2.metainfo.xml
     sources:
       - type: file
-        url: https://github.com/Chanomhub/ChanoX2/releases/download/v1.4.1/ChanoX2-1.4.1-linux.tar.gz
-        sha256: PLACEHOLDER_SHA256
+        url: https://github.com/Chanomhub/ChanoX2/releases/download/v1.4.1/chanox2-1.4.1.tar.gz
+        sha256: 076c1657eb0286ae8e02eb585e3a8a3af2eedc0e1bb24d78ed2c0ea16fe4d560
         dest-filename: chanox2.tar.gz
       - type: file
         path: com.chanomhub.chanox2.desktop
@@ -56,7 +56,7 @@ modules:
         path: com.chanomhub.chanox2.metainfo.xml
       - type: file
         url: https://raw.githubusercontent.com/Chanomhub/ChanoX2/main/public/icon.png
-        sha256: PLACEHOLDER_ICON_SHA256
+        sha256: ad091a36a3a00373417189461165541d53cc864c135363de06fd4cbcf5f3c104
         dest-filename: icon.png
       - type: script
         dest-filename: chanox2.sh
