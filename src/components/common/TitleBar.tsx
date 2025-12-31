@@ -1,14 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check, Bell, Trash2, CheckCheck } from 'lucide-react';
+import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check, Bell, Trash2, CheckCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useNewYearCountdown, triggerNewYearPreview } from '@/hooks/useNewYearCountdown';
 
 export default function TitleBar() {
     const navigate = useNavigate();
     const { user, accounts, switchAccount, logout, isAuthenticated } = useAuth();
+    const { timeLeft, isNewYear } = useNewYearCountdown();
+
+    console.log('[TitleBar] Render:', { isNewYear, timeLeft });
+
     const {
         notifications,
         unreadCount,
@@ -87,6 +92,28 @@ export default function TitleBar() {
                     CHANOX2
                 </span>
             </div>
+
+            {/* New Year Countdown - Center(ish) */}
+            {!isNewYear && timeLeft && (
+                <div
+                    className="flex items-center gap-2 px-4 py-0.5 bg-black/20 rounded-md border border-white/5 backdrop-blur-sm group"
+                    style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+                >
+                    <span className="text-[10px] text-yellow-500/80 font-bold uppercase tracking-wider">
+                        Countdown to 2026
+                    </span>
+                    <span className="text-xs font-mono font-bold text-white tabular-nums tracking-widest">
+                        {timeLeft.days}d {timeLeft.hours.toString().padStart(2, '0')}h {timeLeft.minutes.toString().padStart(2, '0')}m {timeLeft.seconds.toString().padStart(2, '0')}s
+                    </span>
+                    <button
+                        onClick={triggerNewYearPreview}
+                        className="ml-2 w-4 h-4 flex items-center justify-center text-white/50 hover:text-yellow-400 transition-colors"
+                        title="Preview Celebration"
+                    >
+                        <Sparkles size={12} />
+                    </button>
+                </div>
+            )}
 
             {/* Right Section: User + Settings + Controls */}
             <div
