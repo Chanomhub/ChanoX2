@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search as SearchIcon, Loader2, X } from 'lucide-react';
-import { client } from '@/libs/api/client';
-import { GET_ARTICLES } from '@/libs/api/queries';
-import { Article, ArticlesResponse } from '@/types/graphql';
+import { sdk, withImageTransform } from '@/libs/sdk';
+import type { ArticleListItem } from '@chanomhub/sdk';
 import { SafeImage } from '@/components/common/SafeImage';
 
 // Debounce hook
@@ -25,7 +24,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function Search() {
     const [searchQuery, setSearchQuery] = useState('');
-    const [articles, setArticles] = useState<Article[]>([]);
+    const [articles, setArticles] = useState<ArticleListItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [initialLoad, setInitialLoad] = useState(true);
 
@@ -38,14 +37,22 @@ export default function Search() {
     const searchArticles = async () => {
         setLoading(true);
         try {
-            const data = await client.request<ArticlesResponse>(GET_ARTICLES, {
-                limit: 50,
-                offset: 0,
-                filter: debouncedSearchQuery.trim() ? {
-                    q: debouncedSearchQuery,
-                } : undefined,
-            });
-            setArticles(data.articles);
+            let result;
+            if (debouncedSearchQuery.trim()) {
+                // Use SDK search
+                result = await sdk.search.articles(debouncedSearchQuery, {
+                    limit: 50,
+                    offset: 0,
+                });
+            } else {
+                // Fetch all articles when no query
+                result = await sdk.articles.getAllPaginated({
+                    limit: 50,
+                    offset: 0,
+                });
+            }
+            const transformed = withImageTransform(result);
+            setArticles(transformed.items);
         } catch (error) {
             console.error('Error searching articles:', error);
         } finally {
@@ -119,9 +126,9 @@ export default function Search() {
                             >
                                 {/* Cover Image */}
                                 <div className="aspect-video bg-zinc-800 overflow-hidden">
-                                    {article.coverImage ? (
+                                    {article.coverImage || article.mainImage ? (
                                         <SafeImage
-                                            src={article.coverImage}
+                                            src={article.coverImage || article.mainImage || ''}
                                             alt={article.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                         />
@@ -163,6 +170,3 @@ export default function Search() {
         </div>
     );
 }
-
-
-

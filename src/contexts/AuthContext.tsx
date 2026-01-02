@@ -1,6 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { login as apiLogin, register as apiRegister, loginWithSupabaseToken, User, LoginCredentials, RegisterData } from '../libs/api/auth';
+
 import { supabase, isSupabaseConfigured } from '../libs/supabase';
+import { sdk } from '../libs/sdk';
 
 interface AuthContextType {
     user: User | null;
@@ -241,24 +243,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 console.log('OAuth redirect URL:', redirectUrl);
 
-                // Get OAuth URL with skipBrowserRedirect
-                const { data, error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: redirectUrl,
-                        skipBrowserRedirect: true,
-                        queryParams: {
-                            access_type: 'offline',
-                            prompt: 'select_account', // Let user pick account
-                        },
+                // Get OAuth URL from SDK
+                const url = await sdk.auth.getOAuthUrl('google', {
+                    redirectTo: redirectUrl,
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'select_account',
                     },
                 });
 
-                if (error) throw error;
-
-                if (data?.url) {
+                if (url) {
                     console.log('Opening OAuth URL in external browser');
-                    window.electronAPI!.openExternal(data.url);
+                    window.electronAPI!.openExternal(url);
                 }
                 // Callback will be handled via IPC event listener
                 return;
@@ -269,17 +265,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Web: Standard in-app OAuth redirect
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: window.location.origin + '/callback',
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                },
+        const url = await sdk.auth.getOAuthUrl('google', {
+            redirectTo: window.location.origin + '/callback',
+            queryParams: {
+                access_type: 'offline',
+                prompt: 'consent',
             },
         });
-        if (error) throw error;
+
+        if (url) {
+            window.location.href = url;
+        }
     };
 
     return (

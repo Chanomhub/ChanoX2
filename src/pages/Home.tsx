@@ -1,37 +1,40 @@
 import useSWRInfinite from 'swr/infinite';
-import { fetcher } from '@/libs/swr-fetcher';
-import { GET_ARTICLES } from '@/libs/api/queries';
-import { ArticlesResponse } from '@/types/graphql';
+import { sdk, withImageTransform } from '@/libs/sdk';
+import type { ArticleListItem, PaginatedResponse } from '@chanomhub/sdk';
+import type { Article } from '@/types/graphql';
 import FeaturedCarousel from '@/components/common/FeaturedCarousel';
 import HorizontalScroll from '@/components/common/HorizontalScroll';
 import GameListSection from '@/components/common/GameListSection';
 import { Loader2 } from 'lucide-react';
 
+// SDK fetcher for SWR
+const sdkFetcher = async ([, limit, offset]: [string, number, number]): Promise<PaginatedResponse<ArticleListItem>> => {
+    const result = await sdk.articles.getAllPaginated({ limit, offset });
+    return withImageTransform(result);
+};
+
 export default function Home() {
-    const getKey = (pageIndex: number, previousPageData: ArticlesResponse | null) => {
+    const getKey = (pageIndex: number, previousPageData: PaginatedResponse<ArticleListItem> | null) => {
         // Reached the end
-        if (previousPageData && !previousPageData.articles.length) return null;
+        if (previousPageData && !previousPageData.items.length) return null;
 
         // First page: limit 20, offset 0
-        if (pageIndex === 0) return [GET_ARTICLES, { limit: 20, offset: 0 }];
+        if (pageIndex === 0) return ['articles', 20, 0] as const;
 
         // Subsequent pages: limit 10, offset starts at 20 + ((pageIndex - 1) * 10)
-        return [GET_ARTICLES, {
-            limit: 10,
-            offset: 20 + ((pageIndex - 1) * 10)
-        }];
+        return ['articles', 10, 20 + ((pageIndex - 1) * 10)] as const;
     };
 
-    const { data, size, setSize, isLoading } = useSWRInfinite<ArticlesResponse>(
+    const { data, size, setSize, isLoading } = useSWRInfinite<PaginatedResponse<ArticleListItem>>(
         getKey,
-        ([query, variables]) => fetcher(query, variables)
+        sdkFetcher
     );
 
-    const articles = data ? data.flatMap(page => page.articles) : [];
+    const articles = data ? data.flatMap(page => page.items) : [];
     const loading = isLoading;
     const loadingMore = size > 0 && data && typeof data[size - 1] === 'undefined';
-    const isEmpty = data?.[0]?.articles.length === 0;
-    const isReachingEnd = isEmpty || (data && data[data.length - 1]?.articles.length < (size === 1 ? 20 : 10));
+    const isEmpty = data?.[0]?.items.length === 0;
+    const isReachingEnd = isEmpty || (data && data[data.length - 1]?.items.length < (size === 1 ? 20 : 10));
     const hasMore = !isReachingEnd;
 
     const handleLoadMore = () => {
@@ -69,9 +72,11 @@ export default function Home() {
     }
 
     // Split articles for different sections
-    const featuredArticles = articles.slice(0, 5);
-    const developersSection = articles.slice(5, 13);
-    const listSection = articles; // Pass all articles for search/list
+    // Cast to local Article type for component compatibility
+    const allArticles = articles as unknown as Article[];
+    const featuredArticles = allArticles.slice(0, 5);
+    const developersSection = allArticles.slice(5, 13);
+    const listSection = allArticles; // Pass all articles for search/list
 
     return (
         <div className="pb-8">

@@ -33,3 +33,5 @@ _legacy_expo/
 
 # Test coverage
 coverage/
+
+!node_modules/@chanomhub/sdk

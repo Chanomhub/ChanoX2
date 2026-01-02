@@ -1,14 +1,11 @@
 import { useState, useMemo, useRef } from 'react';
 import useSWR from 'swr';
-import { fetcher } from '@/libs/swr-fetcher';
 import { useParams, Link } from 'react-router-dom';
-import { GET_ARTICLE, GET_DOWNLOADS, GET_OFFICIAL_DOWNLOAD_SOURCES } from '@/libs/api/queries';
-import {
-    ArticleResponse,
-    Download as ApiDownload,
-    DownloadsResponse,
-    OfficialDownloadSourcesResponse
-} from '@/types/graphql';
+import { sdk, withImageTransform } from '@/libs/sdk';
+import { client } from '@/libs/api/client';
+import { GET_OFFICIAL_DOWNLOAD_SOURCES } from '@/libs/api/queries';
+import type { ArticleWithDownloads, Download } from '@chanomhub/sdk';
+import { OfficialDownloadSourcesResponse } from '@/types/graphql';
 import { useDownloads } from '@/contexts/DownloadContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArticleDownloadDialog } from '@/components/common/ArticleDownloadDialog';
@@ -18,7 +15,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Heart,
-    Download,
+    Download as DownloadIcon,
     Gamepad2,
     ArrowLeft,
     Image as ImageIcon,
@@ -30,44 +27,49 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { SafeImage } from '@/components/common/SafeImage';
 
+// SDK fetcher for article with downloads
+const articleFetcher = async ([, slug, language]: [string, string, string]): Promise<ArticleWithDownloads> => {
+    const result = await sdk.articles.getWithDownloads(slug, language);
+    return withImageTransform(result);
+};
+
+// GraphQL fetcher for official sources (not yet in SDK)
+const officialSourcesFetcher = async ([, articleId]: [string, number]) => {
+    const data = await client.request<OfficialDownloadSourcesResponse>(
+        GET_OFFICIAL_DOWNLOAD_SOURCES,
+        { articleId }
+    );
+    return data.officialDownloadSources || [];
+};
+
 export default function ArticleDetail() {
     const { slug } = useParams<{ slug: string }>();
     const { openDownloadLink } = useDownloads();
     const { language } = useLanguage();
 
-    const [selectedDownload, setSelectedDownload] = useState<ApiDownload | null>(null);
+    const [selectedDownload, setSelectedDownload] = useState<Download | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
     const downloadsRef = useRef<HTMLDivElement>(null);
 
-    // Fetch Article
-    const { data: articleData, error: articleError, isLoading: articleLoading } = useSWR<ArticleResponse>(
-        slug ? [GET_ARTICLE, { slug, language }] : null,
-        ([query, variables]) => fetcher(query, variables)
+    // Fetch Article with Downloads using SDK
+    const { data: articleData, error: articleError, isLoading: articleLoading } = useSWR<ArticleWithDownloads>(
+        slug ? ['article-with-downloads', slug, language] : null,
+        articleFetcher
     );
 
     const article = articleData?.article;
-
-    // Dependent Fetching: Downloads & Official Sources
-    // Only fetch when we have an article ID
-    const articleId = article ? Number(article.id) : null;
-
-    const { data: downloadsData } = useSWR<DownloadsResponse>(
-        articleId ? [GET_DOWNLOADS, { articleId }] : null,
-        ([query, variables]) => fetcher(query, variables)
-    );
-
-    const { data: officialSourcesData } = useSWR<OfficialDownloadSourcesResponse>(
-        articleId ? [GET_OFFICIAL_DOWNLOAD_SOURCES, { articleId }] : null,
-        ([query, variables]) => fetcher(query, variables)
-    );
-
     const downloads = useMemo(() =>
-        downloadsData?.downloads.filter(d => d.isActive) || [],
-        [downloadsData]
+        articleData?.downloads?.filter(d => d.isActive) || [],
+        [articleData]
     );
 
-    const officialSources = officialSourcesData?.officialDownloadSources || [];
+    // Fetch Official Sources (still using GraphQL - not in SDK yet)
+    const articleId = article ? Number(article.id) : null;
+    const { data: officialSources = [] } = useSWR(
+        articleId ? ['official-sources', articleId] : null,
+        officialSourcesFetcher
+    );
 
     // Derived states
     const loading = articleLoading;
@@ -76,24 +78,26 @@ export default function ArticleDetail() {
     // Combine all images for the gallery
     const allImages = useMemo(() => {
         if (!article) return [];
-        const images: { id: number; url: string }[] = [];
+        const images: { id: string; url: string }[] = [];
 
         // Add main/cover/background image as first
         const heroImage = article.backgroundImage || article.mainImage || article.coverImage;
         if (heroImage) {
-            images.push({ id: -1, url: heroImage });
+            images.push({ id: 'hero', url: heroImage });
         }
 
         // Add all article images
-        images.push(...article.images);
+        if (article.images) {
+            article.images.forEach((img, index) => {
+                images.push({ id: img.id ?? `img-${index}`, url: img.url });
+            });
+        }
         return images;
     }, [article]);
 
     const scrollToDownloads = () => {
         downloadsRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
-
-
 
     if (loading) {
         return (
@@ -176,7 +180,7 @@ export default function ArticleDetail() {
                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#2a475e] scrollbar-track-[#1b2838]">
                             {allImages.map((img, index) => (
                                 <button
-                                    key={index}
+                                    key={img.id}
                                     onClick={() => setSelectedImageIndex(index)}
                                     className={cn(
                                         "flex-shrink-0 w-[120px] h-[68px] border-2 transition-all",
@@ -256,7 +260,7 @@ export default function ArticleDetail() {
                                 onClick={scrollToDownloads}
                                 className="flex-[1.5] bg-gradient-to-r from-[#75b022] to-[#588a1b] hover:from-[#8ed629] hover:to-[#6aa621] text-white py-2 rounded flex items-center justify-center gap-2 transition-all shadow-lg text-sm font-bold"
                             >
-                                <Download className="w-4 h-4" /> Download
+                                <DownloadIcon className="w-4 h-4" /> Download
                             </button>
                         )}
                     </div>
@@ -350,7 +354,7 @@ export default function ArticleDetail() {
                                                     onClick={() => setSelectedDownload(download)}
                                                     className="w-full bg-[#2a475e] hover:bg-[#66c0f4] hover:text-white text-[#66c0f4] text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
                                                 >
-                                                    <Download className="w-3 h-3" /> DOWNLOAD
+                                                    <DownloadIcon className="w-3 h-3" /> DOWNLOAD
                                                 </button>
                                             </div>
                                         ))}
@@ -391,7 +395,7 @@ export default function ArticleDetail() {
                     onDownload={(url) => {
                         openDownloadLink(
                             url,
-                            article?.id,
+                            article?.id ? Number(article.id) : undefined,
                             article?.title,
                             article?.coverImage || article?.mainImage || article?.backgroundImage || undefined,
                             article?.engine?.name || undefined,
