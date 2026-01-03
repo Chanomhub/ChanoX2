@@ -1,13 +1,18 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Article } from '@/types/graphql';
+import { Article, ArticleImage } from '@/types/graphql';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 import { SafeImage } from '@/components/common/SafeImage';
+import { getOptimizedImageUrl } from '@/libs/image';
+
+interface ArticleWithImages extends Article {
+    images?: ArticleImage[];
+}
 
 interface GameListSectionProps {
-    articles: Article[];
+    articles: ArticleWithImages[];
     onLoadMore?: () => void;
     hasMore?: boolean;
     loadingMore?: boolean;
@@ -25,10 +30,30 @@ export default function GameListSection({
     const [activeTab, setActiveTab] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [hoveredArticle, setHoveredArticle] = useState<ArticleWithImages | null>(null);
+    const [previewImageIndex, setPreviewImageIndex] = useState(0);
 
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, activeTab]);
+
+    // Auto-rotate preview images
+    useEffect(() => {
+        if (!hoveredArticle?.images?.length) return;
+
+        const interval = setInterval(() => {
+            setPreviewImageIndex(prev =>
+                (prev + 1) % (hoveredArticle.images?.length || 1)
+            );
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [hoveredArticle]);
+
+    // Reset image index when hovered article changes
+    useEffect(() => {
+        setPreviewImageIndex(0);
+    }, [hoveredArticle?.id]);
 
     const filteredArticles = useMemo(() => {
         if (!searchQuery) {
@@ -57,6 +82,13 @@ export default function GameListSection({
             onLoadMore();
         }
     };
+
+    // Set first article as default hovered
+    useEffect(() => {
+        if (displayedArticles.length > 0 && !hoveredArticle) {
+            setHoveredArticle(displayedArticles[0]);
+        }
+    }, [displayedArticles]);
 
     return (
         <div className="mb-12 w-full max-w-[1200px] mx-auto px-4 mt-8">
@@ -91,49 +123,131 @@ export default function GameListSection({
                 </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-                {displayedArticles.length > 0 ? (
-                    displayedArticles.map((article) => (
-                        <Link
-                            key={article.id}
-                            to={`/article/${article.slug}`}
-                            className="flex items-center bg-[#16202d] hover:bg-[#1b2838] p-2 gap-4 group transition-colors shadow-sm"
-                        >
-                            <div className="w-[120px] h-[45px] relative flex-shrink-0">
-                                {article.coverImage ? (
-                                    <SafeImage
-                                        src={article.coverImage}
-                                        alt={article.title}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-[#2a475e]" />
+            {/* Two-column layout */}
+            <div className="flex gap-4">
+                {/* Left: Game List */}
+                <div className="flex-1 flex flex-col gap-1">
+                    {displayedArticles.length > 0 ? (
+                        displayedArticles.map((article) => (
+                            <Link
+                                key={article.id}
+                                to={`/article/${article.slug}`}
+                                className={cn(
+                                    "flex items-center p-2 gap-4 group transition-all duration-200",
+                                    hoveredArticle?.id === article.id
+                                        ? "bg-gradient-to-r from-[#1b2838] to-[#2a475e] shadow-lg"
+                                        : "bg-[#16202d] hover:bg-[#1b2838]"
                                 )}
-                            </div>
-
-                            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                <h3 className="text-[#c7d5e0] text-sm font-normal group-hover:text-white truncate">{article.title}</h3>
-                                <div className="flex gap-2 text-xs text-[#384959] group-hover:text-[#4f6479]">
-                                    {article.platforms.map(p => p.name).join(', ')}
+                                onMouseEnter={() => setHoveredArticle(article)}
+                            >
+                                {/* Game Banner */}
+                                <div className="w-[184px] h-[69px] relative flex-shrink-0 overflow-hidden rounded-sm">
+                                    {article.coverImage ? (
+                                        <SafeImage
+                                            src={getOptimizedImageUrl(article.coverImage, { width: 184, height: 69, fit: 'cover' })}
+                                            alt={article.title}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-[#2a475e]" />
+                                    )}
                                 </div>
-                            </div>
 
-                            <div className="flex gap-2">
-                                {article.tags.slice(0, 2).map((tag) => (
-                                    <span key={tag.id} className="text-[#8b929a] text-xs hidden md:inline-block">
+                                {/* Info */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <h3 className="text-[#c7d5e0] text-sm font-normal group-hover:text-white truncate">
+                                        {article.title}
+                                    </h3>
+                                    <div className="flex gap-2 flex-wrap mt-1">
+                                        {(article.tags ?? []).slice(0, 3).map((tag) => (
+                                            <span
+                                                key={tag.id}
+                                                className="text-[#8b929a] text-[10px] bg-[#1b2838] px-1.5 py-0.5 rounded"
+                                            >
+                                                {tag.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2 text-[10px] text-[#384959] group-hover:text-[#4f6479] mt-1">
+                                        {(article.platforms ?? []).map(p => p.name).join(', ')}
+                                    </div>
+                                </div>
+                            </Link>
+                        ))
+                    ) : (
+                        <div className="p-8 text-center text-[#8b929a] italic">
+                            No games found matching "{searchQuery}"
+                        </div>
+                    )}
+                </div>
+
+                {/* Right: Preview Panel */}
+                {hoveredArticle && (
+                    <div className="w-[324px] flex-shrink-0 bg-[#1b2838] rounded-sm overflow-hidden hidden lg:block">
+                        {/* Main Preview Image */}
+                        <div className="w-full h-[151px] relative overflow-hidden">
+                            {hoveredArticle.images && hoveredArticle.images.length > 0 ? (
+                                <SafeImage
+                                    src={getOptimizedImageUrl(hoveredArticle.images[previewImageIndex]?.url || hoveredArticle.mainImage || '', { width: 324, height: 151, fit: 'cover' })}
+                                    alt={hoveredArticle.title}
+                                    className="w-full h-full object-cover transition-opacity duration-300"
+                                />
+                            ) : hoveredArticle.mainImage ? (
+                                <SafeImage
+                                    src={getOptimizedImageUrl(hoveredArticle.mainImage, { width: 324, height: 151, fit: 'cover' })}
+                                    alt={hoveredArticle.title}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-[#2a475e]" />
+                            )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="p-4">
+                            <h3 className="text-white text-base font-normal mb-2 truncate">
+                                {hoveredArticle.title}
+                            </h3>
+
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                                {(hoveredArticle.tags ?? []).slice(0, 5).map((tag) => (
+                                    <span
+                                        key={tag.id}
+                                        className="text-[#67c1f5] text-[10px] bg-[#67c1f5]/20 px-2 py-0.5 rounded"
+                                    >
                                         {tag.name}
                                     </span>
                                 ))}
                             </div>
 
-                            <div className="text-[#dcdedf] text-sm font-normal px-4">
-                                Free
-                            </div>
-                        </Link>
-                    ))
-                ) : (
-                    <div className="p-8 text-center text-[#8b929a] italic">
-                        No games found matching "{searchQuery}"
+                            {/* Thumbnail column - vertical layout */}
+                            {hoveredArticle.images && hoveredArticle.images.length > 1 && (
+                                <div className="flex flex-col gap-2 mt-3">
+                                    {hoveredArticle.images.map((img, idx) => (
+                                        <button
+                                            key={img.id}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setPreviewImageIndex(idx);
+                                            }}
+                                            className={cn(
+                                                "w-full h-[80px] rounded-sm overflow-hidden border-2 transition-colors",
+                                                previewImageIndex === idx
+                                                    ? "border-[#67c1f5]"
+                                                    : "border-transparent hover:border-[#67c1f5]/50"
+                                            )}
+                                        >
+                                            <SafeImage
+                                                src={getOptimizedImageUrl(img.url, { width: 292, height: 80, fit: 'cover' })}
+                                                alt={`Screenshot ${idx + 1}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

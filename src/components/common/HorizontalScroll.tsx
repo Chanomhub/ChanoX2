@@ -40,14 +40,11 @@ export default function HorizontalScroll({ title, articles }: HorizontalScrollPr
                         <div className="p-3">
                             <h3 className="text-[#dcdedf] text-sm font-semibold mb-1 line-clamp-1 group-hover:text-white">{article.title}</h3>
                             <div className="flex flex-wrap gap-1 mb-2">
-                                {article.platforms.length > 0 && (
+                                {(article.platforms ?? []).length > 0 && (
                                     <span className="text-[#8b929a] text-[10px]">
-                                        {article.platforms.map(p => p.name).join(', ')}
+                                        {article.platforms?.map(p => p.name).join(', ')}
                                     </span>
                                 )}
-                            </div>
-                            <div className="text-right">
-                                <span className="text-[#dcdedf] text-xs font-bold">Free</span>
                             </div>
                         </div>
                     </Link>

@@ -7,9 +7,13 @@ import HorizontalScroll from '@/components/common/HorizontalScroll';
 import GameListSection from '@/components/common/GameListSection';
 import { Loader2 } from 'lucide-react';
 
-// SDK fetcher for SWR
+// SDK fetcher for SWR - fetch fields needed for list + preview panel
 const sdkFetcher = async ([, limit, offset]: [string, number, number]): Promise<PaginatedResponse<ArticleListItem>> => {
-    const result = await sdk.articles.getAllPaginated({ limit, offset, preset: 'standard' });
+    const result = await sdk.articles.getAllPaginated({
+        limit,
+        offset,
+        preset: 'full' // Use full preset to include images for preview panel
+    });
     return withImageTransform(result);
 };
 
