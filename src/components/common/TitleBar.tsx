@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check, Bell, Trash2, CheckCheck, Sparkles } from 'lucide-react';
+import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check, Bell, Trash2, CheckCheck, Sparkles, Download } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useDownloads } from '@/contexts/DownloadContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useNewYearCountdown, triggerNewYearPreview } from '@/hooks/useNewYearCountdown';
@@ -11,6 +12,10 @@ export default function TitleBar() {
     const navigate = useNavigate();
     const { user, accounts, switchAccount, logout, isAuthenticated } = useAuth();
     const { timeLeft, isNewYear } = useNewYearCountdown();
+    const { downloads } = useDownloads();
+
+    // Count active downloads (downloading or extracting)
+    const activeDownloadCount = downloads.filter(d => d.status === 'downloading' || d.isExtracting).length;
 
     console.log('[TitleBar] Render:', { isNewYear, timeLeft });
 
@@ -120,6 +125,20 @@ export default function TitleBar() {
                 className="flex items-center h-full"
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
+                {/* Download Indicator */}
+                {activeDownloadCount > 0 && (
+                    <button
+                        onClick={() => navigate('/downloads')}
+                        className="w-10 h-full flex items-center justify-center hover:bg-white/10 transition-colors relative group"
+                        title={`${activeDownloadCount} active download${activeDownloadCount > 1 ? 's' : ''}`}
+                    >
+                        <Download size={14} className="text-chanox-accent animate-pulse" />
+                        <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center bg-chanox-accent text-[10px] font-bold text-black rounded-full">
+                            {activeDownloadCount}
+                        </span>
+                    </button>
+                )}
+
                 {/* Notification Bell */}
                 {isAuthenticated && (
                     <div className="relative h-full" ref={notificationRef}>
