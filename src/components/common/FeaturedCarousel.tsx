@@ -84,16 +84,16 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
 
                         <div className="space-y-4">
                             <div className="flex flex-wrap gap-2">
-                                {currentArticle.tags.slice(0, 4).map((tag) => (
+                                {(currentArticle.tags ?? []).slice(0, 4).map((tag) => (
                                     <span key={tag.id} className="bg-[#1b2838] text-[#66c0f4] text-xs px-2 py-1 rounded hover:text-white transition-colors cursor-default">
                                         {tag.name}
                                     </span>
                                 ))}
                             </div>
 
-                            {currentArticle.platforms.length > 0 && (
+                            {(currentArticle.platforms ?? []).length > 0 && (
                                 <div className="text-[#8b929a] text-xs">
-                                    Available for: <span className="text-[#dcdedf]">{currentArticle.platforms.map(p => p.name).join(', ')}</span>
+                                    Available for: <span className="text-[#dcdedf]">{currentArticle.platforms?.map(p => p.name).join(', ')}</span>
                                 </div>
                             )}
                         </div>

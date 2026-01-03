@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 
 // SDK fetcher for SWR
 const sdkFetcher = async ([, limit, offset]: [string, number, number]): Promise<PaginatedResponse<ArticleListItem>> => {
-    const result = await sdk.articles.getAllPaginated({ limit, offset });
+    const result = await sdk.articles.getAllPaginated({ limit, offset, preset: 'standard' });
     return withImageTransform(result);
 };
 
