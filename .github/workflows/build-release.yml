@@ -77,7 +77,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: npm run electron:build -- --linux AppImage deb tar.gz flatpak
+          command: npm run electron:build -- --linux AppImage deb tar.gz flatpak rpm
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -110,6 +110,7 @@ jobs:
             release/*.deb
             release/*.tar.gz
             release/*.flatpak
+            release/*.rpm
             release/*.exe
             release/*.dmg
           if-no-files-found: ignore
@@ -137,61 +138,61 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Auto-update Flathub repo after release (requires FLATHUB_TOKEN secret)
-  update-flathub:
-    needs: release
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, 'beta') && !contains(github.ref, 'alpha')
-    continue-on-error: true  # Don't fail the whole workflow if Flathub update fails
-
-    steps:
-      - name: Get version
-        id: version
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Download and calculate SHA256
-        id: sha256
-        run: |
-          wget -q "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/ChanoX2-${{ steps.version.outputs.version }}.tar.gz" -O chanox2.tar.gz
-          SHA256=$(sha256sum chanox2.tar.gz | cut -d' ' -f1)
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-
-      - name: Clone and update Flathub repo
-        env:
-          FLATHUB_TOKEN: ${{ secrets.FLATHUB_TOKEN }}
-        run: |
-          if [ -z "$FLATHUB_TOKEN" ]; then
-            echo "FLATHUB_TOKEN not set, skipping Flathub update"
-            exit 0
-          fi
-          
-          git clone "https://x-access-token:${FLATHUB_TOKEN}@github.com/flathub/com.chanomhub.chanox2.git" flathub-repo || {
-            echo "Flathub repo not found, skipping"
-            exit 0
-          }
-          
-          cd flathub-repo
-          
-          # Update manifest
-          sed -i "s|/releases/download/v[^/]*/ChanoX2-[^.]*\.tar\.gz|/releases/download/v${{ steps.version.outputs.version }}/ChanoX2-${{ steps.version.outputs.version }}.tar.gz|g" com.chanomhub.chanox2.yml
-          sed -i "0,/sha256: [a-f0-9]\{64\}/s//sha256: ${{ steps.sha256.outputs.sha256 }}/" com.chanomhub.chanox2.yml
-          
-          # Update metainfo
-          DATE=$(date +%Y-%m-%d)
-          if ! grep -q "version=\"${{ steps.version.outputs.version }}\"" com.chanomhub.chanox2.metainfo.xml; then
-            sed -i "s|<releases>|<releases>\n    <release version=\"${{ steps.version.outputs.version }}\" date=\"$DATE\">\n      <description><p>See release notes on GitHub</p></description>\n    </release>|" com.chanomhub.chanox2.metainfo.xml
-          fi
-          
-          # Commit and push
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          
-          if git diff --staged --quiet; then
-            echo "No changes"
-            exit 0
-          fi
-          
-          git commit -m "Update to version ${{ steps.version.outputs.version }}"
-          git push
+  # update-flathub:
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #   if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, 'beta') && !contains(github.ref, 'alpha')
+  #   continue-on-error: true  # Don't fail the whole workflow if Flathub update fails
+  #
+  #   steps:
+  #     - name: Get version
+  #       id: version
+  #       run: |
+  #         VERSION="${GITHUB_REF#refs/tags/v}"
+  #         echo "version=$VERSION" >> $GITHUB_OUTPUT
+  #
+  #     - name: Download and calculate SHA256
+  #       id: sha256
+  #       run: |
+  #         wget -q "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/ChanoX2-${{ steps.version.outputs.version }}.tar.gz" -O chanox2.tar.gz
+  #         SHA256=$(sha256sum chanox2.tar.gz | cut -d' ' -f1)
+  #         echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+  #
+  #     - name: Clone and update Flathub repo
+  #       env:
+  #         FLATHUB_TOKEN: ${{ secrets.FLATHUB_TOKEN }}
+  #       run: |
+  #         if [ -z "$FLATHUB_TOKEN" ]; then
+  #           echo "FLATHUB_TOKEN not set, skipping Flathub update"
+  #           exit 0
+  #         fi
+  #         
+  #         git clone "https://x-access-token:${FLATHUB_TOKEN}@github.com/flathub/com.chanomhub.chanox2.git" flathub-repo || {
+  #           echo "Flathub repo not found, skipping"
+  #           exit 0
+  #         }
+  #         
+  #         cd flathub-repo
+  #         
+  #         # Update manifest
+  #         sed -i "s|/releases/download/v[^/]*/ChanoX2-[^.]*\.tar\.gz|/releases/download/v${{ steps.version.outputs.version }}/ChanoX2-${{ steps.version.outputs.version }}.tar.gz|g" com.chanomhub.chanox2.yml
+  #         sed -i "0,/sha256: [a-f0-9]\{64\}/s//sha256: ${{ steps.sha256.outputs.sha256 }}/" com.chanomhub.chanox2.yml
+  #         
+  #         # Update metainfo
+  #         DATE=$(date +%Y-%m-%d)
+  #         if ! grep -q "version=\"${{ steps.version.outputs.version }}\"" com.chanomhub.chanox2.metainfo.xml; then
+  #           sed -i "s|<releases>|<releases>\n    <release version=\"${{ steps.version.outputs.version }}\" date=\"$DATE\">\n      <description><p>See release notes on GitHub</p></description>\n    </release>|" com.chanomhub.chanox2.metainfo.xml
+  #         fi
+  #         
+  #         # Commit and push
+  #         git config user.name "github-actions[bot]"
+  #         git config user.email "github-actions[bot]@users.noreply.github.com"
+  #         git add -A
+  #         
+  #         if git diff --staged --quiet; then
+  #           echo "No changes"
+  #           exit 0
+  #         fi
+  #         
+  #         git commit -m "Update to version ${{ steps.version.outputs.version }}"
+  #         git push

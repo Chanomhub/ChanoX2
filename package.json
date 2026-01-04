@@ -112,7 +112,8 @@
             "target": [
                 "AppImage",
                 "deb",
-                "flatpak"
+                "flatpak",
+                "rpm"
             ],
             "category": "Game",
             "icon": "public/icon.png"
