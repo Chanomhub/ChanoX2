@@ -4,6 +4,7 @@ const fs = require('fs');
 const http = require('http');
 const { spawn } = require('child_process');
 const platformHandler = require('./platforms/index.cjs');
+const GameCompatibility = require('./services/GameCompatibility.cjs');
 
 // Set app name to ensure userData path is correct
 app.name = 'ChanoX2';
@@ -989,6 +990,13 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
                 cleanEnv.LANG = locale;
                 cleanEnv.LC_ALL = locale;
             }
+
+            // [Auto Compatibility] Apply fixes
+            const compatEnv = GameCompatibility.getEnv(executablePath, {
+                useWine: !!useWine, // Normalize to boolean
+                platform: process.platform
+            });
+            Object.assign(cleanEnv, compatEnv);
 
             const startTime = Date.now();
             const subprocess = spawn(command, finalArgs, {
