@@ -8,6 +8,8 @@ import type { ArticleWithDownloads, Download } from '@chanomhub/sdk';
 import { OfficialDownloadSourcesResponse } from '@/types/graphql';
 import { useDownloads } from '@/contexts/DownloadContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useFavorite } from '@/hooks/useFavorite';
 import { ArticleDownloadDialog } from '@/components/common/ArticleDownloadDialog';
 import HtmlRenderer from '@/components/common/HtmlRenderer';
 import { ElectronDownloader } from '@/lib/electronDownloader';
@@ -46,6 +48,7 @@ export default function ArticleDetail() {
     const { slug } = useParams<{ slug: string }>();
     const { openDownloadLink } = useDownloads();
     const { language } = useLanguage();
+    const { isAuthenticated } = useAuth(); // For showing login prompt if needed
 
     const [selectedDownload, setSelectedDownload] = useState<Download | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -58,7 +61,20 @@ export default function ArticleDetail() {
         articleFetcher
     );
 
+    // Favorite functionality
     const article = articleData?.article;
+    const {
+        isFavorited,
+        isLoading: favoriteLoading,
+        favoritesCount,
+        toggleFavorite,
+    } = useFavorite(
+        slug || '',
+        article?.favorited || false,
+        article?.favoritesCount || 0
+    );
+
+    // Article and downloads are already extracted above
     const downloads = useMemo(() =>
         articleData?.downloads?.filter(d => d.isActive) || [],
         [articleData]
@@ -224,7 +240,7 @@ export default function ArticleDetail() {
                         {article.author && (
                             <div className="flex">
                                 <span className="w-24 flex-shrink-0 uppercase">Developer:</span>
-                                <Link to="#" className="text-[#66c0f4] hover:text-white truncate">{article.author.name}</Link>
+                                <Link to={`/profile/${article.author.username || article.author.name}`} className="text-[#66c0f4] hover:text-white truncate">{article.author.name}</Link>
                             </div>
                         )}
                         {article.creators.length > 0 && (
@@ -252,8 +268,25 @@ export default function ArticleDetail() {
                     </div>
 
                     <div className="flex gap-2 mt-4">
-                        <button className="flex-1 bg-[#2a475e] hover:bg-[#31536f] text-[#67c1f5] py-2 rounded flex items-center justify-center gap-2 transition-colors text-sm font-medium">
-                            <Heart className="w-4 h-4" /> Add to Wishlist
+                        <button
+                            onClick={toggleFavorite}
+                            disabled={favoriteLoading}
+                            className={cn(
+                                "flex-1 py-2 rounded flex items-center justify-center gap-2 transition-colors text-sm font-medium",
+                                isFavorited
+                                    ? "bg-pink-600 hover:bg-pink-700 text-white"
+                                    : "bg-[#2a475e] hover:bg-[#31536f] text-[#67c1f5]"
+                            )}
+                        >
+                            {favoriteLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Heart className={cn("w-4 h-4", isFavorited && "fill-current")} />
+                            )}
+                            {isFavorited ? 'Favorited' : 'Favorite'}
+                            {favoritesCount > 0 && (
+                                <span className="text-xs opacity-70">({favoritesCount})</span>
+                            )}
                         </button>
                         {downloads.length > 0 && (
                             <button

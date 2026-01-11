@@ -6,7 +6,7 @@
       "name": "chanox2",
       "dependencies": {
         "7zip-bin": "^5.2.0",
-        "@chanomhub/sdk": "1.1.6",
+        "@chanomhub/sdk": "1.2.0",
         "@radix-ui/react-avatar": "^1.1.11",
         "@radix-ui/react-checkbox": "^1.3.3",
         "@radix-ui/react-dialog": "^1.1.15",
@@ -110,7 +110,7 @@
 
     "@babel/types": ["@babel/types@7.28.5", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA=="],
 
-    "@chanomhub/sdk": ["@chanomhub/sdk@1.1.6", "", { "peerDependencies": { "@supabase/supabase-js": ">=2.0.0", "next": ">=13.0.0", "react-native-app-auth": ">=7.0.0" }, "optionalPeers": ["@supabase/supabase-js", "next", "react-native-app-auth"] }, "sha512-aK61xoqZquP4eYIplga6Apn+VR8HrpVGCox4nm02iut638BiuC7/YoXNFkgcRyaHrNhMGtG/ophods4oxUlF4Q=="],
+    "@chanomhub/sdk": ["@chanomhub/sdk@1.2.0", "", { "peerDependencies": { "@supabase/supabase-js": ">=2.0.0", "next": ">=13.0.0", "react-native-app-auth": ">=7.0.0" }, "optionalPeers": ["@supabase/supabase-js", "next", "react-native-app-auth"] }, "sha512-XtjsjF1J8uyxioj6Sz5gsdhV7QRH0X9TFJRQXMznyYQWqEir0oRi35jwzvTiAxnedZxLHn4oiR7nc+sQF7EVzQ=="],
 
     "@develar/schema-utils": ["@develar/schema-utils@2.6.5", "", { "dependencies": { "ajv": "^6.12.0", "ajv-keywords": "^3.4.1" } }, "sha512-0cp4PsWQ/9avqTVMCtZ+GirikIA36ikvjtHweU4/j8yLtgObI0+JUPhYFScgwlteveGB1rt3Cm8UhN04XayDig=="],
 

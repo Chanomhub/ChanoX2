@@ -21,6 +21,7 @@ import Downloads from '@/pages/Downloads'
 import Library from '@/pages/Library'
 import Search from '@/pages/Search'
 import Settings from '@/pages/Settings'
+import Profile from '@/pages/Profile'
 
 // Global pending game launch handler component
 function PendingGameLaunchHandler() {
@@ -60,6 +61,7 @@ export default function App() {
                                             <Route path="/library" element={<Library />} />
                                             <Route path="/search" element={<Search />} />
                                             <Route path="/settings" element={<Settings />} />
+                                            <Route path="/profile/:username" element={<Profile />} />
                                         </Routes>
                                     </Layout>
                                 </ChatProvider>
