@@ -3,12 +3,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-    const { login, loginWithGoogle, loading, loginVersion } = useAuth();
+    const { login, loginWithGoogle, loading, loginVersion, oauthUrl, clearOAuthUrl } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     // Track initial loginVersion to detect login completion
     const initialLoginVersionRef = useRef(loginVersion);
@@ -25,9 +26,10 @@ export default function Login() {
         console.log('Login useEffect - loginVersion:', loginVersion, 'initial:', initialLoginVersionRef.current);
         if (loginVersion > initialLoginVersionRef.current) {
             console.log('Navigating to home after OAuth login');
+            clearOAuthUrl(); // Clear OAuth URL on successful login
             navigate('/');
         }
-    }, [loginVersion, navigate]);
+    }, [loginVersion, navigate, clearOAuthUrl]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -48,6 +50,18 @@ export default function Login() {
             await loginWithGoogle();
         } catch (err: any) {
             setError(err.message || 'Google login failed');
+        }
+    };
+
+    const handleCopyUrl = async () => {
+        if (oauthUrl) {
+            try {
+                await navigator.clipboard.writeText(oauthUrl);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
         }
     };
 
@@ -131,8 +145,33 @@ export default function Login() {
                         </svg>
                         Sign in with Google
                     </button>
+
+                    {/* OAuth URL Fallback for GNOME/Linux where browser may not open */}
+                    {oauthUrl && (
+                        <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/50 rounded-md">
+                            <p className="text-sm text-amber-200 mb-2">
+                                หากเบราว์เซอร์ไม่เปิด กรุณาคัดลอกลิ้งค์ด้านล่างไปเปิดเองในเบราว์เซอร์:
+                            </p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={oauthUrl}
+                                    readOnly
+                                    className="flex-1 px-2 py-1 bg-black/30 border border-border rounded text-xs text-muted-foreground truncate"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCopyUrl}
+                                    className="px-3 py-1 bg-chanox-accent text-chanox-surface text-sm font-medium rounded hover:bg-chanox-accent/90 transition-colors"
+                                >
+                                    {copied ? '✓ คัดลอกแล้ว' : 'คัดลอก'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     );
 }
+

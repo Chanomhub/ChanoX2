@@ -18,6 +18,8 @@ interface AuthContextType {
     loginWithGoogle: () => Promise<void>;
     handleSupabaseCallback: (accessToken: string) => Promise<void>;
     isSupabaseAvailable: boolean;
+    oauthUrl: string | null; // OAuth URL for manual copy (GNOME fallback)
+    clearOAuthUrl: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [accounts, setAccounts] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [loginVersion, setLoginVersion] = useState(0);
+    const [oauthUrl, setOAuthUrl] = useState<string | null>(null);
+
+    const clearOAuthUrl = useCallback(() => setOAuthUrl(null), []);
 
     // handleSupabaseCallback - exchanges Supabase token with backend
     const handleSupabaseCallback = useCallback(async (accessToken: string) => {
@@ -254,6 +259,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 if (url) {
                     console.log('Opening OAuth URL in external browser');
+                    // Store URL for manual copy fallback (GNOME may not open browser)
+                    setOAuthUrl(url);
                     window.electronAPI!.openExternal(url);
                 }
                 // Callback will be handled via IPC event listener
@@ -292,7 +299,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isAuthenticated: !!user,
             loginWithGoogle,
             handleSupabaseCallback,
-            isSupabaseAvailable: isSupabaseConfigured()
+            isSupabaseAvailable: isSupabaseConfigured(),
+            oauthUrl,
+            clearOAuthUrl,
         }}>
             {children}
         </AuthContext.Provider>
