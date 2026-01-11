@@ -2,7 +2,7 @@
  * Profile Page
  * Premium Steam-like profile design with modern aesthetics
  */
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import { useState } from 'react';
 import { sdk, getAuthenticatedClient } from '@/libs/sdk';

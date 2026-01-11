@@ -8,7 +8,7 @@ import type { ArticleWithDownloads, Download } from '@chanomhub/sdk';
 import { OfficialDownloadSourcesResponse } from '@/types/graphql';
 import { useDownloads } from '@/contexts/DownloadContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { useFavorite } from '@/hooks/useFavorite';
 import { ArticleDownloadDialog } from '@/components/common/ArticleDownloadDialog';
 import HtmlRenderer from '@/components/common/HtmlRenderer';
@@ -48,7 +48,7 @@ export default function ArticleDetail() {
     const { slug } = useParams<{ slug: string }>();
     const { openDownloadLink } = useDownloads();
     const { language } = useLanguage();
-    const { isAuthenticated } = useAuth(); // For showing login prompt if needed
+
 
     const [selectedDownload, setSelectedDownload] = useState<Download | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
