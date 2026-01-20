@@ -28,7 +28,8 @@ import {
     RefreshCw,
     Link,
     Link2Off,
-    Wine
+    Wine,
+    Languages
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -712,6 +713,27 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                 Wine Dependencies
                             </button>
                         )}
+
+                        {/* Translate Yourself - opens NST CLI */}
+                        <button
+                            onClick={async () => {
+                                if (window.electronAPI?.openNstCli) {
+                                    const result = await window.electronAPI.openNstCli(
+                                        libraryItem.extractedPath,
+                                        libraryItem.engine || 'rpgm'
+                                    );
+                                    if (!result.success) {
+                                        alert(`ไม่สามารถเปิด NST ได้: ${result.error || 'Unknown error'}`);
+                                    }
+                                } else {
+                                    alert('ไม่พบ NST CLI');
+                                }
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors"
+                        >
+                            <Languages className="w-4 h-4" />
+                            Translate Yourself (NST)
+                        </button>
                     </div>
 
                 </div>

@@ -22,4 +22,5 @@ export interface LibraryItem {
     // State
     isFavorite?: boolean;
     isReExtracting?: boolean; // กำลังแตกซ้ำอยู่
+    isMod?: boolean;          // เป็น MOD หรือไม่
 }

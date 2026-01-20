@@ -139,4 +139,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('winetricks-progress', handler);
         return () => ipcRenderer.removeListener('winetricks-progress', handler);
     },
+
+    // NST CLI Integration
+    openNstCli: (projectPath, engine) =>
+        ipcRenderer.invoke('open-nst-cli', { projectPath, engine }),
 });

@@ -154,15 +154,17 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
                         const download = prev.find(d => d.id === id);
                         if (download) {
                             ElectronDownloader.extractFile(savePath, destPath)
-                                .then(() => {
-                                    console.log('Auto-extraction successful', destPath);
+                                .then((result) => {
+                                    // Use actualPath if provided (smart path detection)
+                                    const finalPath = result.actualPath || destPath;
+                                    console.log('Auto-extraction successful', finalPath);
                                     // Call the callback to add to library
-                                    handleExtractionComplete({ ...download, savePath, filename }, destPath);
+                                    handleExtractionComplete({ ...download, savePath, filename }, finalPath);
                                     // Update state
                                     setDownloads(p =>
                                         p.map(d =>
                                             d.id === id
-                                                ? { ...d, isExtracting: false, extractedPath: destPath }
+                                                ? { ...d, isExtracting: false, extractedPath: finalPath }
                                                 : d
                                         )
                                     );
@@ -300,10 +302,12 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
             if (destPath.endsWith('.tar')) {
                 destPath = destPath.substring(0, destPath.length - 4);
             }
-            await ElectronDownloader.extractFile(download.savePath, destPath);
+            const result = await ElectronDownloader.extractFile(download.savePath, destPath);
+            // Use actualPath if provided (smart path detection)
+            const finalPath = result.actualPath || destPath;
             // Call callback after manual extraction too
-            handleExtractionComplete(download, destPath);
-            ElectronDownloader.showItemInFolder(destPath);
+            handleExtractionComplete(download, finalPath);
+            ElectronDownloader.showItemInFolder(finalPath);
         } catch (error) {
             console.error('Extraction failed', error);
         } finally {

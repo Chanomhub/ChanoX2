@@ -93,7 +93,7 @@ export interface ElectronAPI {
     openPath: (path: string) => void;
     openExternal: (url: string) => void;
     openNewWindow: (url: string) => void;
-    extractFile: (filePath: string, destPath: string) => Promise<{ success: boolean }>;
+    extractFile: (filePath: string, destPath: string) => Promise<{ success: boolean; actualPath?: string }>;
 
     // Storage Management
     selectDownloadDirectory: () => Promise<string | null>;
@@ -172,6 +172,9 @@ export interface ElectronAPI {
     installWinetricksPackage: (packageId: string, winePrefix?: string) => Promise<WinetricksInstallResult>;
     cancelWinetricksInstall: () => Promise<{ success: boolean; error?: string }>;
     onWinetricksProgress: (callback: (data: WinetricksProgressData) => void) => (() => void) | void;
+
+    // NST CLI Integration
+    openNstCli: (projectPath: string, engine: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

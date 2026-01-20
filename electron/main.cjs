@@ -359,7 +359,61 @@ ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
             }
         }
 
-        return { success: true };
+        // Smart game folder detection: scan for actual game files
+        // Look for common game markers (Game.exe, package.json, www/, etc.)
+        let actualPath = destPath;
+        try {
+            const findGameFolder = (dir, depth = 0) => {
+                if (depth > 3) return null; // Don't go too deep
+
+                const items = fs.readdirSync(dir);
+
+                // Check if this folder contains game files
+                const gameMarkers = [
+                    'Game.exe', 'game.exe', 'Game.app',
+                    'package.json', // RPG Maker MV/MZ
+                    'data', 'www', 'js', // RPG Maker folders
+                    'rgss3a', 'RGSS3A', // RPG Maker VX Ace
+                    'rgss2a', 'RGSS2A', // RPG Maker VX
+                    'Game.rgss3a', 'Game.rgss2a',
+                    'nw.pak', 'nwjs.pak' // NW.js games
+                ];
+
+                for (const item of items) {
+                    if (gameMarkers.includes(item)) {
+                        console.log('🎮 [extract-file] Game marker found:', item, 'in', dir);
+                        return dir;
+                    }
+                }
+
+                // If no game files found, check subfolders
+                const visibleFolders = items
+                    .filter(item => !item.startsWith('.'))
+                    .map(item => path.join(dir, item))
+                    .filter(itemPath => {
+                        try {
+                            return fs.statSync(itemPath).isDirectory();
+                        } catch { return false; }
+                    });
+
+                for (const folder of visibleFolders) {
+                    const result = findGameFolder(folder, depth + 1);
+                    if (result) return result;
+                }
+
+                return null;
+            };
+
+            const gameFolder = findGameFolder(destPath);
+            if (gameFolder && gameFolder !== destPath) {
+                console.log('📁 [extract-file] Game folder detected:', gameFolder);
+                actualPath = gameFolder;
+            }
+        } catch (scanErr) {
+            console.warn('⚠️ [extract-file] Could not scan for game folder:', scanErr.message);
+        }
+
+        return { success: true, actualPath };
     } catch (error) {
         console.error('Extraction failed:', error);
         throw error;
@@ -868,6 +922,125 @@ ipcMain.handle('cancel-winetricks-install', async () => {
         }
     }
     return { success: true };
+});
+
+// --- NST CLI Integration ---
+ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, nstExecutablePath, title, coverImage }) => {
+    try {
+        // Use provided path or default
+        // TODO: Make this path configurable via Settings UI if not provided
+        const nstPath = nstExecutablePath || 'NST';
+
+        // Check if NST exists
+        if (!fs.existsSync(nstPath)) {
+            return { success: false, error: `NST not found at: ${nstPath}` };
+        }
+
+        // Ensure NST has execute permissions
+        try {
+            fs.chmodSync(nstPath, '755');
+        } catch (chmodErr) {
+            console.warn('⚠️ [open-nst-cli] Could not set permissions:', chmodErr.message);
+        }
+
+        const args = ['-e', engine || 'rpgm', '-p', projectPath];
+        if (outputPath) {
+            args.push('--output', outputPath);
+        }
+
+        console.log('🌐 [open-nst-cli] Launching NST:', { nstPath, args });
+
+        // Run NST and wait for completion
+        return new Promise((resolve) => {
+            const subprocess = spawn(nstPath, args, {
+                stdio: 'pipe' // Capture output for debugging/logging
+            });
+
+            let outputLog = '';
+            let errorLog = '';
+
+            subprocess.stdout.on('data', (data) => {
+                const text = data.toString();
+                outputLog += text;
+                console.log(`[NST stdout]: ${text.trim()}`);
+                // Optional: Send progress to frontend if needed
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('nst-output', text);
+                }
+            });
+
+            subprocess.stderr.on('data', (data) => {
+                const text = data.toString();
+                errorLog += text;
+                console.error(`[NST stderr]: ${text.trim()}`);
+            });
+
+            subprocess.on('close', async (code) => {
+                console.log(`[NST] Process exited with code ${code}`);
+
+                if (code === 0) {
+                    // Success!
+                    let resultPath = outputPath;
+
+                    // If outputPath wasn't provided, we might need to guess where it went (default behavior of NST?)
+                    // For now, we assume outputPath IS provided for the auto-add feature to work effectively.
+
+                    if (outputPath && fs.existsSync(outputPath)) {
+                        // Auto-Add to Library
+                        try {
+                            const library = loadJsonFile(LIBRARY_FILE, []);
+
+                            // Check for duplicates (by path)
+                            const isDuplicate = library.some(item => item.extractedPath === outputPath);
+                            if (!isDuplicate) {
+                                const newGame = {
+                                    id: Date.now(),
+                                    title: title || `${path.basename(projectPath)} (Translated)`,
+                                    extractedPath: outputPath,
+                                    addedAt: new Date().toISOString(),
+                                    engine: engine,
+                                    coverImage: coverImage || null,
+                                    isMod: true // Mark as modified/translated version
+                                };
+
+                                library.push(newGame);
+                                saveJsonFile(LIBRARY_FILE, library);
+
+                                console.log('✅ [open-nst-cli] Automatically added to library:', newGame.title);
+
+                                // Notify frontend to refresh library
+                                if (mainWindow && !mainWindow.isDestroyed()) {
+                                    mainWindow.webContents.send('library-updated');
+                                }
+                            } else {
+                                console.log('ℹ️ [open-nst-cli] Game allready in library, skipping add.');
+                            }
+
+                            resolve({ success: true, logs: outputLog });
+                        } catch (libErr) {
+                            console.error('⚠️ [open-nst-cli] Failed to add to library:', libErr);
+                            // Still resolve as success since translation worked
+                            resolve({ success: true, logs: outputLog, warning: 'Failed to add to library' });
+                        }
+                    } else {
+                        // Translation finished but output path invalid?
+                        resolve({ success: true, logs: outputLog, warning: 'Output path not found' });
+                    }
+                } else {
+                    resolve({ success: false, error: `NST process exited with code ${code}`, logs: outputLog, errorLogs: errorLog });
+                }
+            });
+
+            subprocess.on('error', (err) => {
+                console.error('🔥 [open-nst-cli] Spawn error:', err.message);
+                resolve({ success: false, error: err.message });
+            });
+        });
+
+    } catch (error) {
+        console.error('🔥 [open-nst-cli] Error:', error.message);
+        return { success: false, error: error.message };
+    }
 });
 
 // --- Game Scanning & Launching ---

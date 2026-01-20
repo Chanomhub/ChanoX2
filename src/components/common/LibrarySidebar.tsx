@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 import { ScrollArea } from '@/components/ui/ScrollArea';
-import { Home, MessageSquare, Search, Filter, Plus, Clock, Star, Folder, File } from 'lucide-react';
+import { Home, MessageSquare, Search, Filter, Plus, Clock, Star, Folder, File, Puzzle } from 'lucide-react';
 import { useLibrary } from '@/contexts/LibraryContext';
 import { SafeImage } from '@/components/common/SafeImage';
 import {
@@ -34,7 +34,7 @@ export default function LibrarySidebar({
 
     const [filterExpanded, setFilterExpanded] = useState(false);
 
-    const filteredGames = libraryItems
+    const filteredItems = libraryItems
         .filter((item) => {
             const name = item.title || '';
             return name.toLowerCase().includes((searchQuery || '').toLowerCase());
@@ -44,6 +44,10 @@ export default function LibrarySidebar({
             if (!a.isFavorite && b.isFavorite) return 1;
             return (a.title || '').localeCompare(b.title || '');
         });
+
+    // Separate games and mods
+    const filteredGames = filteredItems.filter(item => !item.isMod);
+    const filteredMods = filteredItems.filter(item => item.isMod);
 
     const handleAddGameFolder = async () => {
         if (!window.electronAPI) return;
@@ -244,6 +248,41 @@ export default function LibrarySidebar({
                             </div>
                         </button>
                     ))}
+
+                    {/* MODS Section */}
+                    {filteredMods.length > 0 && (
+                        <>
+                            <div className="flex items-center gap-2 px-4 py-2 mt-2 border-t border-[#2b2f38]">
+                                <Puzzle className="w-3 h-3 text-[#6e7681]" />
+                                <span className="text-[#6e7681] text-[11px] font-bold">MODS</span>
+                            </div>
+                            {filteredMods.map(mod => (
+                                <button
+                                    key={mod.id}
+                                    className={cn(
+                                        "flex items-center px-4 py-1.5 gap-2 w-full text-left transition-colors hover:bg-[#1f242e] min-w-0 overflow-hidden",
+                                        selectedGameId === mod.id && "bg-[#3d4450] hover:bg-[#3d4450]"
+                                    )}
+                                    onClick={() => onSelectGame(mod.id)}
+                                >
+                                    <div className="w-4 h-4 bg-[#2a2e36] flex-shrink-0">
+                                        {mod.coverImage && (
+                                            <SafeImage src={mod.coverImage} className="w-full h-full object-cover" alt="" />
+                                        )}
+                                    </div>
+                                    <div className={cn(
+                                        "text-[13px] text-left truncate flex-1 min-w-0 w-0 flex items-center gap-1.5",
+                                        selectedGameId === mod.id ? "text-white" : "text-[#969696]"
+                                    )}>
+                                        <span className="truncate">{mod.title}</span>
+                                        {mod.isFavorite && (
+                                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                        )}
+                                    </div>
+                                </button>
+                            ))}
+                        </>
+                    )}
                 </div>
             </ScrollArea>
 
