@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search as SearchIcon, Loader2, X, Settings2 } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '@/components/ui/Dialog';
 import { sdk, withImageTransform } from '@/libs/sdk';
 import type { ArticleListItem, NamedEntity } from '@chanomhub/sdk';
 import SearchResultItem from '@/components/common/SearchResultItem';
@@ -27,6 +36,11 @@ export default function Search() {
     const [articles, setArticles] = useState<ArticleListItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+    // Sequential Code Search Detection
+    const [showCodeDialog, setShowCodeDialog] = useState(false);
+    const [detectedCode, setDetectedCode] = useState<string | null>(null);
+    const ignoredCodesRef = useRef<Set<string>>(new Set());
 
     // Filter state
     const [filters, setFilters] = useState<FilterState>({
@@ -94,7 +108,20 @@ export default function Search() {
     }, []);
 
     // Search articles with filters - sends API request
-    const searchArticles = useCallback(async () => {
+    const searchArticles = useCallback(async (overrideParams?: { sequentialCode?: string }) => {
+        // Sequential Code Detection
+        if (!overrideParams?.sequentialCode) {
+            const queryTrimmed = debouncedSearchQuery.trim();
+            // Detect HJ/RJ followed by digits (at least 2 to avoid noise)
+            const codeMatch = queryTrimmed.match(/^(HJ|RJ)\d{2,}/i);
+
+            if (codeMatch && !ignoredCodesRef.current.has(codeMatch[0].toUpperCase())) {
+                setDetectedCode(codeMatch[0].toUpperCase());
+                setShowCodeDialog(true);
+                return;
+            }
+        }
+
         setLoading(true);
         try {
             // Build filter object for API using refs (no dependency on state)
@@ -102,7 +129,13 @@ export default function Search() {
                 tag?: string;
                 category?: string;
                 platform?: string;
+                sequentialCode?: string;
             } = {};
+
+            // If searching by sequential code, that's our primary filter
+            if (overrideParams?.sequentialCode) {
+                apiFilter.sequentialCode = overrideParams.sequentialCode;
+            }
 
             // API accepts single filter values, so we use the first selected one
             if (debouncedFilters.tags.length > 0) {
@@ -119,7 +152,15 @@ export default function Search() {
             }
 
             let result;
-            if (debouncedSearchQuery.trim()) {
+
+            if (apiFilter.sequentialCode) {
+                // specific code search
+                result = await sdk.articles.getAllPaginated({
+                    limit: 100,
+                    offset: 0,
+                    filter: apiFilter,
+                });
+            } else if (debouncedSearchQuery.trim()) {
                 // Search with query
                 result = await sdk.search.articles(debouncedSearchQuery, {
                     limit: 100,
@@ -189,6 +230,24 @@ export default function Search() {
     useEffect(() => {
         searchArticles();
     }, [searchArticles]);
+
+    const confirmCodeSearch = () => {
+        if (detectedCode) {
+            setShowCodeDialog(false);
+            // Ignore this code from future prompts just in case
+            ignoredCodesRef.current.add(detectedCode);
+            searchArticles({ sequentialCode: detectedCode });
+        }
+    };
+
+    const ignoreCodeSearch = () => {
+        if (detectedCode) {
+            ignoredCodesRef.current.add(detectedCode);
+            setShowCodeDialog(false);
+            // Search normally
+            searchArticles();
+        }
+    };
 
     const clearSearch = () => {
         setSearchQuery('');
@@ -306,6 +365,43 @@ export default function Search() {
                     </div>
                 )}
             </div>
+
+            {/* Sequential Code Confirmation Dialog */}
+            <Dialog open={showCodeDialog} onOpenChange={setShowCodeDialog}>
+                <DialogContent className="sm:max-w-md bg-[#1b2838] border-[#2a475e] text-[#c7d5e0]">
+                    <DialogHeader>
+                        <DialogTitle className="text-white">Advanced Search Detected</DialogTitle>
+                        <DialogDescription className="text-[#8f98a0]">
+                            We detected a sequential code: <span className="text-white font-mono font-bold">{detectedCode}</span>.
+                            <br />
+                            Do you want to use the Advanced Search for this specific code?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex gap-2 sm:gap-0 mt-4">
+                        <Button
+                            variant="primary"
+                            onClick={confirmCodeSearch}
+                            className="w-full sm:w-auto"
+                        >
+                            Use Advanced Search
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={ignoreCodeSearch}
+                            className="w-full sm:w-auto"
+                        >
+                            Search Normally
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowCodeDialog(false)}
+                            className="w-full sm:w-auto"
+                        >
+                            Cancel
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
