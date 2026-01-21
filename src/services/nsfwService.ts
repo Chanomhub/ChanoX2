@@ -1,4 +1,54 @@
-import * as nsfwjs from 'nsfwjs';
+// Dynamic import for optional nsfwjs dependency
+// Users need to install @tensorflow/tfjs and nsfwjs manually to enable NSFW detection
+// npm install @tensorflow/tfjs nsfwjs
+
+type NSFWJS = {
+    classify(element: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): Promise<{ className: string; probability: number }[]>;
+};
+
+type NSFWJSModule = {
+    load(path?: string): Promise<NSFWJS>;
+};
+
+let nsfwjsModule: NSFWJSModule | null = null;
+let nsfwjsLoadAttempted = false;
+let nsfwjsAvailable = false;
+
+async function loadNsfwjsModule(): Promise<NSFWJSModule | null> {
+    if (nsfwjsLoadAttempted) {
+        return nsfwjsModule;
+    }
+    nsfwjsLoadAttempted = true;
+
+    try {
+        // Try to dynamically import nsfwjs
+        const module = await import('nsfwjs');
+        nsfwjsModule = module as unknown as NSFWJSModule;
+        nsfwjsAvailable = true;
+        console.log('✅ nsfwjs module loaded successfully');
+        return nsfwjsModule;
+    } catch (err) {
+        console.warn('⚠️ nsfwjs is not installed. NSFW detection is disabled.');
+        console.warn('   To enable, run: npm install @tensorflow/tfjs nsfwjs');
+        nsfwjsAvailable = false;
+        return null;
+    }
+}
+
+/**
+ * Check if nsfwjs is available
+ */
+export function isNsfwjsAvailable(): boolean {
+    return nsfwjsAvailable;
+}
+
+/**
+ * Check availability of nsfwjs module (async check on first call)
+ */
+export async function checkNsfwjsAvailability(): Promise<boolean> {
+    await loadNsfwjsModule();
+    return nsfwjsAvailable;
+}
 
 // Sensitivity thresholds for each level (optimized for anime content)
 // Hentai thresholds are lower because the model is specifically trained for anime NSFW
@@ -47,8 +97,8 @@ function saveCacheToStorage(cache: Map<string, boolean>): void {
 const nsfwCache = loadCacheFromStorage();
 
 class NSFWService {
-    private model: nsfwjs.NSFWJS | null = null;
-    private loadingPromise: Promise<nsfwjs.NSFWJS> | null = null;
+    private model: NSFWJS | null = null;
+    private loadingPromise: Promise<NSFWJS> | null = null;
     private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
     private customModelUrl: string | null = null;
     private currentModelUrl: string | null = null;
@@ -59,6 +109,13 @@ class NSFWService {
         if (this.customModelUrl) {
             console.log('🔧 Dev Mode: Custom NSFW model configured:', this.customModelUrl);
         }
+    }
+
+    /**
+     * Check if nsfwjs module is available
+     */
+    isAvailable(): boolean {
+        return nsfwjsAvailable;
     }
 
     /**
@@ -97,8 +154,15 @@ class NSFWService {
 
     /**
      * Load the NSFW model if not already loaded
+     * Returns null if nsfwjs is not installed
      */
-    async loadModel(): Promise<nsfwjs.NSFWJS> {
+    async loadModel(): Promise<NSFWJS | null> {
+        // First, ensure the module is loaded
+        const module = await loadNsfwjsModule();
+        if (!module) {
+            return null;
+        }
+
         const targetUrl = this.customModelUrl || 'default';
 
         // If model is loaded and URL hasn't changed, return it
@@ -119,15 +183,15 @@ class NSFWService {
         // Load model from custom URL or default
         if (this.customModelUrl) {
             console.log('🔧 Loading custom NSFW model from:', this.customModelUrl);
-            this.loadingPromise = nsfwjs.load(this.customModelUrl);
+            this.loadingPromise = module.load(this.customModelUrl);
         } else {
-            this.loadingPromise = nsfwjs.load();
+            this.loadingPromise = module.load();
         }
 
         try {
             this.model = await this.loadingPromise;
             this.currentModelUrl = targetUrl;
-            console.log(`✅ NSFW Model loaded successfully${this.customModelUrl ? ' (custom)' : ' (default)'}`);
+            console.log(`NSFW Model loaded successfully${this.customModelUrl ? ' (custom)' : ' (default)'}`);
             return this.model;
         } catch (error) {
             console.error('Failed to load NSFW model:', error);
@@ -153,7 +217,7 @@ class NSFWService {
      * @param imgElement Must be an HTMLImageElement, HTMLVideoElement, or HTMLCanvasElement
      * @param imageUrl Optional URL to use as cache key
      * @param sensitivityLevel Sensitivity level for detection
-     * @returns True if NSFW content is detected, False otherwise
+     * @returns True if NSFW content is detected, False otherwise. Returns false if nsfwjs is not installed.
      */
     async isNSFW(
         imgElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
@@ -170,15 +234,22 @@ class NSFWService {
 
         try {
             const model = await this.loadModel();
+
+            // If nsfwjs is not installed, return safe (false)
+            if (!model) {
+                console.log('NSFW Check skipped: nsfwjs not installed');
+                return false;
+            }
+
             const predictions = await model.classify(imgElement);
 
             // Get thresholds for current sensitivity level
             const threshold = THRESHOLDS[sensitivityLevel];
 
             // Find individual class probabilities
-            const hentaiProb = predictions.find(p => p.className === 'Hentai')?.probability || 0;
-            const pornProb = predictions.find(p => p.className === 'Porn')?.probability || 0;
-            const sexyProb = predictions.find(p => p.className === 'Sexy')?.probability || 0;
+            const hentaiProb = predictions.find((p: { className: string; probability: number }) => p.className === 'Hentai')?.probability || 0;
+            const pornProb = predictions.find((p: { className: string; probability: number }) => p.className === 'Porn')?.probability || 0;
+            const sexyProb = predictions.find((p: { className: string; probability: number }) => p.className === 'Sexy')?.probability || 0;
 
             // Calculate combined NSFW score
             const nsfwScore = hentaiProb + pornProb + sexyProb;
@@ -236,10 +307,11 @@ class NSFWService {
     /**
      * Get model info for dev mode
      */
-    getModelInfo(): { isCustom: boolean; url: string | null } {
+    getModelInfo(): { isCustom: boolean; url: string | null; isAvailable: boolean } {
         return {
             isCustom: this.isDevMode(),
-            url: this.customModelUrl
+            url: this.customModelUrl,
+            isAvailable: nsfwjsAvailable
         };
     }
 }
