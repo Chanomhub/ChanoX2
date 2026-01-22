@@ -73,7 +73,23 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
                     {/* Info Section */}
                     <div className="flex-1 p-6 flex flex-col justify-between bg-[#0f1922]">
                         <div>
-                            <h2 className="text-2xl text-white font-normal mb-4 truncate">{currentArticle.title}</h2>
+                            <div className="flex items-center gap-3 mb-2">
+                                <h2 className="text-2xl text-white font-normal truncate max-w-[calc(100%-80px)]">{currentArticle.title}</h2>
+                                {currentArticle.ver && (
+                                    <span className="shrink-0 text-[#67c1f5] text-xs bg-[#67c1f5]/10 px-2 py-0.5 rounded border border-[#67c1f5]/20">
+                                        v{currentArticle.ver}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Creator Info */}
+                            {(currentArticle.creators ?? []).length > 0 && (
+                                <div className="mb-4 text-xs text-[#c6d4df]">
+                                    <span className="text-[#566168]">Developer: </span>
+                                    {currentArticle.creators!.map(c => c.name).join(', ')}
+                                </div>
+                            )}
+
                             <div className="bg-[#1b2838] p-4 rounded mb-4">
                                 <h4 className="text-[#8b929a] text-[10px] uppercase mb-2">Description</h4>
                                 <p className="text-[#dcdedf] text-sm line-clamp-4">
