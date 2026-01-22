@@ -52,6 +52,7 @@ export interface Article {
     categories: Category[];
     platforms: Platform[];
     tags: Tag[];
+    creators: Creator[];
     engine: Engine | null;
 }
 

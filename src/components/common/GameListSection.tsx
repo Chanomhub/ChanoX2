@@ -211,7 +211,7 @@ export default function GameListSection({
 
                         {/* Info */}
                         <div className="p-4">
-                            <div className="flex items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center justify-between gap-2 mb-1">
                                 <h3 className="text-white text-base font-normal truncate" title={hoveredArticle.title}>
                                     {hoveredArticle.title}
                                 </h3>
@@ -221,6 +221,14 @@ export default function GameListSection({
                                     </span>
                                 )}
                             </div>
+
+                            {/* Creators */}
+                            {(hoveredArticle.creators ?? []).length > 0 && (
+                                <div className="mb-2 text-xs text-[#c6d4df]">
+                                    <span className="text-[#566168]">Developer: </span>
+                                    {hoveredArticle.creators.map(c => c.name).join(', ')}
+                                </div>
+                            )}
 
                             {/* Tags */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
