@@ -168,8 +168,14 @@ export default function GameListSection({
                                             </span>
                                         ))}
                                     </div>
-                                    <div className="flex gap-2 text-[10px] text-[#384959] group-hover:text-[#4f6479] mt-1">
-                                        {(article.platforms ?? []).map(p => p.name).join(', ')}
+                                    <div className="flex items-center gap-2 text-[10px] text-[#384959] group-hover:text-[#4f6479] mt-1">
+                                        <span className="truncate">{(article.platforms ?? []).map(p => p.name).join(', ')}</span>
+                                        {article.ver && (
+                                            <>
+                                                <span className="select-none">•</span>
+                                                <span className="shrink-0">v{article.ver}</span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </Link>
@@ -205,9 +211,16 @@ export default function GameListSection({
 
                         {/* Info */}
                         <div className="p-4">
-                            <h3 className="text-white text-base font-normal mb-2 truncate">
-                                {hoveredArticle.title}
-                            </h3>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                                <h3 className="text-white text-base font-normal truncate" title={hoveredArticle.title}>
+                                    {hoveredArticle.title}
+                                </h3>
+                                {hoveredArticle.ver && (
+                                    <span className="shrink-0 text-[#67c1f5] text-xs bg-[#67c1f5]/10 px-2 py-0.5 rounded border border-[#67c1f5]/20">
+                                        {hoveredArticle.ver}
+                                    </span>
+                                )}
+                            </div>
 
                             {/* Tags */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
