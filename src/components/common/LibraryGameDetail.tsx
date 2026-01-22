@@ -77,8 +77,9 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     const { config, launchGame, saveConfig, loadConfig, isRunning, stopGame } = useGameLauncher(libraryItem.id);
     const { scanDirectory, results: scanResults } = useGameScanner();
 
-    // Check if on Linux (for Wine Dependencies button)
-    const isLinux = navigator.platform.toLowerCase().includes('linux');
+    // Check if on Linux or MacOS (for Wine Dependencies button)
+    const platform = navigator.platform.toLowerCase();
+    const isLinuxOrMac = platform.includes('linux') || platform.includes('mac');
     const isWindowsGame = config?.useWine === true || config?.executablePath?.toLowerCase().endsWith('.exe');
 
     // Refresh config for dev mode
@@ -703,8 +704,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                             }
                         </button>
 
-                        {/* Wine Dependencies (Linux only) */}
-                        {isLinux && isWindowsGame && (
+                        {/* Wine Dependencies (Linux/Mac only) */}
+                        {isLinuxOrMac && isWindowsGame && (
                             <button
                                 onClick={() => setWinetricksDialogOpen(true)}
                                 className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors"

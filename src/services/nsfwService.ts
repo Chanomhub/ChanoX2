@@ -25,10 +25,10 @@ async function loadNsfwjsModule(): Promise<NSFWJSModule | null> {
         const module = await import('nsfwjs');
         nsfwjsModule = module as unknown as NSFWJSModule;
         nsfwjsAvailable = true;
-        console.log('✅ nsfwjs module loaded successfully');
+        console.log('[OK] nsfwjs module loaded successfully');
         return nsfwjsModule;
     } catch (err) {
-        console.warn('⚠️ nsfwjs is not installed. NSFW detection is disabled.');
+        console.warn('[WARN] nsfwjs is not installed. NSFW detection is disabled.');
         console.warn('   To enable, run: npm install @tensorflow/tfjs nsfwjs');
         nsfwjsAvailable = false;
         return null;
@@ -74,7 +74,7 @@ function loadCacheFromStorage(): Map<string, boolean> {
         const stored = localStorage.getItem(CACHE_STORAGE_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
-            console.log(`📦 Loaded ${Object.keys(parsed).length} NSFW cache entries from storage`);
+            console.log(`[OK] Loaded ${Object.keys(parsed).length} NSFW cache entries from storage`);
             return new Map(Object.entries(parsed));
         }
     } catch (err) {
@@ -107,7 +107,7 @@ class NSFWService {
         // Load custom model URL from storage
         this.customModelUrl = localStorage.getItem(CUSTOM_MODEL_KEY);
         if (this.customModelUrl) {
-            console.log('🔧 Dev Mode: Custom NSFW model configured:', this.customModelUrl);
+            console.log('[OK] Dev Mode: Custom NSFW model configured:', this.customModelUrl);
         }
     }
 
@@ -126,10 +126,10 @@ class NSFWService {
         this.customModelUrl = url;
         if (url) {
             localStorage.setItem(CUSTOM_MODEL_KEY, url);
-            console.log('🔧 Dev Mode: Custom model URL set:', url);
+            console.log('[OK] Dev Mode: Custom model URL set:', url);
         } else {
             localStorage.removeItem(CUSTOM_MODEL_KEY);
-            console.log('🔧 Dev Mode: Custom model URL cleared, using default nsfwjs');
+            console.log('[OK] Dev Mode: Custom model URL cleared, using default nsfwjs');
         }
         // Force model reload on next check
         this.model = null;
@@ -182,7 +182,7 @@ class NSFWService {
 
         // Load model from custom URL or default
         if (this.customModelUrl) {
-            console.log('🔧 Loading custom NSFW model from:', this.customModelUrl);
+            console.log('[OK] Loading custom NSFW model from:', this.customModelUrl);
             this.loadingPromise = module.load(this.customModelUrl);
         } else {
             this.loadingPromise = module.load();
