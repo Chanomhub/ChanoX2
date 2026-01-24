@@ -158,8 +158,8 @@ export default function ArticleDetail() {
             {/* Main Content Area */}
             <div className="flex flex-col lg:flex-row gap-6 mb-8">
                 {/* Left Side - Gallery */}
-                <div className="lg:flex-[1.8] min-w-0">
-                    <div className="relative aspect-video bg-black rounded-sm overflow-hidden mb-2 group">
+                <div className="lg:flex-[1.8] min-w-0 flex flex-col">
+                    <div className="relative flex-1 bg-black rounded-sm overflow-hidden mb-2 group min-h-[300px]">
                         {currentImage ? (
                             <SafeImage
                                 src={currentImage}
@@ -199,7 +199,7 @@ export default function ArticleDetail() {
                                     key={img.id}
                                     onClick={() => setSelectedImageIndex(index)}
                                     className={cn(
-                                        "flex-shrink-0 w-[120px] h-[68px] border-2 transition-all",
+                                        "flex-shrink-0 w-[160px] h-[90px] border-2 transition-all",
                                         selectedImageIndex === index
                                             ? "border-[#dcdedf] opacity-100"
                                             : "border-transparent opacity-60 hover:opacity-100"
@@ -213,7 +213,7 @@ export default function ArticleDetail() {
                 </div>
 
                 {/* Right Side - Info Panel */}
-                <div className="lg:flex-1 bg-[#1b2838] p-4 rounded-sm border border-black/20 h-fit">
+                <div className="lg:flex-1 bg-[#1b2838] p-4 rounded-sm border border-black/20">
                     <div className="w-full aspect-[16/9] mb-4 bg-black/20 rounded overflow-hidden">
                         {article.coverImage ? (
                             <SafeImage src={article.coverImage} className="w-full h-full object-cover" alt="Cover" />
@@ -224,11 +224,11 @@ export default function ArticleDetail() {
                         )}
                     </div>
 
-                    <p className="text-[#c6d4df] text-sm leading-relaxed mb-4 line-clamp-6">
+                    <p className="text-[#c6d4df] text-sm leading-relaxed mb-3 line-clamp-3">
                         {article.description}
                     </p>
 
-                    <div className="space-y-2 text-xs text-[#556772] mb-6">
+                    <div className="space-y-1 text-xs text-[#556772] mb-4">
                         {article.createdAt && (
                             <div className="flex">
                                 <span className="w-24 flex-shrink-0 uppercase">Release Date:</span>
@@ -255,6 +255,12 @@ export default function ArticleDetail() {
                             <div className="flex">
                                 <span className="w-24 flex-shrink-0 uppercase">Version:</span>
                                 <span className="text-[#8f98a0]">{article.ver}</span>
+                            </div>
+                        )}
+                        {article.engine && (
+                            <div className="flex">
+                                <span className="w-24 flex-shrink-0 uppercase">Engine:</span>
+                                <span className="text-[#8f98a0]">{article.engine.name}</span>
                             </div>
                         )}
                     </div>

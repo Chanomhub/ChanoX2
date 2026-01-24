@@ -84,9 +84,17 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
 
                             {/* Creator Info */}
                             {(currentArticle.creators ?? []).length > 0 && (
-                                <div className="mb-4 text-xs text-[#c6d4df]">
+                                <div className="mb-2 text-xs text-[#c6d4df]">
                                     <span className="text-[#566168]">Developer: </span>
                                     {currentArticle.creators!.map(c => c.name).join(', ')}
+                                </div>
+                            )}
+
+                            {/* Engine Info */}
+                            {currentArticle.engine && (
+                                <div className="mb-4 text-xs text-[#c6d4df]">
+                                    <span className="text-[#566168]">Engine: </span>
+                                    {currentArticle.engine.name}
                                 </div>
                             )}
 

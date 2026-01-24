@@ -230,6 +230,14 @@ export default function GameListSection({
                                 </div>
                             )}
 
+                            {/* Engine */}
+                            {hoveredArticle.engine && (
+                                <div className="mb-2 text-xs text-[#c6d4df]">
+                                    <span className="text-[#566168]">Engine: </span>
+                                    {hoveredArticle.engine.name}
+                                </div>
+                            )}
+
                             {/* Tags */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
                                 {(hoveredArticle.tags ?? []).slice(0, 5).map((tag) => (
