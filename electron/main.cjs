@@ -5,6 +5,7 @@ const http = require('http');
 const { spawn } = require('child_process');
 const platformHandler = require('./platforms/index.cjs');
 const GameCompatibility = require('./services/GameCompatibility.cjs');
+const ExtractorService = require('./services/ExtractorService.cjs');
 
 // Set app name to ensure userData path is correct
 app.name = 'ChanoX2';
@@ -146,20 +147,7 @@ async function downloadCoverImage(gameId, coverImageUrl) {
     }
 }
 
-// 7zip setup
-const pathTo7zip = require('7zip-bin').path7za.replace('app.asar', 'app.asar.unpacked');
-const Seven = require('node-7z');
-
-// Fix 7zip permissions on Linux
-if (process.platform === 'linux') {
-    try {
-        if (fs.existsSync(pathTo7zip)) {
-            fs.chmodSync(pathTo7zip, '755');
-        }
-    } catch (err) {
-        if (err.code !== 'EROFS') console.error('Failed to set 7zip permissions:', err);
-    }
-}
+// Extraction is now handled by ExtractorService using native OS tools
 
 // Ensure default directory exists
 try {
@@ -326,153 +314,14 @@ function createWindow() {
 
 // ============= IPC Handlers =============
 
-// --- File Extraction ---
+// --- File Extraction (using native OS tools) ---
 ipcMain.handle('extract-file', async (event, { filePath, destPath }) => {
-    const runExtraction = (file, dest) => {
-        return new Promise((resolve, reject) => {
-            const stream = Seven.extractFull(file, dest, {
-                $bin: pathTo7zip,
-                $progress: true,
-                $default: ['-aoa']
-            });
-            stream.on('end', resolve);
-            stream.on('error', reject);
-        });
-    };
+    return await ExtractorService.extractFile(filePath, destPath);
+});
 
-    // Fallback extraction using unrar for old RAR formats
-    const runUnrarExtraction = (file, dest) => {
-        return new Promise((resolve, reject) => {
-            const unrar = spawn('unrar', ['x', '-o+', '-y', file, dest + '/'], {
-                stdio: ['ignore', 'pipe', 'pipe']
-            });
-
-            let stderr = '';
-            unrar.stderr.on('data', (data) => { stderr += data.toString(); });
-
-            unrar.on('close', (code) => {
-                if (code === 0) {
-                    resolve();
-                } else {
-                    reject(new Error(`unrar failed with code ${code}: ${stderr}`));
-                }
-            });
-
-            unrar.on('error', (err) => {
-                if (err.code === 'ENOENT') {
-                    reject(new Error('unrar not installed. Please install unrar: sudo apt install unrar'));
-                } else {
-                    reject(err);
-                }
-            });
-        });
-    };
-
-    const isRarFile = filePath.toLowerCase().endsWith('.rar');
-    let extractionError = null;
-
-    // Helper function to find game folder after extraction
-    const findGameFolder = (dir, depth = 0) => {
-        if (depth > 3) return null; // Don't go too deep
-
-        const items = fs.readdirSync(dir);
-
-        // Check if this folder contains game files
-        const gameMarkers = [
-            'Game.exe', 'game.exe', 'Game.app',
-            'package.json', // RPG Maker MV/MZ
-            'data', 'www', 'js', // RPG Maker folders
-            'rgss3a', 'RGSS3A', // RPG Maker VX Ace
-            'rgss2a', 'RGSS2A', // RPG Maker VX
-            'Game.rgss3a', 'Game.rgss2a',
-            'nw.pak', 'nwjs.pak' // NW.js games
-        ];
-
-        for (const item of items) {
-            if (gameMarkers.includes(item)) {
-                console.log('🎮 [extract-file] Game marker found:', item, 'in', dir);
-                return dir;
-            }
-        }
-
-        // If no game files found, check subfolders
-        const visibleFolders = items
-            .filter(item => !item.startsWith('.'))
-            .map(item => path.join(dir, item))
-            .filter(itemPath => {
-                try {
-                    return fs.statSync(itemPath).isDirectory();
-                } catch { return false; }
-            });
-
-        for (const folder of visibleFolders) {
-            const result = findGameFolder(folder, depth + 1);
-            if (result) return result;
-        }
-
-        return null;
-    };
-
-    // Helper function to process extracted files (tar handling, game folder detection)
-    const postExtraction = async () => {
-        // Handle tar.gz/tar.xz double extraction
-        const lowerPath = filePath.toLowerCase();
-        if (lowerPath.endsWith('.tar.gz') || lowerPath.endsWith('.tar.xz') || lowerPath.endsWith('.tgz')) {
-            const baseName = path.basename(filePath);
-            const tarNameGuess = baseName.replace(/\.[^.]+$/, '');
-            const tarPath = path.join(destPath, tarNameGuess);
-
-            if (fs.existsSync(tarPath) && tarPath.toLowerCase().endsWith('.tar')) {
-                await runExtraction(tarPath, destPath);
-                if (fs.existsSync(tarPath)) {
-                    fs.unlinkSync(tarPath);
-                }
-            }
-        }
-
-        // Smart game folder detection
-        let actualPath = destPath;
-        try {
-            const gameFolder = findGameFolder(destPath);
-            if (gameFolder && gameFolder !== destPath) {
-                console.log('📁 [extract-file] Game folder detected:', gameFolder);
-                actualPath = gameFolder;
-            }
-        } catch (scanErr) {
-            console.warn('⚠️ [extract-file] Could not scan for game folder:', scanErr.message);
-        }
-
-        return { success: true, actualPath };
-    };
-
-    // Try 7z first
-    try {
-        await runExtraction(filePath, destPath);
-        return await postExtraction();
-    } catch (error) {
-        extractionError = error;
-        console.error('7z extraction failed:', error.message);
-    }
-
-    // Fallback to unrar for RAR files
-    if (isRarFile && extractionError) {
-        console.log('🔄 [extract-file] Trying unrar fallback for:', filePath);
-        try {
-            await runUnrarExtraction(filePath, destPath);
-            console.log('✅ [extract-file] unrar extraction successful');
-            return await postExtraction();
-        } catch (unrarError) {
-            console.error('unrar extraction also failed:', unrarError.message);
-            // Provide helpful error message
-            const errorMessage = unrarError.message.includes('not installed')
-                ? unrarError.message
-                : `Failed to extract RAR file. 7z error: ${extractionError.message}. unrar error: ${unrarError.message}`;
-            throw new Error(errorMessage);
-        }
-    }
-
-    // Not a RAR file or no fallback available
-    throw extractionError;
+// --- Check Extraction Tools ---
+ipcMain.handle('check-extraction-tools', async () => {
+    return ExtractorService.checkExtractionTools();
 });
 
 // --- Directory Operations ---

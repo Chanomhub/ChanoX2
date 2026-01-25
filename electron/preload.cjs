@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openExternal: (url) => ipcRenderer.send('open-external', url),
     openNewWindow: (url) => ipcRenderer.send('open-new-window', url),
     extractFile: (filePath, destPath) => ipcRenderer.invoke('extract-file', { filePath, destPath }),
+    checkExtractionTools: () => ipcRenderer.invoke('check-extraction-tools'),
 
     // Storage Management
     selectDownloadDirectory: () => ipcRenderer.invoke('select-download-directory'),
