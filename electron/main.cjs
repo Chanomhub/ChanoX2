@@ -226,7 +226,7 @@ function createWindow() {
         mainWindow.webContents.openDevTools();
     } else {
         // Production: Load from built files
-        console.log('📦 Loading from built files...');
+        console.log('Loading from built files...');
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
 

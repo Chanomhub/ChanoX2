@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Article, ArticleImage } from '@/types/graphql';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/Input';
 import { SafeImage } from '@/components/common/SafeImage';
 import { getOptimizedImageUrl } from '@/libs/image';
 
@@ -27,15 +26,29 @@ export default function GameListSection({
     hasMore = false,
     loadingMore = false
 }: GameListSectionProps) {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [hoveredArticle, setHoveredArticle] = useState<ArticleWithImages | null>(null);
     const [previewImageIndex, setPreviewImageIndex] = useState(0);
 
+    // Navigate to search page with query
+    const handleSearch = () => {
+        if (searchQuery.trim()) {
+            navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
+
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, activeTab]);
+    }, [activeTab]);
 
     // Auto-rotate preview images
     useEffect(() => {
@@ -55,21 +68,12 @@ export default function GameListSection({
         setPreviewImageIndex(0);
     }, [hoveredArticle?.id]);
 
-    const filteredArticles = useMemo(() => {
-        if (!searchQuery) {
-            return articles;
-        }
-        return articles.filter(article =>
-            article.title.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [articles, searchQuery, activeTab]);
-
-    const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(articles.length / ITEMS_PER_PAGE);
 
     const displayedArticles = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredArticles.slice(start, start + ITEMS_PER_PAGE);
-    }, [filteredArticles, currentPage]);
+        return articles.slice(start, start + ITEMS_PER_PAGE);
+    }, [articles, currentPage]);
 
     const goToPrevious = () => {
         if (currentPage > 1) setCurrentPage(p => p - 1);
@@ -78,7 +82,7 @@ export default function GameListSection({
     const goToNext = () => {
         if (currentPage < totalPages) {
             setCurrentPage(p => p + 1);
-        } else if (hasMore && !searchQuery && onLoadMore) {
+        } else if (hasMore && onLoadMore) {
             onLoadMore();
         }
     };
@@ -113,11 +117,13 @@ export default function GameListSection({
                 <div className="py-2 pr-2">
                     <div className="relative">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6e7681]" />
-                        <Input
+                        <input
+                            type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             placeholder="Search Store"
-                            className="bg-[#2a475e] border-[#1b2838] text-white pl-8 h-8 text-xs w-[200px] focus-visible:ring-offset-0 focus-visible:border-[#66c0f4]"
+                            className="bg-[#2a475e] border border-[#1b2838] text-white pl-8 pr-2 h-8 text-xs w-[200px] rounded-sm focus:outline-none focus:ring-1 focus:ring-[#66c0f4]"
                         />
                     </div>
                 </div>
@@ -282,10 +288,10 @@ export default function GameListSection({
             </div>
 
             {/* Pagination */}
-            {(filteredArticles.length > ITEMS_PER_PAGE || (hasMore && !searchQuery)) && (
+            {(articles.length > ITEMS_PER_PAGE || hasMore) && (
                 <div className="flex justify-between items-center mt-4 pt-2 border-t border-[#1a2332]">
                     <span className="text-[#8b929a] text-xs">
-                        Page {currentPage} {hasMore && !searchQuery ? '...' : `of ${totalPages}`}
+                        Page {currentPage} {hasMore ? '...' : `of ${totalPages}`}
                     </span>
                     <div className="flex gap-2">
                         <button

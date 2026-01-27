@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search as SearchIcon, Loader2, X, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
@@ -32,7 +33,9 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function Search() {
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const initialQuery = searchParams.get('q') || '';
+    const [searchQuery, setSearchQuery] = useState(initialQuery);
     const [articles, setArticles] = useState<ArticleListItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -251,6 +254,7 @@ export default function Search() {
 
     const clearSearch = () => {
         setSearchQuery('');
+        setSearchParams({});
     };
 
     return (
