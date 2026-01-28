@@ -11,6 +11,7 @@ import {
     PackageOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SafeImage } from '@/components/common/SafeImage';
 
 // Helper functions
 function formatBytes(bytes: number): string {
