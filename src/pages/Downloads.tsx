@@ -76,7 +76,7 @@ const DownloadItem = ({ download, isCompleted }: { download: DownloadType, isCom
             {/* Game Cover */}
             <div className="w-[150px] h-full bg-[#2c3e50] relative overflow-hidden flex-shrink-0">
                 {download.coverImage ? (
-                    <img
+                    <SafeImage
                         src={download.coverImage}
                         className="w-full h-full object-cover"
                         alt={download.filename}
