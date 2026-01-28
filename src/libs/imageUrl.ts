@@ -181,3 +181,24 @@ export function getOptimizedImageUrl(src: string, options: ImageOptions = {}): s
 
     return `${baseUrl}/cdn-cgi/image/${params.join(',')}/${imagePath}`;
 }
+
+/**
+ * Get the original storage URL without CDN optimization (fallback URL)
+ * Use this when the CDN returns errors (e.g., 422)
+ */
+export function getStorageUrl(src: string): string {
+    if (!src) return '';
+
+    // Already a data/blob URL
+    if (src.startsWith('data:') || src.startsWith('blob:')) return src;
+
+    const baseUrl = `https://${CDN_DOMAIN}`;
+    const imagePath = extractImagePath(src);
+
+    if (!imagePath) {
+        return src;
+    }
+
+    // Return original storage URL without optimization
+    return `${baseUrl}/${imagePath}`;
+}

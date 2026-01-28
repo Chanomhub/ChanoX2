@@ -2,8 +2,8 @@
  * Chanomhub SDK Instance
  * Shared SDK client for the entire application
  */
-import { createChanomhubClient, createAuthenticatedClient, type ChanomhubClient } from '@chanomhub/sdk';
-import { transformImageUrls } from '@/libs/image';
+import { createChanomhubClient, createAuthenticatedClient, getFallbackUrl, type ChanomhubClient } from '@chanomhub/sdk';
+import { transformImageUrls } from '@/libs/imageUrl';
 
 // Supabase configuration from env
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -46,5 +46,5 @@ export function withImageTransform<T>(data: T): T {
     return transformImageUrls(data);
 }
 
-export { sdk, createAuthenticatedClient };
+export { sdk, createAuthenticatedClient, getFallbackUrl };
 export type { ChanomhubClient };

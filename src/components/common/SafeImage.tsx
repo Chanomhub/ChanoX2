@@ -18,6 +18,17 @@ export function SafeImage({ className, src, fallbackSrc, alt, ...props }: SafeIm
     const [currentSrc, setCurrentSrc] = useState(src);
     const [hasErrored, setHasErrored] = useState(false);
 
+    // Auto-generate fallback URL from CDN URL if not provided
+    const effectiveFallbackSrc = fallbackSrc || (() => {
+        if (!src) return undefined;
+        // If src is a CDN optimized URL, strip the optimization path
+        const cdnMatch = src.match(/^(https:\/\/cdn\.chanomhub\.com)\/cdn-cgi\/image\/[^/]+\/(.+)$/);
+        if (cdnMatch) {
+            return `${cdnMatch[1]}/${cdnMatch[2]}`; // Return raw storage URL
+        }
+        return undefined;
+    })();
+
     // Reset state when src changes
     useEffect(() => {
         setIsChecking(false);
@@ -29,11 +40,25 @@ export function SafeImage({ className, src, fallbackSrc, alt, ...props }: SafeIm
 
     const handleError = () => {
         // If primary src fails and we have a fallback, try it
-        if (!hasErrored && fallbackSrc && currentSrc !== fallbackSrc) {
-            console.log('Image failed to load, trying fallback:', fallbackSrc);
-            setCurrentSrc(fallbackSrc);
+        if (!hasErrored && effectiveFallbackSrc && currentSrc !== effectiveFallbackSrc) {
+            console.log('Image failed to load, trying fallback:', effectiveFallbackSrc);
+            setCurrentSrc(effectiveFallbackSrc);
             setHasErrored(true);
         }
+    };
+
+    // Check if image loaded correctly (sometimes CDN returns 422 but browser doesn't trigger onError)
+    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+        const img = e.target as HTMLImageElement;
+
+        // If image has 0 dimensions, it's likely broken
+        if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+            handleError();
+            return;
+        }
+
+        // Call the original handleLoad for NSFW check
+        handleLoad(e);
     };
 
     const handleLoad = async (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -64,10 +89,12 @@ export function SafeImage({ className, src, fallbackSrc, alt, ...props }: SafeIm
     if (!nsfwFilterEnabled) {
         return (
             <img
+                key={currentSrc}
                 src={currentSrc}
                 alt={alt}
                 className={className}
                 loading="lazy"
+                onLoad={handleImageLoad}
                 onError={handleError}
                 {...props}
             />
@@ -77,11 +104,12 @@ export function SafeImage({ className, src, fallbackSrc, alt, ...props }: SafeIm
     return (
         <div className={cn("relative overflow-hidden", className)}>
             <img
+                key={currentSrc}
                 ref={imgRef}
                 src={currentSrc}
                 alt={alt}
                 crossOrigin="anonymous"
-                onLoad={handleLoad}
+                onLoad={handleImageLoad}
                 onError={handleError}
                 className={cn(
                     "absolute inset-0 w-full h-full object-cover transition-all duration-300",

@@ -4,7 +4,7 @@ import { Article, ArticleImage } from '@/types/graphql';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SafeImage } from '@/components/common/SafeImage';
-import { getOptimizedImageUrl } from '@/libs/image';
+import { getOptimizedImageUrl } from '@/libs/imageUrl';
 
 interface ArticleWithImages extends Article {
     images?: ArticleImage[];

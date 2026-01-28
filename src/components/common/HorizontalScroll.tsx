@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Article } from '@/types/graphql';
 import { ChevronRight } from 'lucide-react';
+import { SafeImage } from '@/components/common/SafeImage';
+import { getOptimizedImageUrl } from '@/libs/imageUrl';
 
 interface HorizontalScrollProps {
     title: string;
@@ -28,8 +30,8 @@ export default function HorizontalScroll({ title, articles }: HorizontalScrollPr
                     >
                         <div className="w-full h-[120px] relative overflow-hidden">
                             {article.coverImage ? (
-                                <img
-                                    src={article.coverImage}
+                                <SafeImage
+                                    src={getOptimizedImageUrl(article.coverImage, { width: 200, height: 120, fit: 'cover' })}
                                     alt={article.title}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
@@ -53,3 +55,4 @@ export default function HorizontalScroll({ title, articles }: HorizontalScrollPr
         </div>
     );
 }
+

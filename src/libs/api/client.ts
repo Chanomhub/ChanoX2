@@ -1,6 +1,6 @@
 import { GraphQLClient, ClientError } from 'graphql-request';
 import { print } from 'graphql';
-import { transformImageUrls } from '@/libs/image';
+import { transformImageUrls } from '@/libs/imageUrl';
 
 const API_URL = 'https://api.chanomhub.com/api/graphql';
 
