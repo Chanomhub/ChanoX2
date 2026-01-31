@@ -1,16 +1,17 @@
 /**
  * Image URL Helper
  *
- * Transforms image URLs to use Cloudflare Workers CDN.
+ * Transforms image URLs to use imgproxy for optimization.
  * Supports:
  * - Old CDN: https://cdn.chanomhub.online/{hash}.jpg
- * - New CDN (Cloudflare Images): https://img.chanomhub.com/cdn-cgi/image/format=auto/{hash}.jpg
- * - Hash only: {hash}.jpg (will be prefixed with new CDN)
+ * - Hash only: {hash}.jpg (will be prefixed with storage URL)
  */
 
+import { resolveImageUrl as sdkResolveImageUrl, getFallbackUrl, buildImgproxyPath, ImgproxyOptions } from '@chanomhub/sdk';
+
 const CDN_DOMAIN = 'cdn.chanomhub.com';
-// Toggle this to false to fallback to original images if optimized CDN has issues/quota limits
-const ENABLE_IMAGE_OPTIMIZATION = true;
+const IMGPROXY_URL = 'https://imgproxy.chanomhub.com';
+const STORAGE_URL = `https://${CDN_DOMAIN}`;
 
 // Fields that contain image URLs and should be transformed
 const IMAGE_FIELDS = ['coverImage', 'mainImage', 'backgroundImage', 'image', 'url'];
@@ -21,67 +22,44 @@ const IMAGE_FIELDS = ['coverImage', 'mainImage', 'backgroundImage', 'image', 'ur
 function extractImagePath(url: string): string | null {
     if (!url) return null;
 
-    // 1. Check for optimization path from our CDN
-    if (url.includes(`${CDN_DOMAIN}/cdn-cgi/image`)) {
-        // match everything after format=auto/ or other params
-        const match = url.match(new RegExp(`${CDN_DOMAIN}\/cdn-cgi\/image\/[^/]+\/(.+?)(?:\\?|$)`));
-        return match?.[1] || null;
-    }
-
-    // 2. Check for legacy cloudflare worker path (img.chanomhub.com/i/)
-    if (url.includes('img.chanomhub.com/i/')) {
-        const match = url.match(/img\.chanomhub\.com\/i\/(.+?)(?:\?|$)/);
-        return match?.[1] || null;
-    }
-
-    // 3. Check for standard CDN path (cdn.chanomhub.online)
-    // Avoid matching if it was already caught by step 1 (though logic shouldn't reach here if 1 matched)
-    if (url.includes(CDN_DOMAIN)) {
-        const match = url.match(new RegExp(`${CDN_DOMAIN}\/(.+?)(?:\\?|$)`));
-        // Be careful not to match the cdn-cgi part as the filename if regex is loose, 
-        // but simple extraction after domain should work for raw files.
-        // However, if we have nested paths that look like cdn-cgi but aren't, it's tricky. 
-        // Assuming raw files are valid if they don't start with cdn-cgi.
-        if (match?.[1] && !match[1].startsWith('cdn-cgi/')) {
-            return match[1];
+    // 1. Check for imgproxy URL format
+    if (url.includes('imgproxy.chanomhub.com')) {
+        // Extract original URL from imgproxy path
+        const match = url.match(/imgproxy\.chanomhub\.com\/insecure\/(?:[^/]+\/)?plain\/(.+?)(?:@\w+)?$/);
+        if (match?.[1]) {
+            const decoded = decodeURIComponent(match[1]);
+            // Extract hash from the decoded URL
+            const hashMatch = decoded.match(/([a-f0-9]{64}\.[a-z]+)$/i);
+            return hashMatch?.[1] || null;
         }
-        // If it starts with cdn-cgi but didn't match step 1, it might be malformed or handled by regex in step 1.
     }
 
-    // 4. Check for hash/filename only
+    // 2. Check for standard CDN path
+    if (url.includes(CDN_DOMAIN)) {
+        const match = url.match(new RegExp(`${CDN_DOMAIN}/([a-f0-9]{64}\\.[a-z]+)`, 'i'));
+        return match?.[1] || null;
+    }
+
+    // 3. Check for hash/filename only
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        return url.replace(/^\//, '');
+        const cleaned = url.replace(/^\//, '');
+        if (/^[a-f0-9]{64}\.[a-z]+$/i.test(cleaned)) {
+            return cleaned;
+        }
     }
 
     return null;
 }
 
 /**
- * Resolve image URL to use Cloudflare Workers CDN
+ * Resolve image URL to use imgproxy
  *
  * @param url - The original image URL (can be old CDN, new CDN, or hash only)
- * @returns The resolved URL using Cloudflare Workers CDN
+ * @returns The resolved URL using imgproxy
  */
 export function resolveImageUrl(url: string | null | undefined): string | null {
     if (!url) return null;
-
-    // Extract the path/hash from the URL
-    const imagePath = extractImagePath(url);
-
-    // If we couldn't extract a path, it's likely an external URL - return as-is
-    if (!imagePath) {
-        return url;
-    }
-
-    // Build the new URL based on configuration
-    const baseUrl = `https://${CDN_DOMAIN}`;
-
-    if (ENABLE_IMAGE_OPTIMIZATION) {
-        return `${baseUrl}/cdn-cgi/image/format=auto/${imagePath}`;
-    }
-
-    // Fallback to original image
-    return `${baseUrl}/${imagePath}`;
+    return sdkResolveImageUrl(url, IMGPROXY_URL, STORAGE_URL);
 }
 
 /**
@@ -97,7 +75,7 @@ function isImageField(key: string): boolean {
 function isImageUrl(value: unknown): value is string {
     if (typeof value !== 'string') return false;
     return value.includes(CDN_DOMAIN) ||
-        value.includes('img.chanomhub.com') || // Keep checking legacy domain
+        value.includes('imgproxy.chanomhub.com') ||
         /^[a-f0-9]{64}\.(jpg|jpeg|png|gif|webp)$/i.test(value);
 }
 
@@ -105,7 +83,7 @@ function isImageUrl(value: unknown): value is string {
  * Recursively transform all image URLs in a GraphQL response object
  *
  * @param data - The GraphQL response data object
- * @returns The transformed data with all image URLs converted to new CDN format
+ * @returns The transformed data with all image URLs converted to imgproxy format
  */
 export function transformImageUrls<T>(data: T): T {
     if (data === null || data === undefined) {
@@ -143,48 +121,34 @@ export interface ImageOptions {
     width?: number;
     height?: number;
     quality?: number;
-    format?: 'auto' | 'webp' | 'avif' | 'json';
-    fit?: 'scale-down' | 'contain' | 'cover' | 'crop' | 'pad';
-}
-
-export function getOptimizedImageUrl(src: string, options: ImageOptions = {}): string {
-    if (!src) return '';
-
-    // Check if it's already optimized or a local blob/data URL which we can't optimize via CF easily
-    if (src.startsWith('data:') || src.startsWith('blob:')) return src;
-
-    const params: string[] = [];
-
-    // Default to auto format and 80 quality if not specified
-    if (!options.format) params.push('format=auto');
-    if (!options.quality) params.push('quality=80');
-
-    if (options.width) params.push(`width=${options.width}`);
-    if (options.height) params.push(`height=${options.height}`);
-    if (options.quality && options.quality !== 80) params.push(`quality=${options.quality}`);
-    if (options.format && options.format !== 'auto') params.push(`format=${options.format}`);
-    if (options.fit) params.push(`fit=${options.fit}`);
-
-    const baseUrl = `https://${CDN_DOMAIN}`;
-    const imagePath = extractImagePath(src);
-
-    if (!imagePath) {
-        // If we can't extract a path, consistent with previous logic, we might just return the src
-        // But the user wants to ensure valid CDN URLs. 
-        // If it is a full http URL that isn't our CDN, we can try to proxy it if we want to resize it.
-        if (src.startsWith('http')) {
-            return `${baseUrl}/cdn-cgi/image/${params.join(',')}/${src}`;
-        }
-        // Fallback
-        return src;
-    }
-
-    return `${baseUrl}/cdn-cgi/image/${params.join(',')}/${imagePath}`;
+    format?: 'webp' | 'avif' | 'jpg' | 'png';
+    fit?: 'fit' | 'fill' | 'fill-down' | 'force' | 'auto';
 }
 
 /**
- * Get the original storage URL without CDN optimization (fallback URL)
- * Use this when the CDN returns errors (e.g., 422)
+ * Get optimized image URL using imgproxy
+ */
+export function getOptimizedImageUrl(src: string, options: ImageOptions = {}): string {
+    if (!src) return '';
+
+    // Check if it's a local blob/data URL which we can't optimize
+    if (src.startsWith('data:') || src.startsWith('blob:')) return src;
+
+    // Convert ImageOptions to ImgproxyOptions
+    const imgproxyOptions: ImgproxyOptions = {
+        width: options.width,
+        height: options.height,
+        quality: options.quality ?? 80,
+        format: options.format ?? 'webp',
+        resizeType: options.fit ?? 'fit',
+    };
+
+    return sdkResolveImageUrl(src, IMGPROXY_URL, STORAGE_URL, imgproxyOptions) || src;
+}
+
+/**
+ * Get the original storage URL without optimization (fallback URL)
+ * Use this when the imgproxy returns errors
  */
 export function getStorageUrl(src: string): string {
     if (!src) return '';
@@ -192,13 +156,5 @@ export function getStorageUrl(src: string): string {
     // Already a data/blob URL
     if (src.startsWith('data:') || src.startsWith('blob:')) return src;
 
-    const baseUrl = `https://${CDN_DOMAIN}`;
-    const imagePath = extractImagePath(src);
-
-    if (!imagePath) {
-        return src;
-    }
-
-    // Return original storage URL without optimization
-    return `${baseUrl}/${imagePath}`;
+    return getFallbackUrl(src, IMGPROXY_URL, STORAGE_URL) || src;
 }

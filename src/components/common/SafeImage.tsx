@@ -1,42 +1,73 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { nsfwService } from '@/services/nsfwService';
 import { EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { resolveImageUrl, getFallbackUrl, ImgproxyOptions, ImgproxyResizeType, ImgproxyFormat } from '@chanomhub/sdk';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     fallbackIcon?: React.ReactNode;
-    fallbackSrc?: string; // Fallback URL if primary src fails (e.g., local file deleted)
+    fallbackSrc?: string;
+    options?: ImgproxyOptions;
+    width?: number;
+    height?: number;
+    quality?: number;
+    resizeType?: ImgproxyResizeType;
+    format?: ImgproxyFormat;
 }
 
-export function SafeImage({ className, src, fallbackSrc, alt, ...props }: SafeImageProps) {
+// imgproxy server URL
+const CDN_URL = 'https://imgproxy.chanomhub.com';
+// Original storage URL (source images)
+const STORAGE_URL = 'https://cdn.chanomhub.com';
+
+export function SafeImage({
+    className,
+    src,
+    fallbackSrc,
+    alt,
+    options,
+    width,
+    height,
+    quality,
+    resizeType,
+    format,
+    ...props
+}: SafeImageProps) {
     const { nsfwFilterEnabled, nsfwFilterLevel } = useSettingsStore();
     const [isChecking, setIsChecking] = useState(false);
     const [isNSFW, setIsNSFW] = useState(false);
     const imgRef = useRef<HTMLImageElement>(null);
     const [showAnyway, setShowAnyway] = useState(false);
-    const [currentSrc, setCurrentSrc] = useState(src);
+
+    const mergedOptions = useMemo(() => ({
+        ...options,
+        width: width ?? options?.width,
+        height: height ?? options?.height,
+        quality: quality ?? options?.quality,
+        resizeType: resizeType ?? options?.resizeType,
+        format: format ?? options?.format,
+    }), [options, width, height, quality, resizeType, format]);
+
+    const resolvedSrc = useMemo(() => resolveImageUrl(src, CDN_URL, STORAGE_URL, mergedOptions) || src, [src, mergedOptions]);
+    const [currentSrc, setCurrentSrc] = useState(resolvedSrc);
     const [hasErrored, setHasErrored] = useState(false);
 
     // Auto-generate fallback URL from CDN URL if not provided
-    const effectiveFallbackSrc = fallbackSrc || (() => {
-        if (!src) return undefined;
-        // If src is a CDN optimized URL, strip the optimization path
-        const cdnMatch = src.match(/^(https:\/\/cdn\.chanomhub\.com)\/cdn-cgi\/image\/[^/]+\/(.+)$/);
-        if (cdnMatch) {
-            return `${cdnMatch[1]}/${cdnMatch[2]}`; // Return raw storage URL
-        }
-        return undefined;
-    })();
+    const effectiveFallbackSrc = useMemo(() => {
+        if (fallbackSrc) return fallbackSrc;
+        const autoFallback = getFallbackUrl(src, CDN_URL, STORAGE_URL);
+        return autoFallback || undefined;
+    }, [fallbackSrc, src]);
 
-    // Reset state when src changes
+    // Reset state when resolvedSrc changes
     useEffect(() => {
         setIsChecking(false);
         setIsNSFW(false);
         setShowAnyway(false);
-        setCurrentSrc(src);
+        setCurrentSrc(resolvedSrc);
         setHasErrored(false);
-    }, [src]);
+    }, [resolvedSrc]);
 
     const handleError = () => {
         // If primary src fails and we have a fallback, try it
