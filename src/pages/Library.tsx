@@ -31,14 +31,14 @@ export default function Library() {
 
     // Handle pending game launch from shortcuts
     const handlePendingLaunch = useCallback((gameId: string) => {
-        console.log('🎮 Library received pending game launch:', gameId);
+        console.log('Library received pending game launch:', gameId);
         const numericId = Number(gameId);
         const game = libraryItems.find(item => item.id === numericId);
         if (game) {
             setSelectedGameId(numericId);
             setAutoLaunchGameId(numericId); // Trigger auto-launch
         } else {
-            console.warn('⚠️ Game not found in library:', gameId);
+            console.warn('Game not found in library:', gameId);
         }
     }, [libraryItems]);
 

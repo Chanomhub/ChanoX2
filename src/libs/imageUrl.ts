@@ -7,7 +7,7 @@
  * - Hash only: {hash}.jpg (will be prefixed with storage URL)
  */
 
-import { resolveImageUrl as sdkResolveImageUrl, getFallbackUrl, buildImgproxyPath, ImgproxyOptions } from '@chanomhub/sdk';
+import { resolveImageUrl as sdkResolveImageUrl, getFallbackUrl, ImgproxyOptions } from '@chanomhub/sdk';
 
 const CDN_DOMAIN = 'cdn.chanomhub.com';
 const IMGPROXY_URL = 'https://imgproxy.chanomhub.com';

@@ -11,7 +11,7 @@ export const getAblyClient = (): Ably.Realtime | null => {
         const apiKey = import.meta.env.VITE_ABLY_API_KEY;
 
         if (!apiKey) {
-            console.warn('⚠️ Ably API Key not found in environment variables (VITE_ABLY_API_KEY). Chat will not connect.');
+            console.warn('Ably API Key not found in environment variables (VITE_ABLY_API_KEY). Chat will not connect.');
             return null;
         }
 
