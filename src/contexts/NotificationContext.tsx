@@ -25,7 +25,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-    const { user, token } = useAuth();
+    const { user, token, loading: authLoading } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const socketRef = useRef<Socket | null>(null);
 
     const fetchNotifications = useCallback(async () => {
-        if (!user || !token) return;
+        if (authLoading || !user || !token) return;
         setLoading(true);
         try {
             const data = await getNotifications(token, { take: 20 }); // Get last 20 by default
@@ -44,7 +44,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         } finally {
             setLoading(false);
         }
-    }, [user, token]);
+    }, [authLoading, user, token]);
 
     // Initial fetch
     useEffect(() => {
@@ -68,6 +68,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             // In browser, extraHeaders work only for polling, but websockets don't support custom headers.
             // Be safe: send token in query and auth payload.
             socketRef.current = io('https://api.chanomhub.com', {
+                path: '/notifications',
                 transports: ['websocket'],
                 reconnection: true,
                 auth: {
