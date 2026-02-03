@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 import { Home, MessageSquare, Search, Filter, Plus, Clock, Star, Folder, File, Puzzle } from 'lucide-react';
 import { useLibrary } from '@/contexts/LibraryContext';
-import { CachedImage } from '@/components/common/CachedImage';
-import { imageCacheService } from '@/services/imageCacheService';
+import { getCoverImageSrc } from '@/lib/coverImage';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,17 +33,6 @@ export default function LibrarySidebar({
     void isChatVisible;
 
     const [filterExpanded, setFilterExpanded] = useState(false);
-
-    // Pre-fetch all cover images for instant loading
-    useEffect(() => {
-        const coverUrls = libraryItems
-            .map(item => item.localCoverImage || item.coverImage)
-            .filter((url): url is string => !!url);
-
-        if (coverUrls.length > 0) {
-            imageCacheService.prefetch(coverUrls);
-        }
-    }, [libraryItems]);
 
     const filteredItems = libraryItems
         .filter((item) => {
@@ -125,9 +113,9 @@ export default function LibrarySidebar({
                                 onClick={() => onSelectGame(game.id)}
                                 title={game.title}
                             >
-                                {(game.localCoverImage || game.coverImage) ? (
-                                    <CachedImage
-                                        src={game.localCoverImage || game.coverImage}
+                                {getCoverImageSrc(game.localCoverImage, game.coverImage) ? (
+                                    <img
+                                        src={getCoverImageSrc(game.localCoverImage, game.coverImage)}
                                         alt={game.title}
                                         className="w-full h-full object-cover rounded"
                                     />
@@ -245,8 +233,8 @@ export default function LibrarySidebar({
                             onClick={() => onSelectGame(game.id)}
                         >
                             <div className="w-4 h-4 bg-[#2a2e36] flex-shrink-0">
-                                {(game.localCoverImage || game.coverImage) && (
-                                    <CachedImage src={game.localCoverImage || game.coverImage} className="w-full h-full object-cover" alt="" />
+                                {getCoverImageSrc(game.localCoverImage, game.coverImage) && (
+                                    <img src={getCoverImageSrc(game.localCoverImage, game.coverImage)} className="w-full h-full object-cover" alt="" />
                                 )}
                             </div>
                             <div className={cn(
@@ -278,8 +266,8 @@ export default function LibrarySidebar({
                                     onClick={() => onSelectGame(mod.id)}
                                 >
                                     <div className="w-4 h-4 bg-[#2a2e36] flex-shrink-0">
-                                        {(mod.localCoverImage || mod.coverImage) && (
-                                            <CachedImage src={mod.localCoverImage || mod.coverImage} className="w-full h-full object-cover" alt="" />
+                                        {getCoverImageSrc(mod.localCoverImage, mod.coverImage) && (
+                                            <img src={getCoverImageSrc(mod.localCoverImage, mod.coverImage)} className="w-full h-full object-cover" alt="" />
                                         )}
                                     </div>
                                     <div className={cn(

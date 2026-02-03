@@ -1,12 +1,11 @@
 /**
  * CachedImage Component
  * 
- * A lightweight image component that uses IndexedDB cache for fast loading.
- * Designed for Library sidebar where many thumbnails need to load quickly.
- * Local file paths are used directly without caching.
+ * A lightweight image component for Library sidebar.
+ * Shows image immediately while caching in background for future use.
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { imageCacheService } from '@/services/imageCacheService';
 
 interface CachedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -14,70 +13,25 @@ interface CachedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 }
 
 export function CachedImage({ src, className, alt, ...props }: CachedImageProps) {
-    const [cachedSrc, setCachedSrc] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-
+    // Cache in background for future use (don't block rendering)
     useEffect(() => {
-        let cancelled = false;
-
-        const loadImage = async () => {
-            if (!src) {
-                setLoading(false);
-                return;
-            }
-
-            // Local files (file://, absolute paths, or relative paths) - use directly
-            const isLocalFile = src.startsWith('file://') ||
-                src.startsWith('/') ||
-                src.startsWith('C:') ||
-                src.startsWith('D:') ||
-                !src.startsWith('http');
-
-            if (isLocalFile) {
-                setCachedSrc(src);
-                setLoading(false);
-                return;
-            }
-
-            setLoading(true);
-            setError(false);
-
-            try {
-                // Try to get from cache or fetch and cache
-                const cached = await imageCacheService.cache(src);
-                if (!cancelled) {
-                    setCachedSrc(cached || src);
-                    setLoading(false);
-                }
-            } catch {
-                if (!cancelled) {
-                    setCachedSrc(src);
-                    setLoading(false);
-                }
-            }
-        };
-
-        loadImage();
-
-        return () => {
-            cancelled = true;
-        };
+        if (src && src.startsWith('http')) {
+            // Fire and forget - cache in background
+            imageCacheService.cache(src).catch(() => {
+                // Ignore cache failures, image will load normally
+            });
+        }
     }, [src]);
 
-    if (!src || error) return null;
+    if (!src) return null;
 
-    if (loading) {
-        // Return nothing while loading to avoid flashing gray boxes
-        return null;
-    }
-
+    // Always render image immediately - don't wait for cache
     return (
         <img
-            src={cachedSrc || src}
+            src={src}
             alt={alt}
             className={className}
-            onError={() => setError(true)}
+            loading="lazy"
             {...props}
         />
     );
