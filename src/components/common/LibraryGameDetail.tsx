@@ -74,7 +74,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     const [winetricksDialogOpen, setWinetricksDialogOpen] = useState(false);
 
     // Custom Hooks
-    const { config, launchGame, saveConfig, loadConfig, isRunning, stopGame } = useGameLauncher(libraryItem.id);
+    const { config, launchGame, saveConfig, loadConfig, isRunning, gamePid, stopGame } = useGameLauncher(libraryItem.id);
     const { scanDirectory, results: scanResults } = useGameScanner();
 
     // Check if on Linux or MacOS (for Wine Dependencies button)
@@ -388,6 +388,12 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         <span className="text-[#6e7681] text-[10px] font-bold mb-0.5">PLAY TIME</span>
                         <span className="text-[#dcdedf] text-xs font-medium">{formatPlayTime(config?.playTime)}</span>
                     </div>
+                    {isRunning && gamePid && (
+                        <div className="flex flex-col">
+                            <span className="text-[#6e7681] text-[10px] font-bold mb-0.5">PID</span>
+                            <span className="text-[#4cff00] text-xs font-mono font-medium">{gamePid}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-2">
@@ -459,6 +465,15 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                                 isRunning ? "text-[#4cff00]" : "text-[#6e7681]"
                                             )}>
                                                 {isRunning ? '🟢 RUNNING' : '⚫ STOPPED'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#6e7681]">gamePid:</span>
+                                            <span className={cn(
+                                                "font-mono",
+                                                gamePid ? "text-[#4cff00]" : "text-[#6e7681]"
+                                            )}>
+                                                {gamePid ?? 'null'}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">

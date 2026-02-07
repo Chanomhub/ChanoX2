@@ -17,6 +17,7 @@ export const useGameLauncher = (gameId: number | string) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isRunning, setIsRunning] = useState(false);
+    const [gamePid, setGamePid] = useState<number | null>(null);
 
     const loadConfig = useCallback(async () => {
         setIsLoading(true);
@@ -112,6 +113,7 @@ export const useGameLauncher = (gameId: number | string) => {
                 if (data.gameId === String(gameId)) {
                     console.log('🎮 Game started:', data);
                     setIsRunning(true);
+                    setGamePid(data.pid);
                 }
             });
 
@@ -119,6 +121,7 @@ export const useGameLauncher = (gameId: number | string) => {
                 if (data.gameId === String(gameId)) {
                     console.log('🎮 Game stopped:', data);
                     setIsRunning(false);
+                    setGamePid(null);
                     // Reload config to get updated playtime
                     loadConfig();
                 }
@@ -140,6 +143,7 @@ export const useGameLauncher = (gameId: number | string) => {
         isLoading,
         error,
         isRunning,
+        gamePid,
         loadConfig,
         saveConfig,
         launchGame,
