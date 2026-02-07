@@ -1,0 +1,2 @@
+npm install --package-lock-only
+git add package-lock.json
