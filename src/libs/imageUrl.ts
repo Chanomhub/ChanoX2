@@ -16,40 +16,7 @@ const STORAGE_URL = `https://${CDN_DOMAIN}`;
 // Fields that contain image URLs and should be transformed
 const IMAGE_FIELDS = ['coverImage', 'mainImage', 'backgroundImage', 'image', 'url'];
 
-/**
- * Extract the hash/filename from various image URL formats
- */
-function extractImagePath(url: string): string | null {
-    if (!url) return null;
 
-    // 1. Check for imgproxy URL format
-    if (url.includes('imgproxy.chanomhub.com')) {
-        // Extract original URL from imgproxy path
-        const match = url.match(/imgproxy\.chanomhub\.com\/insecure\/(?:[^/]+\/)?plain\/(.+?)(?:@\w+)?$/);
-        if (match?.[1]) {
-            const decoded = decodeURIComponent(match[1]);
-            // Extract hash from the decoded URL
-            const hashMatch = decoded.match(/([a-f0-9]{64}\.[a-z]+)$/i);
-            return hashMatch?.[1] || null;
-        }
-    }
-
-    // 2. Check for standard CDN path
-    if (url.includes(CDN_DOMAIN)) {
-        const match = url.match(new RegExp(`${CDN_DOMAIN}/([a-f0-9]{64}\\.[a-z]+)`, 'i'));
-        return match?.[1] || null;
-    }
-
-    // 3. Check for hash/filename only
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        const cleaned = url.replace(/^\//, '');
-        if (/^[a-f0-9]{64}\.[a-z]+$/i.test(cleaned)) {
-            return cleaned;
-        }
-    }
-
-    return null;
-}
 
 /**
  * Resolve image URL to use imgproxy
@@ -122,7 +89,7 @@ export interface ImageOptions {
     height?: number;
     quality?: number;
     format?: 'webp' | 'avif' | 'jpg' | 'png';
-    fit?: 'fit' | 'fill' | 'fill-down' | 'force' | 'auto';
+    fit?: 'fit' | 'fill' | 'fill-down' | 'force' | 'auto' | 'cover';
 }
 
 /**
@@ -134,13 +101,17 @@ export function getOptimizedImageUrl(src: string, options: ImageOptions = {}): s
     // Check if it's a local blob/data URL which we can't optimize
     if (src.startsWith('data:') || src.startsWith('blob:')) return src;
 
+    // Convert 'cover' to 'fill' for imgproxy
+    // 'fill' in imgproxy means resize to fill dimensions (cropping), which is what 'cover' does in CSS
+    const resizeType = options.fit === 'cover' ? 'fill' : (options.fit ?? 'fit');
+
     // Convert ImageOptions to ImgproxyOptions
     const imgproxyOptions: ImgproxyOptions = {
         width: options.width,
         height: options.height,
         quality: options.quality ?? 80,
         format: options.format ?? 'webp',
-        resizeType: options.fit ?? 'fit',
+        resizeType: resizeType,
     };
 
     return sdkResolveImageUrl(src, IMGPROXY_URL, STORAGE_URL, imgproxyOptions) || src;
