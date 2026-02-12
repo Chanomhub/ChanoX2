@@ -89,6 +89,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteArchive: (archivePath) => ipcRenderer.invoke('delete-archive', archivePath),
     deleteGameFolder: (folderPath) => ipcRenderer.invoke('delete-game-folder', folderPath),
     fileExists: (filePath) => ipcRenderer.invoke('file-exists', filePath),
+    readDirectory: (dirPath) => ipcRenderer.invoke('read-directory', dirPath),
 
     // Auth Persistence
     getAuthData: (key) => ipcRenderer.invoke('get-auth-data', key),

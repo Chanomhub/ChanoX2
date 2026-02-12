@@ -431,6 +431,41 @@ ipcMain.on('cancel-download', (event, id) => {
 });
 
 // --- File System ---
+ipcMain.handle('read-directory', async (event, dirPath) => {
+    try {
+        if (!dirPath || !fs.existsSync(dirPath)) {
+            return { success: false, entries: [], error: 'Directory not found' };
+        }
+        // If the path is a file, use its parent directory
+        const stat = fs.statSync(dirPath);
+        if (!stat.isDirectory()) {
+            dirPath = path.dirname(dirPath);
+        }
+        const entries = fs.readdirSync(dirPath).map(name => {
+            const fullPath = path.join(dirPath, name);
+            try {
+                const stat = fs.statSync(fullPath);
+                return {
+                    name,
+                    path: fullPath,
+                    isDirectory: stat.isDirectory(),
+                    size: stat.isDirectory() ? 0 : stat.size,
+                };
+            } catch {
+                return { name, path: fullPath, isDirectory: false, size: 0 };
+            }
+        });
+        // Sort: directories first, then files, alphabetically
+        entries.sort((a, b) => {
+            if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        });
+        return { success: true, entries };
+    } catch (err) {
+        return { success: false, entries: [], error: err.message };
+    }
+});
+
 ipcMain.on('show-item-in-folder', (event, fullPath) => shell.showItemInFolder(fullPath));
 ipcMain.on('open-path', async (event, fullPath) => await shell.openPath(fullPath));
 ipcMain.on('open-external', (event, url) => shell.openExternal(url));

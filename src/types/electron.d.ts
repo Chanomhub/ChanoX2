@@ -86,6 +86,19 @@ export interface WinetricksProgressData {
     isError?: boolean;
 }
 
+export interface DirectoryEntry {
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    size: number;
+}
+
+export interface ReadDirectoryResult {
+    success: boolean;
+    entries: DirectoryEntry[];
+    error?: string;
+}
+
 export interface ElectronAPI {
     // Download control
     cancelDownload: (id: number) => void;
@@ -142,6 +155,7 @@ export interface ElectronAPI {
     deleteArchive: (archivePath: string) => Promise<{ success: boolean; error?: string }>;
     deleteGameFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
     fileExists: (filePath: string) => Promise<boolean>;
+    readDirectory: (dirPath: string) => Promise<ReadDirectoryResult>;
 
     // Auth Persistence
     getAuthData: (key: string) => Promise<string | null>;
