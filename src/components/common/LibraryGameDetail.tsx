@@ -567,29 +567,6 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         )
                     )}
 
-                    {/* Game Path Info */}
-                    <div className="bg-black/20 p-4 rounded-sm">
-                        <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-3">Installation</h3>
-                        <div className="space-y-2 text-xs">
-                            <div className="flex justify-between">
-                                <span className="text-[#6e7681]">Game Folder:</span>
-                                <span className="text-[#dcdedf] truncate max-w-[300px]" title={libraryItem.extractedPath}>
-                                    {libraryItem.extractedPath}
-                                </span>
-                            </div>
-                            {libraryItem.archivePath && (
-                                <div className="flex justify-between">
-                                    <span className="text-[#6e7681]">Archive:</span>
-                                    <span className={cn(
-                                        "truncate max-w-[300px]",
-                                        hasArchive ? "text-[#dcdedf]" : "text-[#8b929a] line-through"
-                                    )} title={libraryItem.archivePath}>
-                                        {libraryItem.archivePath}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
 
                 {/* Right Column (Sidebar Info) */}
@@ -655,6 +632,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                     {/* Actions */}
                     <div className="bg-black/20 p-4 rounded-sm space-y-3">
                         <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-2">Actions</h3>
+
+
 
                         {/* Re-extract Button */}
                         <button
@@ -764,6 +743,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                 gameTitle={libraryItem.title}
                 defaultEngine={libraryItem.engine}
                 defaultVersion={libraryItem.gameVersion}
+                installPath={libraryItem.extractedPath}
             />
 
             <WinetricksDialog

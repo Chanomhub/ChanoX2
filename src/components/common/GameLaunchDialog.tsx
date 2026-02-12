@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/ScrollArea';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { cn } from '@/lib/utils';
-import { Play, CheckCircle2, FileCode, Monitor } from 'lucide-react';
+import { Play, CheckCircle2, FileCode, Monitor, FolderOpen } from 'lucide-react';
 
 interface LaunchOption {
     path: string;
@@ -30,6 +30,7 @@ interface GameLaunchDialogProps {
     gameTitle: string;
     defaultEngine?: string;
     defaultVersion?: string;
+    installPath?: string;
 }
 
 export default function GameLaunchDialog({
@@ -40,7 +41,8 @@ export default function GameLaunchDialog({
     scanResults,
     gameTitle,
     defaultEngine,
-    defaultVersion
+    defaultVersion,
+    installPath
 }: GameLaunchDialogProps) {
     const [selectedPath, setSelectedPath] = useState<string | null>(null);
     const [useWine, setUseWine] = useState(false);
@@ -228,6 +230,30 @@ export default function GameLaunchDialog({
                             </label>
                         </div>
                     </div>
+
+                    {/* Installation Path */}
+                    {installPath && (
+                        <div className="space-y-2">
+                            <h4 className="text-xs font-bold text-[#8b929a] uppercase">Installation Path</h4>
+                            <div className="flex items-center gap-2 bg-[#101214] border border-[#2a2e36] rounded p-2">
+                                <span className="text-xs text-[#dcdedf] truncate flex-1" title={installPath}>
+                                    {installPath}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (window.electronAPI?.openPath) {
+                                            window.electronAPI.openPath(installPath);
+                                        }
+                                    }}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors flex-shrink-0"
+                                >
+                                    <FolderOpen className="w-3.5 h-3.5" />
+                                    Open Folder
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-0">
