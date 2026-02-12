@@ -441,7 +441,7 @@ ipcMain.handle('read-directory', async (event, dirPath) => {
         if (!stat.isDirectory()) {
             dirPath = path.dirname(dirPath);
         }
-        const entries = fs.readdirSync(dirPath).map(name => {
+        const entries = fs.readdirSync(dirPath).filter(name => !name.startsWith('PaxHeader')).map(name => {
             const fullPath = path.join(dirPath, name);
             try {
                 const stat = fs.statSync(fullPath);
