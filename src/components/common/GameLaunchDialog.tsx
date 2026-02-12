@@ -233,12 +233,9 @@ export default function GameLaunchDialog({
 
                     {/* Installation Path */}
                     {installPath && (
-                        <div className="space-y-2">
-                            <h4 className="text-xs font-bold text-[#8b929a] uppercase">Installation Path</h4>
-                            <div className="flex items-center gap-2 bg-[#101214] border border-[#2a2e36] rounded p-2">
-                                <span className="text-xs text-[#dcdedf] truncate flex-1" title={installPath}>
-                                    {installPath}
-                                </span>
+                        <div className="border-t border-[#2a475e] pt-4 mt-2">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-xs font-bold text-[#8b929a] uppercase">Installation Path</h4>
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -246,11 +243,16 @@ export default function GameLaunchDialog({
                                             window.electronAPI.openPath(installPath);
                                         }
                                     }}
-                                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors flex-shrink-0"
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors"
                                 >
                                     <FolderOpen className="w-3.5 h-3.5" />
                                     Open Folder
                                 </button>
+                            </div>
+                            <div className="bg-[#0d1117] border border-[#2a2e36] rounded-md px-3 py-2.5">
+                                <span className="text-xs text-[#dcdedf] font-mono break-all leading-relaxed">
+                                    {installPath}
+                                </span>
                             </div>
                         </div>
                     )}
