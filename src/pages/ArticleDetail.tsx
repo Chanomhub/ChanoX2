@@ -3,9 +3,9 @@ import useSWR from 'swr';
 import { useParams, Link } from 'react-router-dom';
 import { sdk, withImageTransform } from '@/libs/sdk';
 import { client } from '@/libs/api/client';
-import { GET_OFFICIAL_DOWNLOAD_SOURCES } from '@/libs/api/queries';
+import { GET_OFFICIAL_DOWNLOAD_SOURCES, GET_DOWNLOADS } from '@/libs/api/queries';
 import type { ArticleWithDownloads, Download } from '@chanomhub/sdk';
-import { OfficialDownloadSourcesResponse } from '@/types/graphql';
+import { OfficialDownloadSourcesResponse, DownloadsResponse } from '@/types/graphql';
 import { useDownloads } from '@/contexts/DownloadContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -31,8 +31,36 @@ import { SafeImage } from '@/components/common/SafeImage';
 
 // SDK fetcher for article with downloads
 const articleFetcher = async ([, slug, language]: [string, string, string]): Promise<ArticleWithDownloads> => {
-    const result = await sdk.articles.getWithDownloads(slug, language);
-    return withImageTransform(result);
+    // 1. Get article details (this won't have downloadLinks anymore which was causing errors)
+    // Using any cast for options to avoid strict type check if the SDK version and local types differ slightly
+    const article = await sdk.articles.getBySlug(slug, { language } as any);
+
+    if (!article) return { article: null, downloads: [] };
+
+    // 2. Get downloads for this article using a separate root query
+    try {
+        const downloadsData = await client.request<DownloadsResponse>(
+            GET_DOWNLOADS,
+            { articleId: Number(article.id) }
+        );
+
+        // Map types carefully to satisfy the SDK's ArticleWithDownloads interface
+        const downloads = (downloadsData.downloads || []).map(d => ({
+            ...d,
+            name: d.name || '' // Ensure name is not null as required by SDK types
+        })) as Download[];
+
+        return withImageTransform({
+            article: article as any,
+            downloads
+        });
+    } catch (err) {
+        console.error('Failed to fetch downloads:', err);
+        return withImageTransform({
+            article: article as any,
+            downloads: []
+        });
+    }
 };
 
 // GraphQL fetcher for official sources (not yet in SDK)
