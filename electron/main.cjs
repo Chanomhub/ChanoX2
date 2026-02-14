@@ -994,10 +994,30 @@ function scanDir(dir, depth = 0, maxDepth = 3) {
 
             const fullPath = path.join(dir, file);
             try {
-                const stats = fs.statSync(fullPath);
+                // Use lstat to check for symlinks
+                const lstats = fs.lstatSync(fullPath);
+
+                let isDirectory = lstats.isDirectory();
+                let targetStats = lstats;
+
+                if (lstats.isSymbolicLink()) {
+                    try {
+                        targetStats = fs.statSync(fullPath);
+                        if (targetStats.isDirectory()) {
+                            // Skip symlinked directories to prevent escaping the game folder
+                            console.log('Skipping symlinked directory:', fullPath);
+                            continue;
+                        }
+                        // It's a symlink to a file, use targetStats for executable check
+                        isDirectory = false;
+                    } catch (e) {
+                        // Broken symlink, skip
+                        continue;
+                    }
+                }
 
                 // Directory Handling
-                if (stats.isDirectory()) {
+                if (isDirectory) {
                     // Check if directory itself is a game app (e.g. .app on Mac)
                     if (platformHandler.isGameDirectory) {
                         const gameDir = platformHandler.isGameDirectory(fullPath);
@@ -1009,7 +1029,7 @@ function scanDir(dir, depth = 0, maxDepth = 3) {
                     executables = executables.concat(scanDir(fullPath, depth + 1, maxDepth));
                 } else {
                     // File Handling
-                    const gameExec = platformHandler.isGameExecutable(file, stats);
+                    const gameExec = platformHandler.isGameExecutable(file, targetStats);
                     if (gameExec) {
                         executables.push({ path: fullPath, type: gameExec.type });
                     }
@@ -1032,9 +1052,10 @@ ipcMain.handle('scan-game-executables', (event, directory) => {
         if (gameExec) {
             return [{ path: directory, type: gameExec.type }];
         }
-        // If not recognized as executable, scan parent dir
-        const parentDir = path.dirname(directory);
-        return scanDir(parentDir);
+
+        // Return empty if file is not an executable. 
+        // Do NOT scan parent directory as it might be the library root or contain unrelated games.
+        return [];
     }
 
     return scanDir(directory);
