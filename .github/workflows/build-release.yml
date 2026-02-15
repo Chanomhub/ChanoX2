@@ -65,8 +65,8 @@ jobs:
         run: |
           sed -i 's|"__LPACK_SECURITY_KEY__"|"${{ secrets.LPACK_SECURITY_KEY }}"|g' electron/main.cjs
           sed -i 's|"__LPACK_ENCRYPTION_KEY__"|"${{ secrets.LPACK_ENCRYPTION_KEY }}"|g' electron/main.cjs
-          sed -i 's|import.meta.env.VITE_SUPABASE_URL|"${{ secrets.VITE_SUPABASE_URL }}"|g' src/libs/sdk.ts
-          sed -i 's|import.meta.env.VITE_SUPABASE_ANON_KEY|"${{ secrets.VITE_SUPABASE_ANON_KEY }}"|g' src/libs/sdk.ts
+          sed -i 's|"__VITE_SUPABASE_URL__"|"${{ secrets.VITE_SUPABASE_URL }}"|g' src/libs/sdk.ts
+          sed -i 's|"__VITE_SUPABASE_ANON_KEY__"|"${{ secrets.VITE_SUPABASE_ANON_KEY }}"|g' src/libs/sdk.ts
 
       - name: Build application
         run: npm run build
