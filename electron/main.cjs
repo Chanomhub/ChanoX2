@@ -662,7 +662,7 @@ ipcMain.handle('delete-file', async (event, filePath) => {
 ipcMain.handle('check-lpack-conflicts', async (event, { filePath, destPath, key }) => {
     try {
         const { JsLayerPack } = require('layer-pack-node');
-        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
+        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "__LPACK_SECURITY_KEY__" || "__LPACK_ENCRYPTION_KEY__" || "";
         const pack = new JsLayerPack(filePath, lpackKey);
         const files = pack.getFileList();
 
@@ -740,7 +740,7 @@ ipcMain.handle('check-lpack-conflicts', async (event, { filePath, destPath, key 
 ipcMain.handle('get-lpack-metadata', async (event, { filePath, key }) => {
     try {
         const { JsLayerPack } = require('layer-pack-node');
-        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
+        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "__LPACK_SECURITY_KEY__" || "__LPACK_ENCRYPTION_KEY__" || "";
         const pack = new JsLayerPack(filePath, lpackKey);
         return {
             success: true,
@@ -757,7 +757,7 @@ ipcMain.handle('get-lpack-metadata', async (event, { filePath, key }) => {
 ipcMain.handle('extract-lpack', async (event, { filePath, destPath, key, modId, gamePath }) => {
     try {
         const { JsLayerPack } = require('layer-pack-node');
-        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
+        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "__LPACK_SECURITY_KEY__" || "__LPACK_ENCRYPTION_KEY__" || "";
         const pack = new JsLayerPack(filePath, lpackKey);
         const files = pack.getFileList();
 
