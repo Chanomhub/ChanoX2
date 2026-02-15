@@ -119,8 +119,8 @@ export interface ElectronAPI {
 
     // LayerPack
     getLpackMetadata: (filePath: string, key?: string) => Promise<{ success: boolean; name?: string; author?: string | null; files?: string[]; error?: string }>;
-    checkLpackConflicts: (filePath: string, destPath: string, key?: string) => Promise<{ success: boolean; conflicts?: string[]; newFiles?: string[]; error?: string }>;
-    extractLpack: (filePath: string, destPath: string, key?: string, modId?: number) => Promise<{ success: boolean; backupId?: string | null; error?: string }>;
+    checkLpackConflicts: (filePath: string, destPath: string, key?: string) => Promise<{ success: boolean; conflicts?: string[]; newFiles?: string[]; structureWarning?: boolean; mismatchedDirs?: string[]; suggestedPath?: string | null; error?: string }>;
+    extractLpack: (filePath: string, destPath: string, key?: string, modId?: number, gamePath?: string) => Promise<{ success: boolean; backupId?: string | null; error?: string }>;
     readLpackFile: (filePath: string, key: string, innerPath: string) => Promise<{ success: boolean; content?: Uint8Array; error?: string }>;
     rollbackLpackExtraction: (gamePath: string, backupId: string) => Promise<{ success: boolean; error?: string }>;
     getModBackups: (gamePath: string, modId: number) => Promise<{ success: boolean; backups?: { id: string; timestamp: number; fileCount: number; files?: string[] }[]; error?: string }>;

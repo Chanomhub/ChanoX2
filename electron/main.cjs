@@ -665,10 +665,17 @@ ipcMain.handle('check-lpack-conflicts', async (event, { filePath, destPath, key 
         const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
         const pack = new JsLayerPack(filePath, lpackKey);
         const files = pack.getFileList();
+
         const conflicts = [];
         const newFiles = [];
+        const modDirs = new Set();
 
         for (const file of files) {
+            const parts = file.split(/[/\\]/);
+            if (parts.length > 1) {
+                modDirs.add(parts[0]);
+            }
+
             const fullPath = path.join(destPath, file);
             if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
                 conflicts.push(file);
@@ -677,7 +684,53 @@ ipcMain.handle('check-lpack-conflicts', async (event, { filePath, destPath, key 
             }
         }
 
-        return { success: true, conflicts, newFiles };
+        // Structural Heuristic: Check if mod's top-level folders exist in destination
+        const mismatchedDirs = [];
+        for (const dir of modDirs) {
+            const dirPath = path.join(destPath, dir);
+            if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+                mismatchedDirs.push(dir);
+            }
+        }
+
+        // Path Auto-Correction Logic
+        let suggestedPath = null;
+        if (mismatchedDirs.length > 0 && conflicts.length === 0) {
+            // Check common subdirectories for a better match
+            const commonSubs = ['www', 'game', 'Content', 'StreamingAssets'];
+            for (const sub of commonSubs) {
+                const subPath = path.join(destPath, sub);
+                if (fs.existsSync(subPath) && fs.statSync(subPath).isDirectory()) {
+                    // Count how many modDirs exist in this subPath
+                    let matches = 0;
+                    for (const dir of modDirs) {
+                        try {
+                            const checkPath = path.join(subPath, dir);
+                            if (fs.existsSync(checkPath)) {
+                                matches++;
+                            }
+                        } catch (e) { }
+                    }
+                    if (matches > 0 && matches >= modDirs.size / 2) {
+                        suggestedPath = subPath;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // If conflicts are 0 but the mod has many files that would be in subdirectories
+        // that don't exist, it's a strong sign of a mismatch.
+        const structureWarning = mismatchedDirs.length > 0 && conflicts.length === 0;
+
+        return {
+            success: true,
+            conflicts,
+            newFiles,
+            structureWarning,
+            mismatchedDirs,
+            suggestedPath: suggestedPath ? path.relative(destPath, suggestedPath) : null
+        };
     } catch (err) {
         console.error(`[Main] Error checking lpack conflicts:`, err);
         return { success: false, error: err.message };
@@ -701,7 +754,7 @@ ipcMain.handle('get-lpack-metadata', async (event, { filePath, key }) => {
     }
 });
 
-ipcMain.handle('extract-lpack', async (event, { filePath, destPath, key, modId }) => {
+ipcMain.handle('extract-lpack', async (event, { filePath, destPath, key, modId, gamePath }) => {
     try {
         const { JsLayerPack } = require('layer-pack-node');
         const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
@@ -713,7 +766,9 @@ ipcMain.handle('extract-lpack', async (event, { filePath, destPath, key, modId }
         }
 
         const timestamp = Date.now();
-        const backupDir = path.join(destPath, '.chanox2', 'backups', `mod_${modId}_${timestamp}`);
+        // Use gamePath (root) for backups if provided, otherwise fallback to destPath
+        const rootPath = gamePath || destPath;
+        const backupDir = path.join(rootPath, '.chanox2', 'backups', `mod_${modId}_${timestamp}`);
         const manifestPath = path.join(backupDir, 'backup-manifest.json');
         const backedUpFiles = [];
         const extractedFiles = [];
@@ -754,7 +809,8 @@ ipcMain.handle('extract-lpack', async (event, { filePath, destPath, key, modId }
                 modId,
                 timestamp,
                 backedUpFiles,
-                extractedFiles
+                extractedFiles,
+                destPath: path.relative(rootPath, destPath) // Store where we extracted
             }, null, 2));
         }
 
@@ -775,10 +831,12 @@ ipcMain.handle('rollback-lpack-extraction', async (event, { gamePath, backupId }
         }
 
         const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        // If destPath was stored in manifest, use it relative to gamePath
+        const destPath = manifest.destPath ? path.join(gamePath, manifest.destPath) : gamePath;
 
         // 1. Delete extracted files (that weren't backups)
         for (const file of manifest.extractedFiles) {
-            const fullPath = path.join(gamePath, file);
+            const fullPath = path.join(destPath, file);
             if (fs.existsSync(fullPath) && !manifest.backedUpFiles.includes(file)) {
                 fs.unlinkSync(fullPath);
             }
@@ -787,9 +845,9 @@ ipcMain.handle('rollback-lpack-extraction', async (event, { gamePath, backupId }
         // 2. Restore backed up files
         for (const file of manifest.backedUpFiles) {
             const sourcePath = path.join(backupDir, file);
-            const destPath = path.join(gamePath, file);
+            const targetPath = path.join(destPath, file);
             if (fs.existsSync(sourcePath)) {
-                fs.copyFileSync(sourcePath, destPath);
+                fs.copyFileSync(sourcePath, targetPath);
             }
         }
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { ScrollArea } from '@/components/ui/ScrollArea';
@@ -10,6 +9,10 @@ interface ModExtractionDialogProps {
     modName: string;
     conflicts: string[];
     newFiles: string[];
+    structureWarning?: boolean;
+    mismatchedDirs?: string[];
+    suggestedPath?: string | null;
+    onApplySuggestion?: (path: string) => void;
     onConfirm: () => void;
     isExtracting: boolean;
 }
@@ -20,6 +23,10 @@ export function ModExtractionDialog({
     modName,
     conflicts = [],
     newFiles = [],
+    structureWarning = false,
+    mismatchedDirs = [],
+    suggestedPath = null,
+    onApplySuggestion,
     onConfirm,
     isExtracting
 }: ModExtractionDialogProps) {
@@ -82,6 +89,51 @@ export function ModExtractionDialog({
                             </div>
                         </ScrollArea>
                     </div>
+
+                    {/* Structural Warning */}
+                    {structureWarning && (
+                        <div className="bg-orange-950/20 border border-orange-500/30 p-4 rounded-xl flex gap-4 items-start shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="p-2.5 bg-orange-500/20 rounded-full text-orange-400">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-orange-100 mb-1 flex items-center gap-2">
+                                    Structural Mismatch Detected
+                                    <span className="bg-orange-500/20 text-orange-400 text-[10px] px-2 py-0.5 rounded-full border border-orange-500/30">Heuristic Alert</span>
+                                </h4>
+                                <p className="text-xs text-orange-200/80 leading-relaxed mb-2">
+                                    The mod includes directories that don't exist in the current game folder. This requested root may be incorrect.
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {mismatchedDirs.map((dir, i) => (
+                                        <span key={i} className="text-[10px] bg-black/40 text-orange-300 px-2 py-1 rounded border border-orange-500/20 font-mono">
+                                            {dir}/
+                                        </span>
+                                    ))}
+                                </div>
+
+                                {suggestedPath && (
+                                    <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-center justify-between gap-4">
+                                        <div className="space-y-0.5">
+                                            <div className="text-[10px] font-bold text-orange-400 uppercase tracking-tight">Recommended Subfolder</div>
+                                            <div className="text-xs font-mono text-orange-100 flex items-center gap-1">
+                                                <FileText className="w-3 h-3 opacity-50" />
+                                                {suggestedPath}/
+                                            </div>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={() => onApplySuggestion?.(suggestedPath)}
+                                            className="h-8 bg-orange-500/20 hover:bg-orange-500/40 text-orange-100 border-none text-[10px] font-bold uppercase transition-all"
+                                        >
+                                            Apply Fix
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Safety Badge */}
                     <div className="bg-[#121d2f] border border-[#1e3a8a]/50 p-4 rounded-xl flex gap-4 items-center shadow-lg transform transition-transform hover:scale-[1.01]">

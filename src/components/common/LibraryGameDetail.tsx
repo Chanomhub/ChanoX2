@@ -829,13 +829,17 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     const { installedMods, loading: loadingInstalled, addInstalledMod, removeInstalledMod, isInstalled } = useInstalledMods(gamePath);
     const [installingModId, setInstallingModId] = useState<number | null>(null);
     const [modBackups, setModBackups] = useState<Record<number, any[]>>({});
-    const [loadingBackups, setLoadingBackups] = useState<Record<number, boolean>>({});
+    // Removed unused loadingBackups state
     const [extractionDialog, setExtractionDialog] = useState<{
         open: boolean;
         modId: number;
         modName: string;
         conflicts: string[];
         newFiles: string[];
+        structureWarning: boolean;
+        mismatchedDirs: string[];
+        suggestedPath: string | null;
+        targetPath: string; // The active path for extraction
     } | null>(null);
     const [isExtracting, setIsExtracting] = useState(false);
 
@@ -910,13 +914,63 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     };
 
     const handleUninstall = async (modId: number) => {
-        if (!confirm('Are you sure you want to uninstall this mod?')) return;
+        const mod = installedMods.find(m => m.id === modId);
+        if (!mod) return;
+
+        // Check for backups
+        const backups = modBackups[modId];
+        let rollbackConfirmed = false;
+
+        if (backups && backups.length > 0) {
+            const confirmRollback = confirm(
+                `This mod (${mod.name}) has modified game files.\n\n` +
+                `Do you want to restore the original files from the latest backup before uninstalling?`
+            );
+
+            if (confirmRollback) {
+                // Perform rollback on the latest backup
+                const latestBackup = backups[0]; // Assuming sorted by date desc, or we need to sort
+                // We should probably trust the order from getModBackups which usually returns chronological or we pick the last one? 
+                // Let's assume the API returns them in a reasonable order or we pick the one with the latest timestamp. 
+                // Actually, typically we want to roll back the *last* change.
+
+                // Let's check how getModBackups returns data. 
+                // If it's not sorted, we might need to sort. 
+                // For now, let's assume index 0 or length-1. Use date to be safe if possible, or just the first one if it's the only one.
+                // Actually, rollbackLpackExtraction takes a backupId.
+
+                setIsExtracting(true); // Re-use extracting state for UI feedback
+                try {
+                    if (window.electronAPI) {
+                        const rollbackResult = await window.electronAPI.rollbackLpackExtraction(gamePath || '', latestBackup.id);
+                        if (!rollbackResult.success) {
+                            alert(`Failed to restore files: ${rollbackResult.error}\nUninstalling anyway...`);
+                        } else {
+                            rollbackConfirmed = true;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Rollback failed:', err);
+                    alert('Error during file restoration. Proceeding with uninstall...');
+                } finally {
+                    setIsExtracting(false);
+                }
+            }
+        }
+
+        if (!confirm(`Are you sure you want to uninstall ${mod.name}?${rollbackConfirmed ? ' (Files have been restored)' : ''}`)) return;
         await removeInstalledMod(modId);
+
+        // Refresh backups logic might turn up empty now, which is fine
+        setModBackups(prev => {
+            const next = { ...prev };
+            delete next[modId];
+            return next;
+        });
     };
 
     const fetchBackups = async (modId: number) => {
         if (!gamePath || !window.electronAPI) return;
-        setLoadingBackups(prev => ({ ...prev, [modId]: true }));
         try {
             const result = await window.electronAPI.getModBackups(gamePath, modId);
             if (result.success) {
@@ -924,8 +978,6 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
             }
         } catch (err) {
             console.error('Failed to fetch backups:', err);
-        } finally {
-            setLoadingBackups(prev => ({ ...prev, [modId]: false }));
         }
     };
 
@@ -951,7 +1003,11 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                     modId,
                     modName: meta.name || mod.name,
                     conflicts: conflictResult.conflicts || [],
-                    newFiles: conflictResult.newFiles || []
+                    newFiles: conflictResult.newFiles || [],
+                    structureWarning: conflictResult.structureWarning || false,
+                    mismatchedDirs: conflictResult.mismatchedDirs || [],
+                    suggestedPath: conflictResult.suggestedPath || null,
+                    targetPath: gamePath
                 });
             } else {
                 alert(`Failed to check conflicts: ${conflictResult.error}`);
@@ -962,10 +1018,38 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
         }
     };
 
-    const handleConfirmExtract = async () => {
+    const handleApplySuggestion = async (subPath: string) => {
         if (!extractionDialog || !gamePath || !window.electronAPI) return;
 
         const { modId } = extractionDialog;
+        const mod = installedMods.find(m => m.id === modId);
+        if (!mod) return;
+
+        const absoluteTarget = `${gamePath}/${subPath}`;
+        const filePath = `${gamePath}/${mod.filename}`;
+
+        try {
+            const conflictResult = await window.electronAPI.checkLpackConflicts(filePath, absoluteTarget);
+            if (conflictResult.success) {
+                setExtractionDialog({
+                    ...extractionDialog,
+                    conflicts: conflictResult.conflicts || [],
+                    newFiles: conflictResult.newFiles || [],
+                    structureWarning: conflictResult.structureWarning || false,
+                    mismatchedDirs: conflictResult.mismatchedDirs || [],
+                    suggestedPath: null, // Clear after applying
+                    targetPath: absoluteTarget
+                });
+            }
+        } catch (err) {
+            console.error('Failed to apply suggestion:', err);
+        }
+    };
+
+    const handleConfirmExtract = async () => {
+        if (!extractionDialog || !gamePath || !window.electronAPI) return;
+
+        const { modId, targetPath } = extractionDialog;
         const mod = installedMods.find(m => m.id === modId);
         if (!mod) return;
 
@@ -973,7 +1057,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
 
         setIsExtracting(true);
         try {
-            const result = await window.electronAPI.extractLpack(filePath, gamePath, undefined, modId);
+            const result = await window.electronAPI.extractLpack(filePath, targetPath, undefined, modId, gamePath);
             if (result.success) {
                 alert('Mod extracted successfully!');
                 fetchBackups(modId);
@@ -1202,6 +1286,10 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                     modName={extractionDialog.modName}
                     conflicts={extractionDialog.conflicts}
                     newFiles={extractionDialog.newFiles}
+                    structureWarning={extractionDialog.structureWarning}
+                    mismatchedDirs={extractionDialog.mismatchedDirs}
+                    suggestedPath={extractionDialog.suggestedPath}
+                    onApplySuggestion={handleApplySuggestion}
                     onConfirm={handleConfirmExtract}
                     isExtracting={isExtracting}
                 />
