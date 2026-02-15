@@ -10,6 +10,7 @@ import GameLaunchDialog, { GameLaunchConfig } from './GameLaunchDialog';
 import GameFileBrowser from './GameFileBrowser';
 import WinetricksDialog from './WinetricksDialog';
 import { ArticleModDialog } from './ArticleModDialog';
+import { ModExtractionDialog } from './ModExtractionDialog';
 import { useGameLauncher } from '@/hooks/useGameLauncher';
 import { useGameScanner } from '@/hooks/useGameScanner';
 import { Button } from '@/components/ui/Button';
@@ -829,6 +830,14 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     const [installingModId, setInstallingModId] = useState<number | null>(null);
     const [modBackups, setModBackups] = useState<Record<number, any[]>>({});
     const [loadingBackups, setLoadingBackups] = useState<Record<number, boolean>>({});
+    const [extractionDialog, setExtractionDialog] = useState<{
+        open: boolean;
+        modId: number;
+        modName: string;
+        conflicts: string[];
+        newFiles: string[];
+    } | null>(null);
+    const [isExtracting, setIsExtracting] = useState(false);
 
     const { data: availableMods, error, isLoading } = useSWR<Mod[]>(
         articleId ? `article-mods-${articleId}` : null,
@@ -933,19 +942,50 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                 return;
             }
 
-            const confirmExtract = confirm(`Extract ${meta.name || mod.name} to game folder?\nFiles: ${meta.files?.length || 0}\n\nNote: Existing files will be backed up.`);
-            if (!confirmExtract) return;
+            // Check conflicts and new files
+            const conflictResult = await window.electronAPI.checkLpackConflicts(filePath, gamePath);
 
+            if (conflictResult.success) {
+                setExtractionDialog({
+                    open: true,
+                    modId,
+                    modName: meta.name || mod.name,
+                    conflicts: conflictResult.conflicts || [],
+                    newFiles: conflictResult.newFiles || []
+                });
+            } else {
+                alert(`Failed to check conflicts: ${conflictResult.error}`);
+            }
+        } catch (err) {
+            console.error('Failed to check conflicts:', err);
+            alert('Error preparing extraction');
+        }
+    };
+
+    const handleConfirmExtract = async () => {
+        if (!extractionDialog || !gamePath || !window.electronAPI) return;
+
+        const { modId } = extractionDialog;
+        const mod = installedMods.find(m => m.id === modId);
+        if (!mod) return;
+
+        const filePath = `${gamePath}/${mod.filename}`;
+
+        setIsExtracting(true);
+        try {
             const result = await window.electronAPI.extractLpack(filePath, gamePath, undefined, modId);
             if (result.success) {
                 alert('Mod extracted successfully!');
                 fetchBackups(modId);
+                setExtractionDialog(null);
             } else {
                 alert(`Failed to extract mod: ${result.error}`);
             }
         } catch (err) {
             console.error('Failed to extract mod:', err);
             alert('Error during extraction');
+        } finally {
+            setIsExtracting(false);
         }
     };
 
@@ -1153,6 +1193,18 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                         Visit Mod Store Page <ExternalLink className="w-3 h-3" />
                     </button>
                 </div>
+            )}
+
+            {extractionDialog && (
+                <ModExtractionDialog
+                    open={extractionDialog.open}
+                    onOpenChange={(open) => setExtractionDialog(open ? extractionDialog : null)}
+                    modName={extractionDialog.modName}
+                    conflicts={extractionDialog.conflicts}
+                    newFiles={extractionDialog.newFiles}
+                    onConfirm={handleConfirmExtract}
+                    isExtracting={isExtracting}
+                />
             )}
         </div>
     );

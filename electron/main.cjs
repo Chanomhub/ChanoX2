@@ -659,6 +659,31 @@ ipcMain.handle('delete-file', async (event, filePath) => {
 });
 
 // --- LayerPack Integration ---
+ipcMain.handle('check-lpack-conflicts', async (event, { filePath, destPath, key }) => {
+    try {
+        const { JsLayerPack } = require('layer-pack-node');
+        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
+        const pack = new JsLayerPack(filePath, lpackKey);
+        const files = pack.getFileList();
+        const conflicts = [];
+        const newFiles = [];
+
+        for (const file of files) {
+            const fullPath = path.join(destPath, file);
+            if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+                conflicts.push(file);
+            } else {
+                newFiles.push(file);
+            }
+        }
+
+        return { success: true, conflicts, newFiles };
+    } catch (err) {
+        console.error(`[Main] Error checking lpack conflicts:`, err);
+        return { success: false, error: err.message };
+    }
+});
+
 ipcMain.handle('get-lpack-metadata', async (event, { filePath, key }) => {
     try {
         const { JsLayerPack } = require('layer-pack-node');

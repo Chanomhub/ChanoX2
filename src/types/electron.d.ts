@@ -119,6 +119,7 @@ export interface ElectronAPI {
 
     // LayerPack
     getLpackMetadata: (filePath: string, key?: string) => Promise<{ success: boolean; name?: string; author?: string | null; files?: string[]; error?: string }>;
+    checkLpackConflicts: (filePath: string, destPath: string, key?: string) => Promise<{ success: boolean; conflicts?: string[]; newFiles?: string[]; error?: string }>;
     extractLpack: (filePath: string, destPath: string, key?: string, modId?: number) => Promise<{ success: boolean; backupId?: string | null; error?: string }>;
     readLpackFile: (filePath: string, key: string, innerPath: string) => Promise<{ success: boolean; content?: Uint8Array; error?: string }>;
     rollbackLpackExtraction: (gamePath: string, backupId: string) => Promise<{ success: boolean; error?: string }>;
