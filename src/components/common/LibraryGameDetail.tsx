@@ -1082,17 +1082,31 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                                     <div className="text-[10px] text-[#8b949e] mb-1 font-medium uppercase tracking-wider">Backups / History</div>
                                                     <div className="flex flex-col gap-1">
                                                         {modBackups[mod.id].slice(0, 3).map(backup => (
-                                                            <div key={backup.id} className="flex items-center justify-between text-[11px] bg-[#0d1117] p-1.5 rounded">
-                                                                <span className="text-[#8b949e]">
-                                                                    {new Date(backup.timestamp).toLocaleString()}
-                                                                    {backup.fileCount > 0 && ` (${backup.fileCount} files)`}
-                                                                </span>
-                                                                <button
-                                                                    onClick={() => handleRollback(mod.id, backup.id)}
-                                                                    className="text-[#66c0f4] hover:underline"
-                                                                >
-                                                                    Rollback
-                                                                </button>
+                                                            <div key={backup.id} className="flex flex-col bg-[#0d1117] p-2 rounded gap-1 border border-[#30363d] hover:border-[#8b949e] transition-colors">
+                                                                <div className="flex items-center justify-between text-[11px]">
+                                                                    <span className="text-[#dcdedf] font-medium">
+                                                                        {new Date(backup.timestamp).toLocaleString()}
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => handleRollback(mod.id, backup.id)}
+                                                                        className="text-[#66c0f4] hover:underline"
+                                                                    >
+                                                                        Rollback
+                                                                    </button>
+                                                                </div>
+                                                                {backup.files && backup.files.length > 0 && (
+                                                                    <div className="text-[10px] text-[#8b949e] mt-1 space-y-0.5">
+                                                                        <div className="font-medium">Files replaced:</div>
+                                                                        <ul className="list-disc list-inside pl-1 opacity-80">
+                                                                            {backup.files.slice(0, 5).map((f: string, i: number) => (
+                                                                                <li key={i} className="truncate" title={f}>{f}</li>
+                                                                            ))}
+                                                                            {backup.files.length > 5 && (
+                                                                                <li className="italic">...and {backup.files.length - 5} more</li>
+                                                                            )}
+                                                                        </ul>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>

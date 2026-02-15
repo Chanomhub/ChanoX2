@@ -156,7 +156,7 @@ export function ArticleModDialog({
                                                     {mod.name}
                                                 </h4>
                                                 <span className="bg-[#2a475e] text-[#66c0f4] text-xs px-2 py-0.5 rounded font-mono">
-                                                    v{mod.version}
+                                                    {mod.version}
                                                 </span>
                                             </div>
                                             <div className="text-[#8b949e] text-xs flex items-center gap-3">

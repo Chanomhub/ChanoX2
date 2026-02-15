@@ -796,7 +796,8 @@ ipcMain.handle('get-mod-backups', async (event, { gamePath, modId }) => {
                     backups.push({
                         id: dirName,
                         timestamp: manifest.timestamp,
-                        fileCount: manifest.backedUpFiles.length
+                        fileCount: manifest.backedUpFiles.length,
+                        files: manifest.backedUpFiles
                     });
                 }
             }
