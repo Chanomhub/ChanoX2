@@ -77,7 +77,6 @@ export default function ArticleDetail() {
     const { openDownloadLink } = useDownloads();
     const { language } = useLanguage();
 
-
     const [selectedDownload, setSelectedDownload] = useState<Download | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -349,106 +348,113 @@ export default function ArticleDetail() {
                 </div>
 
                 {/* Downloads Section (Right Sidebar) */}
+
                 <div className="flex-1" ref={downloadsRef}>
-                    {(downloads.length > 0 || officialSources.length > 0) ? (
-                        <div className="bg-[#1b2838] p-4 rounded-sm border border-[#2a475e] sticky top-6">
+                    <div className="bg-[#1b2838] p-4 rounded-sm border border-[#2a475e] sticky top-6">
 
-                            {/* Official Sources */}
-                            {officialSources.length > 0 && (
-                                <div className="mb-6">
-                                    <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">Official Links</h2>
-                                    <div className="space-y-3">
-                                        {officialSources.map((source) => (
-                                            <a
-                                                key={source.id}
-                                                href={source.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    ElectronDownloader.openDownloadLink(source.url, null);
-                                                }}
-                                                className="block bg-[#101822] p-3 rounded border border-[#2a475e] hover:border-[#66c0f4] hover:bg-[#1a2634] transition-all group"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <ExternalLink className="w-4 h-4 text-[#66c0f4]" />
-                                                        <span className="text-[#dcdedf] text-sm font-medium group-hover:text-white">
-                                                            {source.name}
-                                                        </span>
-                                                    </div>
-                                                    <ChevronRight className="w-4 h-4 text-[#4b5563] group-hover:text-white" />
-                                                </div>
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Downloads */}
-                            {downloads.length > 0 && (
-                                <>
-                                    <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">Available Downloads</h2>
-
-                                    <div className="space-y-3">
-                                        {downloads.map((download) => (
-                                            <div
-                                                key={download.id}
-                                                className={cn(
-                                                    "bg-[#101822] p-3 rounded border transition-colors group",
-                                                    download.vipOnly ? "border-yellow-500/30 bg-yellow-900/10" : "border-[#2a475e] hover:border-[#66c0f4]"
-                                                )}
-                                            >
-                                                <div className="flex items-start justify-between gap-3 mb-2">
-                                                    <div className="min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            {download.vipOnly ? (
-                                                                <Gem className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                                                            ) : (
-                                                                <CloudDownload className="w-4 h-4 text-[#66c0f4] flex-shrink-0" />
-                                                            )}
-                                                            <h3 className="text-[#dcdedf] font-medium text-sm truncate group-hover:text-white">
-                                                                {download.name || 'Game Files'}
-                                                            </h3>
-                                                        </div>
-                                                        {download.vipOnly && (
-                                                            <span className="text-[10px] text-yellow-500 font-bold ml-6 uppercase">VIP Only</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <button
-                                                    onClick={() => setSelectedDownload(download)}
-                                                    className="w-full bg-[#2a475e] hover:bg-[#66c0f4] hover:text-white text-[#66c0f4] text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
+                        {(downloads.length > 0 || officialSources.length > 0) ? (
+                            <>
+                                {/* Official Sources */}
+                                {officialSources.length > 0 && (
+                                    <div className="mb-6">
+                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">Official Links</h2>
+                                        <div className="space-y-3">
+                                            {officialSources.map((source) => (
+                                                <a
+                                                    key={source.id}
+                                                    href={source.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        ElectronDownloader.openDownloadLink(source.url, null);
+                                                    }}
+                                                    className="block bg-[#101822] p-3 rounded border border-[#2a475e] hover:border-[#66c0f4] hover:bg-[#1a2634] transition-all group"
                                                 >
-                                                    <DownloadIcon className="w-3 h-3" /> DOWNLOAD
-                                                </button>
-                                            </div>
-                                        ))}
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <ExternalLink className="w-4 h-4 text-[#66c0f4]" />
+                                                            <span className="text-[#dcdedf] text-sm font-medium group-hover:text-white">
+                                                                {source.name}
+                                                            </span>
+                                                        </div>
+                                                        <ChevronRight className="w-4 h-4 text-[#4b5563] group-hover:text-white" />
+                                                    </div>
+                                                </a>
+                                            ))}
+                                        </div>
                                     </div>
-                                </>
-                            )}
+                                )}
 
-                            {/* System Requirements Placeholder */}
-                            <div className="mt-6 pt-6 border-t border-[#2a475e]">
-                                <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-3">System Requirements</h3>
-                                <div className="space-y-1 text-xs">
-                                    <div className="flex justify-between">
-                                        <span className="text-[#61686d]">OS:</span>
-                                        <span className="text-[#b8b6b4]">{article.platforms.map(p => p.name).join(' / ') || 'Windows 10'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-[#61686d]">Memory:</span>
-                                        <span className="text-[#b8b6b4]">4 GB RAM</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-[#61686d]">Storage:</span>
-                                        <span className="text-[#b8b6b4]">Varies</span>
-                                    </div>
+                                {/* Downloads */}
+                                {downloads.length > 0 && (
+                                    <>
+                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">Available Downloads</h2>
+
+                                        <div className="space-y-3">
+                                            {downloads.map((download) => (
+                                                <div
+                                                    key={download.id}
+                                                    className={cn(
+                                                        "bg-[#101822] p-3 rounded border transition-colors group",
+                                                        download.vipOnly ? "border-yellow-500/30 bg-yellow-900/10" : "border-[#2a475e] hover:border-[#66c0f4]"
+                                                    )}
+                                                >
+                                                    <div className="flex items-start justify-between gap-3 mb-2">
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                {download.vipOnly ? (
+                                                                    <Gem className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                                                                ) : (
+                                                                    <CloudDownload className="w-4 h-4 text-[#66c0f4] flex-shrink-0" />
+                                                                )}
+                                                                <h3 className="text-[#dcdedf] font-medium text-sm truncate group-hover:text-white">
+                                                                    {download.name || 'Game Files'}
+                                                                </h3>
+                                                            </div>
+                                                            {download.vipOnly && (
+                                                                <span className="text-[10px] text-yellow-500 font-bold ml-6 uppercase">VIP Only</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => setSelectedDownload(download)}
+                                                        className="w-full bg-[#2a475e] hover:bg-[#66c0f4] hover:text-white text-[#66c0f4] text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <DownloadIcon className="w-3 h-3" /> DOWNLOAD
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </>
+                        ) : (
+                            <div className="text-center py-6 text-[#8b929a] text-sm italic">
+                                No downloads available yet.
+                            </div>
+                        )}
+
+                        {/* System Requirements Placeholder */}
+                        <div className="mt-6 pt-6 border-t border-[#2a475e]">
+                            <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-3">System Requirements</h3>
+                            <div className="space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                    <span className="text-[#61686d]">OS:</span>
+                                    <span className="text-[#b8b6b4]">{article.platforms.map(p => p.name).join(' / ') || 'Windows 10'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-[#61686d]">Memory:</span>
+                                    <span className="text-[#b8b6b4]">4 GB RAM</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-[#61686d]">Storage:</span>
+                                    <span className="text-[#b8b6b4]">Varies</span>
                                 </div>
                             </div>
                         </div>
-                    ) : null}
+                    </div>
                 </div>
 
                 <ArticleDownloadDialog

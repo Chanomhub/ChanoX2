@@ -108,6 +108,15 @@ export interface ElectronAPI {
     openNewWindow: (url: string) => void;
     extractFile: (filePath: string, destPath: string) => Promise<{ success: boolean; actualPath?: string }>;
 
+    // Authenticated Download
+    downloadFile: (url: string, headers?: Record<string, string>) => void;
+
+    // Mod Management
+    installMod: (url: string, installPath: string, filename: string, headers?: Record<string, string>) => Promise<{ success: boolean; path?: string }>;
+    readFileContent: (path: string) => Promise<string | null>;
+    writeFileContent: (path: string, content: string) => Promise<boolean>;
+    deleteFile: (path: string) => Promise<boolean>;
+
     // Storage Management
     selectDownloadDirectory: () => Promise<string | null>;
     getDiskSpace: (path: string) => Promise<DiskSpaceInfo | null>;

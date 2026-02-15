@@ -28,6 +28,20 @@ export class ElectronDownloader {
     }
 
     /**
+     * Start a download with custom headers (e.g. for Auth)
+     */
+    static downloadFile(url: string, headers?: Record<string, string>) {
+        console.log('Using authenticated download:', url);
+        if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.downloadFile) {
+            console.log('Sending download-file IPC');
+            window.electronAPI.downloadFile(url, headers);
+        } else {
+            console.warn('Electron API downloadFile not available, falling back to openDownloadLink');
+            this.openDownloadLink(url, null);
+        }
+    }
+
+    /**
      * Setup download auto-capture listeners
      * This will automatically track ALL downloads from the browser
      * Returns a cleanup function to remove all listeners

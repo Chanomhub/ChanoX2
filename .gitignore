@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-
+!node_modules/@chanomhub/sdk
 # Build outputs
 dist/
 release/

@@ -9,9 +9,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import GameLaunchDialog, { GameLaunchConfig } from './GameLaunchDialog';
 import GameFileBrowser from './GameFileBrowser';
 import WinetricksDialog from './WinetricksDialog';
+import { ArticleModDialog } from './ArticleModDialog';
 import { useGameLauncher } from '@/hooks/useGameLauncher';
 import { useGameScanner } from '@/hooks/useGameScanner';
 import { Button } from '@/components/ui/Button';
+import { useInstalledMods } from '@/hooks/useInstalledMods';
+import { sdk } from '@/libs/sdk';
+import useSWR from 'swr';
+import { Mod } from '@chanomhub/sdk';
 import {
     Play,
     Square,
@@ -30,9 +35,12 @@ import {
     Link,
     Link2Off,
     Wine,
-    Languages
+    Languages,
+    Download as DownloadIcon,
+    Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/Badge';
 import { SafeImage } from '@/components/common/SafeImage';
 
@@ -73,7 +81,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     const [hasShortcut, setHasShortcut] = useState(false);
     const [shortcutLoading, setShortcutLoading] = useState(false);
     const [winetricksDialogOpen, setWinetricksDialogOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'files'>('overview');
+    const [modDialogOpen, setModDialogOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'overview' | 'files' | 'mods'>('overview');
 
     // Custom Hooks
     const { config, launchGame, saveConfig, loadConfig, isRunning, gamePid, stopGame } = useGameLauncher(libraryItem.id);
@@ -148,7 +157,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         console.log('Fetched missing article content for library item:', libraryItem.title);
                         updateLibraryItem(libraryItem.id, {
                             description: data.article.description,
-                            body: data.article.body
+                            body: data.article.body,
+                            slug: data.article.slug
                         });
                     }
                 } catch (err) {
@@ -438,6 +448,15 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                     )}
                 >Files</button>
                 <button
+                    onClick={() => setActiveTab('mods')}
+                    className={cn(
+                        "text-sm font-medium pb-1 -mb-4 z-10 transition-colors",
+                        activeTab === 'mods'
+                            ? "text-white font-bold border-b-2 border-[#66c0f4]"
+                            : "text-[#8b929a] hover:text-white"
+                    )}
+                >Mods</button>
+                <button
                     onClick={() => setDevMode(!devMode)}
                     className={cn(
                         "ml-auto flex items-center gap-1 text-xs font-medium transition-colors",
@@ -463,6 +482,14 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                 Game folder not found
                             </div>
                         )
+                    ) : activeTab === 'mods' ? (
+                        /* Mods Tab */
+                        <LibraryMods
+                            articleId={libraryItem.articleId}
+                            articleSlug={libraryItem.slug}
+                            gamePath={libraryItem.extractedPath}
+                            onOpenStore={() => setModDialogOpen(true)}
+                        />
                     ) : (
                         /* Overview Tab */
                         <>
@@ -782,6 +809,228 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                 open={winetricksDialogOpen}
                 onOpenChange={setWinetricksDialogOpen}
             />
+
+            {libraryItem.articleId && (
+                <ArticleModDialog
+                    open={modDialogOpen}
+                    onOpenChange={setModDialogOpen}
+                    articleId={Number(libraryItem.articleId)}
+                    articleSlug={libraryItem.slug}
+                    gamePath={libraryItem.extractedPath}
+                />
+            )}
+        </div>
+    );
+}
+
+function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articleId?: number | null, articleSlug?: string, gamePath?: string, onOpenStore?: () => void }) {
+    const { token: authToken } = useAuth();
+    const { loading: loadingInstalled, addInstalledMod, removeInstalledMod, isInstalled } = useInstalledMods(gamePath);
+    const [installingModId, setInstallingModId] = useState<number | null>(null);
+
+    const { data: availableMods, error, isLoading } = useSWR<Mod[]>(
+        articleId ? `article-mods-${articleId}` : null,
+        async () => {
+            if (!articleId) return [];
+            const res = await sdk.articles.getMods(articleId, {
+                fields: ['id', 'name', 'version', 'downloadLink']
+            });
+            return Array.isArray(res) ? res : (res as any).mods || [];
+        }
+    );
+
+    const handleInstall = async (mod: Mod) => {
+        if (!gamePath || !window.electronAPI) {
+            alert('Cannot install mod: Game path not found or Electron API unavailable.');
+            return;
+        }
+
+        setInstallingModId(mod.id);
+        try {
+            // 1. Get Download URL
+            // Mod interface has downloadLink
+            const downloadLink = mod.downloadLink;
+            const downloadUrl = downloadLink.startsWith('http')
+                ? downloadLink
+                : `https://mod.chanomhub.workers.dev/download/${downloadLink}`;
+
+            // 2. Get Token for Auth
+            const token = authToken || sdk.config.token;
+
+            if (!token) {
+                alert('Authentication token not found. Please login again.');
+                return;
+            }
+
+            // 3. Construct Filename
+            // Use a less restrictive regex to allow Thai/Unicode while stripping truly illegal characters
+            // Enforce .lpack extension as requested
+            const cleanName = `${mod.name}_${mod.version}`.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+            const safeName = `${cleanName}.lpack`;
+
+            // 4. Call Electron Install
+            const result = await window.electronAPI.installMod(
+                downloadUrl,
+                gamePath,
+                safeName,
+                { Authorization: `Bearer ${token}` }
+            );
+
+            if (result.success) {
+                // 5. Update Local Manifest
+                await addInstalledMod({
+                    id: mod.id,
+                    name: mod.name,
+                    version: mod.version,
+                    installedAt: new Date().toISOString(),
+                    filename: safeName
+                });
+                alert(`Installed ${mod.name} successfully!`);
+            } else {
+                throw new Error('Install failed');
+            }
+
+        } catch (err) {
+            console.error('Failed to install mod:', err);
+            alert(`Failed to install mod: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        } finally {
+            setInstallingModId(null);
+        }
+    };
+
+    const handleUninstall = async (modId: number) => {
+        if (!confirm('Are you sure you want to uninstall this mod?')) return;
+        await removeInstalledMod(modId);
+    };
+
+    if (!articleId) {
+        return (
+            <div className="bg-[#0d1117] border border-[#30363d] rounded-md p-8 text-center text-[#8b949e] text-sm">
+                No article associated with this game. Cannot fetch mods.
+            </div>
+        );
+    }
+
+    if (isLoading || loadingInstalled) {
+        return (
+            <div className="flex justify-center p-8">
+                <Loader2 className="w-8 h-8 animate-spin text-[#66c0f4]" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="bg-[#0d1117] border border-red-900/50 rounded-md p-8 text-center text-red-400 text-sm">
+                Failed to load mods.
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            {/* Header: Available Mods vs Installed */}
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[#dcdedf] font-medium">Available Mods</h3>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => {
+                            if (onOpenStore) {
+                                onOpenStore();
+                            } else if ((articleId || articleSlug) && window.electronAPI) {
+                                const url = articleSlug
+                                    ? `https://chanomhub.com/articles/${articleSlug}`
+                                    : `https://chanomhub.com/posts/${articleId}`;
+                                window.electronAPI.openExternal(url);
+                            }
+                        }}
+                        className="text-xs text-[#66c0f4] hover:text-white flex items-center gap-1"
+                    >
+                        <ExternalLink className="w-3 h-3" />
+                        Open Mod Store
+                    </button>
+                </div>
+            </div>
+
+            {isLoading ? (
+                <div className="text-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#66c0f4] mb-2" />
+                    <span className="text-xs text-[#8b949e]">Loading mods...</span>
+                </div>
+            ) : availableMods && availableMods.length > 0 ? (
+                <div className="space-y-2">
+                    {availableMods.map((mod) => {
+                        const installed = isInstalled(mod.id);
+                        return (
+                            <div key={mod.id} className="bg-[#161b22] border border-[#30363d] rounded p-3 flex items-center justify-between group hover:border-[#8b949e] transition-colors">
+                                <div className="min-w-0 flex-1 mr-4">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="text-[#dcdedf] font-medium text-sm truncate">{mod.name}</h4>
+                                        <span className="bg-[#2a475e] text-[#66c0f4] text-[10px] px-1.5 py-0.5 rounded">
+                                            v{mod.version}
+                                        </span>
+                                    </div>
+                                    <div className="text-[#8b949e] text-xs flex items-center gap-3">
+                                        {installed && (
+                                            <span className="text-green-500 font-medium flex items-center gap-1">
+                                                <Check className="w-3 h-3" />
+                                                Installed
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    {installed ? (
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => handleUninstall(mod.id)}
+                                            className="bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 h-8"
+                                        >
+                                            Uninstall
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => handleInstall(mod)}
+                                            disabled={installingModId === mod.id}
+                                            className="bg-[#238636] hover:bg-[#2ea043] text-white border-none h-8"
+                                        >
+                                            {installingModId === mod.id ? (
+                                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                                            ) : (
+                                                <DownloadIcon className="w-3 h-3 mr-1" />
+                                            )}
+                                            Install
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="bg-[#0d1117] border border-[#30363d] rounded-md p-8 text-center text-[#8b949e] text-sm flex flex-col items-center gap-3">
+                    <p>No mods available for this game yet.</p>
+                    <button
+                        onClick={() => {
+                            if (onOpenStore) {
+                                onOpenStore();
+                            } else if ((articleId || articleSlug) && window.electronAPI) {
+                                const url = articleSlug
+                                    ? `https://chanomhub.com/articles/${articleSlug}`
+                                    : `https://chanomhub.com/posts/${articleId}`;
+                                window.electronAPI.openExternal(url);
+                            }
+                        }}
+                        className="text-[#66c0f4] hover:underline text-xs flex items-center gap-1"
+                    >
+                        Visit Mod Store Page <ExternalLink className="w-3 h-3" />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

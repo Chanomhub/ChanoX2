@@ -12,6 +12,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     extractFile: (filePath, destPath) => ipcRenderer.invoke('extract-file', { filePath, destPath }),
     checkExtractionTools: () => ipcRenderer.invoke('check-extraction-tools'),
 
+    // Authenticated Download
+    downloadFile: (url, headers) => ipcRenderer.send('download-file', { url, headers }),
+
+    // Mod Management
+    installMod: (url, installPath, filename, headers) => ipcRenderer.invoke('install-mod', { url, installPath, filename, headers }),
+    readFileContent: (path) => ipcRenderer.invoke('read-file-content', path),
+    writeFileContent: (path, content) => ipcRenderer.invoke('write-file-content', { filePath: path, content }),
+    deleteFile: (path) => ipcRenderer.invoke('delete-file', path),
+
     // Storage Management
     selectDownloadDirectory: () => ipcRenderer.invoke('select-download-directory'),
     getDiskSpace: (path) => ipcRenderer.invoke('get-disk-space', path),

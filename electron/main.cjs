@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, session, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, shell, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -430,6 +430,21 @@ ipcMain.on('cancel-download', (event, id) => {
     }
 });
 
+ipcMain.on('download-file', (event, { url, headers }) => {
+    console.log('📥 [Main] Received download-file request:', url);
+    console.log('   Headers:', headers ? 'Present' : 'None');
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) {
+        const options = {};
+        if (headers) {
+            options.headers = headers;
+        }
+        win.webContents.downloadURL(url, options);
+    } else {
+        console.error('❌ [Main] Could not find sender window for download');
+    }
+});
+
 // --- File System ---
 ipcMain.handle('read-directory', async (event, dirPath) => {
     try {
@@ -500,6 +515,125 @@ ipcMain.on('open-new-window', (event, url) => {
 
     // NOTE: Downloads from child windows are automatically handled by mainWindow's session
     // handler since they share the same default session. No need for duplicate handler here.
+});
+
+// --- Mod Management ---
+ipcMain.handle('install-mod', async (event, { url, installPath, filename, headers }) => {
+    console.log(`📥 [Main] Mod Install Request: ${url}`);
+    if (headers && headers.Authorization) {
+        console.log(`   Auth: Bearer ${headers.Authorization.substring(7, 15)}...`);
+    }
+
+    return new Promise((resolve, reject) => {
+        const filePath = path.join(installPath, filename);
+        console.log(`   Path: ${filePath}`);
+
+        try {
+            // Ensure directory exists
+            if (!fs.existsSync(installPath)) {
+                fs.mkdirSync(installPath, { recursive: true });
+            }
+
+            const file = fs.createWriteStream(filePath);
+            const request = net.request({
+                url,
+                method: 'GET',
+                redirect: 'follow'
+            });
+
+            // Set headers explicitly
+            if (headers) {
+                for (const [key, value] of Object.entries(headers)) {
+                    request.setHeader(key, value);
+                }
+            }
+
+            request.on('response', (response) => {
+                console.log(`   Response: ${response.statusCode} ${response.statusMessage}`);
+
+                if (response.statusCode !== 200) {
+                    file.close();
+                    fs.unlink(filePath, () => { }); // Delete partial file
+                    reject(new Error(`Download failed with status code: ${response.statusCode}`));
+                    return;
+                }
+
+                // Simplified stream piping
+                response.pipe(file);
+
+                response.on('error', (err) => {
+                    console.error('   Response Error:', err);
+                    file.close();
+                    fs.unlink(filePath, () => { });
+                    reject(err);
+                });
+            });
+
+            request.on('error', (err) => {
+                console.error('   Request Error:', err);
+                if (!file.destroyed) file.close();
+                fs.unlink(filePath, () => { });
+                reject(err);
+            });
+
+            file.on('finish', () => {
+                file.close();
+                console.log(`✅ [Main] Mod installed successfully: ${filePath}`);
+                resolve({ success: true, path: filePath });
+            });
+
+            file.on('error', (err) => {
+                console.error('   File Error:', err);
+                fs.unlink(filePath, () => { });
+                reject(err);
+            });
+
+            request.end();
+        } catch (err) {
+            console.error('   Setup Error:', err);
+            reject(err);
+        }
+    });
+});
+
+ipcMain.handle('read-file-content', async (event, filePath) => {
+    try {
+        if (fs.existsSync(filePath)) {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            return content;
+        }
+        return null;
+    } catch (err) {
+        console.error(`[Main] Error reading file ${filePath}:`, err);
+        throw err;
+    }
+});
+
+ipcMain.handle('write-file-content', async (event, { filePath, content }) => {
+    try {
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, content, 'utf-8');
+        return true;
+    } catch (err) {
+        console.error(`[Main] Error writing file ${filePath}:`, err);
+        return false;
+    }
+});
+
+ipcMain.handle('delete-file', async (event, filePath) => {
+    try {
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error(`[Main] Error deleting file ${filePath}:`, err);
+        return false;
+    }
 });
 
 // --- Window Controls ---

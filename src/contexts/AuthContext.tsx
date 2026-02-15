@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { login as apiLogin, register as apiRegister, loginWithSupabaseToken, User, LoginCredentials, RegisterData } from '../libs/api/auth';
 
 import { supabase, isSupabaseConfigured } from '../libs/supabase';
-import { sdk } from '../libs/sdk';
+import { sdk, setToken as sdkSetToken } from '../libs/sdk';
 
 interface AuthContextType {
     user: User | null;
@@ -136,7 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        console.log('AuthProvider mounted');
+        sdkSetToken(token);
+    }, [token]);
+
+    useEffect(() => {
         loadStoredAuth();
 
         // Supabase auth state listener (for web browser flow)
