@@ -825,8 +825,10 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
 
 function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articleId?: number | null, articleSlug?: string, gamePath?: string, onOpenStore?: () => void }) {
     const { token: authToken } = useAuth();
-    const { loading: loadingInstalled, addInstalledMod, removeInstalledMod, isInstalled } = useInstalledMods(gamePath);
+    const { installedMods, loading: loadingInstalled, addInstalledMod, removeInstalledMod, isInstalled } = useInstalledMods(gamePath);
     const [installingModId, setInstallingModId] = useState<number | null>(null);
+    const [modBackups, setModBackups] = useState<Record<number, any[]>>({});
+    const [loadingBackups, setLoadingBackups] = useState<Record<number, boolean>>({});
 
     const { data: availableMods, error, isLoading } = useSWR<Mod[]>(
         articleId ? `article-mods-${articleId}` : null,
@@ -902,6 +904,78 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
         if (!confirm('Are you sure you want to uninstall this mod?')) return;
         await removeInstalledMod(modId);
     };
+
+    const fetchBackups = async (modId: number) => {
+        if (!gamePath || !window.electronAPI) return;
+        setLoadingBackups(prev => ({ ...prev, [modId]: true }));
+        try {
+            const result = await window.electronAPI.getModBackups(gamePath, modId);
+            if (result.success) {
+                setModBackups(prev => ({ ...prev, [modId]: result.backups || [] }));
+            }
+        } catch (err) {
+            console.error('Failed to fetch backups:', err);
+        } finally {
+            setLoadingBackups(prev => ({ ...prev, [modId]: false }));
+        }
+    };
+
+    const handleExtract = async (modId: number) => {
+        const mod = installedMods.find(m => m.id === modId);
+        if (!mod || !gamePath || !window.electronAPI) return;
+
+        const filePath = `${gamePath}/${mod.filename}`;
+
+        try {
+            const meta = await window.electronAPI.getLpackMetadata(filePath);
+            if (!meta.success) {
+                alert(`Failed to read mod metadata: ${meta.error}`);
+                return;
+            }
+
+            const confirmExtract = confirm(`Extract ${meta.name || mod.name} to game folder?\nFiles: ${meta.files?.length || 0}\n\nNote: Existing files will be backed up.`);
+            if (!confirmExtract) return;
+
+            const result = await window.electronAPI.extractLpack(filePath, gamePath, undefined, modId);
+            if (result.success) {
+                alert('Mod extracted successfully!');
+                fetchBackups(modId);
+            } else {
+                alert(`Failed to extract mod: ${result.error}`);
+            }
+        } catch (err) {
+            console.error('Failed to extract mod:', err);
+            alert('Error during extraction');
+        }
+    };
+
+    const handleRollback = async (modId: number, backupId: string) => {
+        if (!gamePath || !window.electronAPI) return;
+        if (!confirm('Are you sure you want to rollback to this backup? This will overwrite current extracted files.')) return;
+
+        try {
+            const result = await window.electronAPI.rollbackLpackExtraction(gamePath, backupId);
+            if (result.success) {
+                alert('Rollback successful!');
+                fetchBackups(modId);
+            } else {
+                alert(`Rollback failed: ${result.error}`);
+            }
+        } catch (err) {
+            console.error('Rollback failed:', err);
+            alert('Error during rollback');
+        }
+    };
+
+    useEffect(() => {
+        if (installedMods && gamePath) {
+            installedMods.forEach(mod => {
+                if (mod.filename && mod.filename.endsWith('.lpack')) {
+                    fetchBackups(mod.id);
+                }
+            });
+        }
+    }, [installedMods, gamePath]);
 
     if (!articleId) {
         return (
@@ -982,14 +1056,49 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
 
                                 <div className="flex items-center gap-2">
                                     {installed ? (
-                                        <Button
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={() => handleUninstall(mod.id)}
-                                            className="bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 h-8"
-                                        >
-                                            Uninstall
-                                        </Button>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center gap-2">
+                                                {mod.downloadLink.endsWith('.lpack') && (
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={() => handleExtract(mod.id)}
+                                                        className="bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 border border-blue-900/50 h-8"
+                                                    >
+                                                        Extract
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => handleUninstall(mod.id)}
+                                                    className="bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 h-8"
+                                                >
+                                                    Uninstall
+                                                </Button>
+                                            </div>
+                                            {mod.downloadLink.endsWith('.lpack') && modBackups[mod.id]?.length > 0 && (
+                                                <div className="mt-2 pt-2 border-t border-[#30363d]">
+                                                    <div className="text-[10px] text-[#8b949e] mb-1 font-medium uppercase tracking-wider">Backups / History</div>
+                                                    <div className="flex flex-col gap-1">
+                                                        {modBackups[mod.id].slice(0, 3).map(backup => (
+                                                            <div key={backup.id} className="flex items-center justify-between text-[11px] bg-[#0d1117] p-1.5 rounded">
+                                                                <span className="text-[#8b949e]">
+                                                                    {new Date(backup.timestamp).toLocaleString()}
+                                                                    {backup.fileCount > 0 && ` (${backup.fileCount} files)`}
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => handleRollback(mod.id, backup.id)}
+                                                                    className="text-[#66c0f4] hover:underline"
+                                                                >
+                                                                    Rollback
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     ) : (
                                         <Button
                                             variant="secondary"

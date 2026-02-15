@@ -117,6 +117,13 @@ export interface ElectronAPI {
     writeFileContent: (path: string, content: string) => Promise<boolean>;
     deleteFile: (path: string) => Promise<boolean>;
 
+    // LayerPack
+    getLpackMetadata: (filePath: string, key?: string) => Promise<{ success: boolean; name?: string; author?: string | null; files?: string[]; error?: string }>;
+    extractLpack: (filePath: string, destPath: string, key?: string, modId?: number) => Promise<{ success: boolean; backupId?: string | null; error?: string }>;
+    readLpackFile: (filePath: string, key: string, innerPath: string) => Promise<{ success: boolean; content?: Uint8Array; error?: string }>;
+    rollbackLpackExtraction: (gamePath: string, backupId: string) => Promise<{ success: boolean; error?: string }>;
+    getModBackups: (gamePath: string, modId: number) => Promise<{ success: boolean; backups?: { id: string; timestamp: number; fileCount: number }[]; error?: string }>;
+
     // Storage Management
     selectDownloadDirectory: () => Promise<string | null>;
     getDiskSpace: (path: string) => Promise<DiskSpaceInfo | null>;

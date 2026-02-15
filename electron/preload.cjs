@@ -21,6 +21,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     writeFileContent: (path, content) => ipcRenderer.invoke('write-file-content', { filePath: path, content }),
     deleteFile: (path) => ipcRenderer.invoke('delete-file', path),
 
+    // LayerPack
+    getLpackMetadata: (filePath, key) => ipcRenderer.invoke('get-lpack-metadata', { filePath, key }),
+    extractLpack: (filePath, destPath, key, modId) => ipcRenderer.invoke('extract-lpack', { filePath, destPath, key, modId }),
+    readLpackFile: (filePath, key, innerPath) => ipcRenderer.invoke('read-lpack-file', { filePath, key, innerPath }),
+    rollbackLpackExtraction: (gamePath, backupId) => ipcRenderer.invoke('rollback-lpack-extraction', { gamePath, backupId }),
+    getModBackups: (gamePath, modId) => ipcRenderer.invoke('get-mod-backups', { gamePath, modId }),
+
     // Storage Management
     selectDownloadDirectory: () => ipcRenderer.invoke('select-download-directory'),
     getDiskSpace: (path) => ipcRenderer.invoke('get-disk-space', path),

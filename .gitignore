@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 !node_modules/@chanomhub/sdk
+!node_modules/layer-pack-node
 # Build outputs
 dist/
 release/

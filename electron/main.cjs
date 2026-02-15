@@ -3,6 +3,28 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const { spawn } = require('child_process');
+
+// Load .env manually
+const envPath = path.join(__dirname, '../.env');
+if (fs.existsSync(envPath)) {
+    console.log('📝 [Main] Loading .env file...');
+    try {
+        const envContent = fs.readFileSync(envPath, 'utf-8');
+        envContent.split(/\r?\n/).forEach(line => {
+            const [key, ...valueParts] = line.split('=');
+            if (key && valueParts.length > 0) {
+                const k = key.trim();
+                const v = valueParts.join('=').trim();
+                if (k && !k.startsWith('#')) {
+                    process.env[k] = v;
+                }
+            }
+        });
+    } catch (err) {
+        console.error('❌ [Main] Error loading .env:', err);
+    }
+}
+
 const platformHandler = require('./platforms/index.cjs');
 const GameCompatibility = require('./services/GameCompatibility.cjs');
 const ExtractorService = require('./services/ExtractorService.cjs');
@@ -633,6 +655,169 @@ ipcMain.handle('delete-file', async (event, filePath) => {
     } catch (err) {
         console.error(`[Main] Error deleting file ${filePath}:`, err);
         return false;
+    }
+});
+
+// --- LayerPack Integration ---
+ipcMain.handle('get-lpack-metadata', async (event, { filePath, key }) => {
+    try {
+        const { JsLayerPack } = require('layer-pack-node');
+        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
+        const pack = new JsLayerPack(filePath, lpackKey);
+        return {
+            success: true,
+            name: pack.name,
+            author: pack.author,
+            files: pack.getFileList()
+        };
+    } catch (err) {
+        console.error(`[Main] Error reading lpack metadata:`, err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('extract-lpack', async (event, { filePath, destPath, key, modId }) => {
+    try {
+        const { JsLayerPack } = require('layer-pack-node');
+        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
+        const pack = new JsLayerPack(filePath, lpackKey);
+        const files = pack.getFileList();
+
+        if (!fs.existsSync(destPath)) {
+            fs.mkdirSync(destPath, { recursive: true });
+        }
+
+        const timestamp = Date.now();
+        const backupDir = path.join(destPath, '.chanox2', 'backups', `mod_${modId}_${timestamp}`);
+        const manifestPath = path.join(backupDir, 'backup-manifest.json');
+        const backedUpFiles = [];
+        const extractedFiles = [];
+
+        for (const file of files) {
+            const fullPath = path.join(destPath, file);
+            const dir = path.dirname(fullPath);
+
+            // 1. Backup if file exists
+            if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+                if (!fs.existsSync(backupDir)) {
+                    fs.mkdirSync(backupDir, { recursive: true });
+                }
+                const backupPath = path.join(backupDir, file);
+                const backupFileDir = path.dirname(backupPath);
+                if (!fs.existsSync(backupFileDir)) {
+                    fs.mkdirSync(backupFileDir, { recursive: true });
+                }
+                fs.copyFileSync(fullPath, backupPath);
+                backedUpFiles.push(file);
+            }
+
+            // 2. Extract
+            const content = pack.readFile(file);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(fullPath, content);
+            extractedFiles.push(file);
+        }
+
+        // Save manifest if there were backups/extractions
+        if (backedUpFiles.length > 0 || extractedFiles.length > 0) {
+            if (!fs.existsSync(backupDir)) {
+                fs.mkdirSync(backupDir, { recursive: true });
+            }
+            fs.writeFileSync(manifestPath, JSON.stringify({
+                modId,
+                timestamp,
+                backedUpFiles,
+                extractedFiles
+            }, null, 2));
+        }
+
+        return { success: true, backupId: backedUpFiles.length > 0 ? `mod_${modId}_${timestamp}` : null };
+    } catch (err) {
+        console.error(`[Main] Error extracting lpack:`, err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('rollback-lpack-extraction', async (event, { gamePath, backupId }) => {
+    try {
+        const backupDir = path.join(gamePath, '.chanox2', 'backups', backupId);
+        const manifestPath = path.join(backupDir, 'backup-manifest.json');
+
+        if (!fs.existsSync(manifestPath)) {
+            throw new Error('Backup manifest not found');
+        }
+
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+
+        // 1. Delete extracted files (that weren't backups)
+        for (const file of manifest.extractedFiles) {
+            const fullPath = path.join(gamePath, file);
+            if (fs.existsSync(fullPath) && !manifest.backedUpFiles.includes(file)) {
+                fs.unlinkSync(fullPath);
+            }
+        }
+
+        // 2. Restore backed up files
+        for (const file of manifest.backedUpFiles) {
+            const sourcePath = path.join(backupDir, file);
+            const destPath = path.join(gamePath, file);
+            if (fs.existsSync(sourcePath)) {
+                fs.copyFileSync(sourcePath, destPath);
+            }
+        }
+
+        // Cleanup: remove backup dir if possible
+        // (Optional: keep it but mark as rolled back?)
+        // For now, let's keep it to be safe, but we could delete it.
+        fs.renameSync(manifestPath, manifestPath + '.rolledback');
+
+        return { success: true };
+    } catch (err) {
+        console.error(`[Main] Error rolling back lpack:`, err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('get-mod-backups', async (event, { gamePath, modId }) => {
+    try {
+        const rootBackupDir = path.join(gamePath, '.chanox2', 'backups');
+        if (!fs.existsSync(rootBackupDir)) return { success: true, backups: [] };
+
+        const dirs = fs.readdirSync(rootBackupDir);
+        const backups = [];
+
+        for (const dirName of dirs) {
+            if (dirName.startsWith(`mod_${modId}_`)) {
+                const manifestPath = path.join(rootBackupDir, dirName, 'backup-manifest.json');
+                if (fs.existsSync(manifestPath)) {
+                    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+                    backups.push({
+                        id: dirName,
+                        timestamp: manifest.timestamp,
+                        fileCount: manifest.backedUpFiles.length
+                    });
+                }
+            }
+        }
+        return { success: true, backups: backups.sort((a, b) => b.timestamp - a.timestamp) };
+    } catch (err) {
+        console.error(`[Main] Error listing mod backups:`, err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('read-lpack-file', async (event, { filePath, key, innerPath }) => {
+    try {
+        const { JsLayerPack } = require('layer-pack-node');
+        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
+        const pack = new JsLayerPack(filePath, lpackKey);
+        const content = pack.readFile(innerPath);
+        return { success: true, content };
+    } catch (err) {
+        console.error(`[Main] Error reading file from lpack:`, err);
+        return { success: false, error: err.message };
     }
 });
 
