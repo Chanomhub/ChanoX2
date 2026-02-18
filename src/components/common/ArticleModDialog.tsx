@@ -7,6 +7,7 @@ import { Mod } from '@chanomhub/sdk';
 import useSWR from 'swr';
 import { useInstalledMods } from '@/hooks/useInstalledMods';
 import { useAuth } from '@/contexts/AuthContext';
+import { isSubscriber } from '@/libs/subscriptions';
 
 interface ArticleModDialogProps {
     open: boolean;
@@ -37,6 +38,11 @@ export function ArticleModDialog({
         }
     );
 
+    const { data: subscribed, isLoading: loadingSub } = useSWR(
+        open && authToken ? 'user-subscription-status' : null,
+        isSubscriber
+    );
+
     const handleInstall = async (mod: Mod) => {
         if (!gamePath || !window.electronAPI) {
             alert('Cannot install mod: Game path not found or Electron API unavailable.');
@@ -44,6 +50,7 @@ export function ArticleModDialog({
         }
 
         setInstallingModId(mod.id);
+
         try {
             // 1. Get Download URL
             const downloadLink = mod.downloadLink;
@@ -128,6 +135,19 @@ export function ArticleModDialog({
                         </button>
                     </div>
                 </DialogHeader>
+
+                {authToken && (
+                    <div className="px-6 py-2 bg-[#1b2838] border-b border-[#2a475e] flex items-center justify-between">
+                        <span className="text-xs text-[#8b929a]">Subscription Status:</span>
+                        {loadingSub ? (
+                            <Loader2 className="w-3 h-3 animate-spin text-[#66c0f4]" />
+                        ) : subscribed ? (
+                            <span className="text-xs text-green-500 font-medium">Active Plan</span>
+                        ) : (
+                            <span className="text-xs text-yellow-500 font-medium">Free User</span>
+                        )}
+                    </div>
+                )}
 
                 <div className="max-h-[70vh] overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-[#2a475e] scrollbar-track-transparent">
                     {isLoading || loadingInstalled ? (
