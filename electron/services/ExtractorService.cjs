@@ -325,7 +325,18 @@ async function extractArchive(filePath, destPath) {
         lowerPath.endsWith('.tgz') ||
         lowerPath.endsWith('.tar.xz') ||
         lowerPath.endsWith('.tar.bz2')) {
-        await extractWithTar(filePath, destPath);
+        if (platform === 'win32') {
+            // Windows built-in tar doesn't support xz/bz2 compression
+            // Try tar first, fallback to 7z which handles all tar variants
+            try {
+                await extractWithTar(filePath, destPath);
+            } catch (tarErr) {
+                console.log('[ExtractorService] Windows tar failed, falling back to 7z:', tarErr.message);
+                await extractWith7z(filePath, destPath);
+            }
+        } else {
+            await extractWithTar(filePath, destPath);
+        }
         return;
     }
 
