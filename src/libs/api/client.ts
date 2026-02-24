@@ -14,6 +14,8 @@ const hashQuery = async (query: string): Promise<string> => {
 export class APQGraphQLClient extends GraphQLClient {
     private myHeaders: Record<string, string> = {};
     private apiUrl: string;
+    private refreshInProgress: Promise<string | null> | null = null;
+    private onRefresh: (() => Promise<string | null>) | null = null;
 
     constructor(url: string, options?: any) {
         super(url, options);
@@ -31,6 +33,10 @@ export class APQGraphQLClient extends GraphQLClient {
     setHeaders(headers: any) {
         this.myHeaders = { ...this.myHeaders, ...headers };
         return super.setHeaders(headers);
+    }
+
+    setRefreshHandler(handler: () => Promise<string | null>) {
+        this.onRefresh = handler;
     }
 
     async request<T = any, V = any>(
@@ -158,6 +164,41 @@ export class APQGraphQLClient extends GraphQLClient {
                 // Send full query to register it
                 return await tryRequest(true);
             }
+
+            // Handle 401 Unauthorized for token refresh
+            if (err.message?.includes('401') || (err instanceof ClientError && err.response?.status === 401)) {
+                if (this.onRefresh) {
+                    console.log('Detected 401 Unauthorized, attempting token refresh...');
+
+                    // sharing current refresh process if any
+                    if (!this.refreshInProgress) {
+                        this.refreshInProgress = this.onRefresh();
+                    }
+
+                    const newToken = await this.refreshInProgress;
+                    this.refreshInProgress = null;
+
+                    if (newToken) {
+                        console.log('Token refreshed successfully, retrying request...');
+                        // Update headers with new token
+                        this.setHeader('Authorization', `Bearer ${newToken}`);
+                        // Update combined headers for the retry
+                        combinedHeaders['Authorization'] = `Bearer ${newToken}`;
+
+                        // Retry the request after successful refresh
+                        // We try with FALSE first (APQ) as usual
+                        try {
+                            return await tryRequest(false);
+                        } catch (retryErr: any) {
+                            if (retryErr.message === 'PersistedQueryNotFound') {
+                                return await tryRequest(true);
+                            }
+                            throw retryErr;
+                        }
+                    }
+                }
+            }
+
             // Re-throw other errors
             throw err;
         }

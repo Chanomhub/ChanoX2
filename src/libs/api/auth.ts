@@ -34,6 +34,11 @@ export interface AuthResponse {
     expiresIn?: number;
 }
 
+export interface RefreshResponse {
+    token: string;
+    refreshToken?: string;
+}
+
 export interface ApiResponse<T> {
     data: T;
     statusCode: number;
@@ -152,4 +157,65 @@ export async function loginWithSupabaseToken(supabaseAccessToken: string): Promi
 
     const json: ApiResponse<AuthResponse> = await response.json();
     return json.data;
+}
+
+/**
+ * Refresh access token using refresh token
+ */
+export async function refreshAccessToken(refreshToken: string): Promise<RefreshResponse> {
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            refreshToken,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Token refresh failed' }));
+        throw new Error(error.message || 'Token refresh failed');
+    }
+
+    const json: ApiResponse<RefreshResponse> = await response.json();
+    return json.data;
+}
+
+/**
+ * Logout from current session
+ */
+export async function logout(refreshToken: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            refreshToken,
+        }),
+    });
+
+    if (!response.ok) {
+        console.warn('Logout failed on backend');
+    }
+}
+
+/**
+ * Logout from all devices
+ */
+export async function logoutAll(refreshToken: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/auth/logout-all`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            refreshToken,
+        }),
+    });
+
+    if (!response.ok) {
+        console.warn('Logout-all failed on backend');
+    }
 }

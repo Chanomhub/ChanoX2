@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, loginWithSupabaseToken, User, LoginCredentials, RegisterData } from '../libs/api/auth';
+import { login as apiLogin, register as apiRegister, loginWithSupabaseToken, logout as apiLogout, logoutAll as apiLogoutAll, User, LoginCredentials, RegisterData } from '../libs/api/auth';
 
 import { supabase, isSupabaseConfigured } from '../libs/supabase';
 import { sdk, setToken as sdkSetToken } from '../libs/sdk';
@@ -13,10 +13,12 @@ interface AuthContextType {
     login: (credentials: LoginCredentials) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => Promise<void>;
+    logoutAll: () => Promise<void>;
     switchAccount: (userId: number) => Promise<void>;
     isAuthenticated: boolean;
     loginWithGoogle: () => Promise<void>;
     handleSupabaseCallback: (accessToken: string) => Promise<void>;
+    refreshSession: () => Promise<string | null>;
     isSupabaseAvailable: boolean;
     oauthUrl: string | null; // OAuth URL for manual copy (GNOME fallback)
     clearOAuthUrl: () => void;
@@ -135,9 +137,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const refreshSession = useCallback(async (): Promise<string | null> => {
+        if (!user?.refreshToken) return null;
+
+        try {
+            const { refreshAccessToken } = await import('../libs/api/auth');
+            const response = await refreshAccessToken(user.refreshToken);
+
+            const updatedUser = {
+                ...user,
+                token: response.token,
+                refreshToken: response.refreshToken || user.refreshToken,
+            };
+
+            const otherAccounts = accounts.filter(a => a.id !== user.id);
+            const newAccounts = [...otherAccounts, updatedUser];
+
+            await saveAccounts(newAccounts, updatedUser);
+            return response.token;
+        } catch (error) {
+            console.error('Failed to refresh session', error);
+            // If refresh fails, we might want to log out or just return null
+            return null;
+        }
+    }, [user, accounts]);
+
     useEffect(() => {
         sdkSetToken(token);
-    }, [token]);
+        if (token) {
+            (async () => {
+                const { client } = await import('../libs/api/client');
+                client.setHeader('Authorization', `Bearer ${token}`);
+                client.setRefreshHandler(refreshSession);
+            })();
+        }
+    }, [token, refreshSession]);
 
     useEffect(() => {
         loadStoredAuth();
@@ -211,6 +245,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         if (!user) return;
+
+        // Call backend logout if possible
+        if (user.refreshToken) {
+            try {
+                await apiLogout(user.refreshToken);
+            } catch (e) {
+                console.warn('Backend logout failed', e);
+            }
+        }
+
         const newAccounts = accounts.filter(a => a.id !== user.id);
         setAccounts(newAccounts);
         await storage.setItem(ACCOUNTS_KEY, JSON.stringify(newAccounts));
@@ -225,6 +269,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setToken(null);
             await storage.removeItem(ACTIVE_USER_ID_KEY);
         }
+        await supabase.auth.signOut();
+    };
+
+    const logoutAll = async () => {
+        if (!user) return;
+
+        // Call backend logout-all
+        if (user.refreshToken) {
+            try {
+                await apiLogoutAll(user.refreshToken);
+            } catch (e) {
+                console.warn('Backend logout-all failed', e);
+            }
+        }
+
+        // Clear all local auth data
+        setAccounts([]);
+        setUser(null);
+        setToken(null);
+        await storage.removeItem(ACCOUNTS_KEY);
+        await storage.removeItem(ACTIVE_USER_ID_KEY);
         await supabase.auth.signOut();
     };
 
@@ -298,10 +363,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             login,
             register,
             logout,
+            logoutAll,
             switchAccount,
             isAuthenticated: !!user,
             loginWithGoogle,
             handleSupabaseCallback,
+            refreshSession,
             isSupabaseAvailable: isSupabaseConfigured(),
             oauthUrl,
             clearOAuthUrl,
