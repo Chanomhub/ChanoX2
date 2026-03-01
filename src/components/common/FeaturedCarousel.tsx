@@ -59,8 +59,15 @@ export default function FeaturedCarousel({ articles, sponsored }: FeaturedCarous
                 <Link to={`/article/${currentArticle.slug}`} className="flex-1 flex flex-row bg-[#0f1922] rounded overflow-hidden shadow-lg hover:shadow-[0_0_15px_rgba(102,192,244,0.4)] transition-shadow duration-300 min-h-[320px] relative">
                     {/* Sponsored Badge */}
                     {sponsored && (
-                        <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-amber-500/90 to-yellow-400/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg backdrop-blur-sm">
-                            ✨ Sponsored
+                        <div className="absolute top-4 left-4 z-20">
+                            <div className="flex items-center gap-2
+                  bg-black/70 backdrop-blur
+                  text-white text-[10px] font-medium
+                  px-3 py-1 rounded-md
+                  uppercase tracking-wider
+                  border border-white/10">
+                                Sponsored
+                            </div>
                         </div>
                     )}
                     {/* Image */}
