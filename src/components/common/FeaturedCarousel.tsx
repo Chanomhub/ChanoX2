@@ -9,9 +9,10 @@ import { getOptimizedImageUrl } from '@/libs/imageUrl';
 
 interface FeaturedCarouselProps {
     articles: Article[];
+    sponsored?: boolean;
 }
 
-export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
+export default function FeaturedCarousel({ articles, sponsored }: FeaturedCarouselProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -43,8 +44,8 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
 
     return (
         <div className="mb-8 w-full max-w-[1200px] mx-auto px-4">
-            <h2 className="text-[#dcdedf] text-sm font-bold tracking-wider mb-1">THE COMMUNITY RECOMMENDS</h2>
-            <h3 className="text-[#8b929a] text-xs mb-4">THESE GAMES TODAY</h3>
+            <h2 className="text-[#dcdedf] text-sm font-bold tracking-wider mb-1">{sponsored ? 'FEATURED & SPONSORED' : 'THE COMMUNITY RECOMMENDS'}</h2>
+            <h3 className="text-[#8b929a] text-xs mb-4">{sponsored ? 'PROMOTED GAMES' : 'THESE GAMES TODAY'}</h3>
 
             <div className="relative flex items-center group">
                 {/* Navigation Arrows */}
@@ -55,17 +56,23 @@ export default function FeaturedCarousel({ articles }: FeaturedCarouselProps) {
                     <ChevronLeft className="w-8 h-8" />
                 </button>
 
-                <Link to={`/article/${currentArticle.slug}`} className="flex-1 flex flex-row bg-[#0f1922] rounded overflow-hidden shadow-lg hover:shadow-[0_0_15px_rgba(102,192,244,0.4)] transition-shadow duration-300 h-[320px]">
+                <Link to={`/article/${currentArticle.slug}`} className="flex-1 flex flex-row bg-[#0f1922] rounded overflow-hidden shadow-lg hover:shadow-[0_0_15px_rgba(102,192,244,0.4)] transition-shadow duration-300 min-h-[320px] relative">
+                    {/* Sponsored Badge */}
+                    {sponsored && (
+                        <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-amber-500/90 to-yellow-400/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg backdrop-blur-sm">
+                            ✨ Sponsored
+                        </div>
+                    )}
                     {/* Image */}
-                    <div className="w-[65%] h-full relative">
+                    <div className="w-[65%] min-h-[320px] relative self-stretch">
                         {currentArticle.coverImage ? (
                             <SafeImage
                                 src={getOptimizedImageUrl(currentArticle.coverImage, { height: 320, fit: 'cover' })}
                                 alt={currentArticle.title}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover absolute inset-0"
                             />
                         ) : (
-                            <div className="w-full h-full bg-[#2a475e]" />
+                            <div className="w-full h-full bg-[#2a475e] absolute inset-0" />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#0f1922]" />
                     </div>

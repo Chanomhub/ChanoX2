@@ -1,6 +1,7 @@
+import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import { sdk, withImageTransform } from '@/libs/sdk';
-import type { ArticleListItem, PaginatedResponse } from '@chanomhub/sdk';
+import type { ArticleListItem, PaginatedResponse, SponsoredArticle } from '@chanomhub/sdk';
 import type { Article } from '@/types/graphql';
 import FeaturedCarousel from '@/components/common/FeaturedCarousel';
 import HorizontalScroll from '@/components/common/HorizontalScroll';
@@ -17,7 +18,29 @@ const sdkFetcher = async ([, limit, offset]: [string, number, number]): Promise<
     return withImageTransform(result);
 };
 
+// Fetcher for sponsored articles (public, no auth needed)
+const sponsoredFetcher = async (): Promise<SponsoredArticle[]> => {
+    const result = await sdk.sponsoredArticles.getAll();
+    return withImageTransform(result);
+};
+
+// Convert SponsoredArticle[] → Article[] compatible shape for FeaturedCarousel
+function sponsoredToArticles(sponsored: SponsoredArticle[]): Article[] {
+    return sponsored.map(s => ({
+        ...s.article,
+        // coverImage override: sponsored.coverImage → article.coverImage → article.mainImage
+        coverImage: s.coverImage ?? s.article.coverImage ?? s.article.mainImage,
+    })) as unknown as Article[];
+}
+
 export default function Home() {
+    // Fetch sponsored articles
+    const { data: sponsoredData } = useSWR<SponsoredArticle[]>(
+        'sponsored-articles',
+        sponsoredFetcher,
+        { revalidateOnFocus: false }
+    );
+
     const getKey = (pageIndex: number, previousPageData: PaginatedResponse<ArticleListItem> | null) => {
         // Reached the end
         if (previousPageData && !previousPageData.items.length) return null;
@@ -78,7 +101,13 @@ export default function Home() {
     // Split articles for different sections
     // Cast to local Article type for component compatibility
     const allArticles = articles as unknown as Article[];
-    const featuredArticles = allArticles.slice(0, 5);
+
+    // Use sponsored articles for carousel if available, otherwise fallback to first 5
+    const hasSponsored = sponsoredData && sponsoredData.length > 0;
+    const featuredArticles = hasSponsored
+        ? sponsoredToArticles(sponsoredData!)
+        : allArticles.slice(0, 5);
+
     const developersSection = allArticles.slice(5, 13);
     const listSection = allArticles; // Pass all articles for search/list
 
@@ -89,7 +118,7 @@ export default function Home() {
             </div>
 
             {/* Featured Carousel */}
-            <FeaturedCarousel articles={featuredArticles} />
+            <FeaturedCarousel articles={featuredArticles} sponsored={hasSponsored} />
 
             {/* From recommend Section */}
             <HorizontalScroll
