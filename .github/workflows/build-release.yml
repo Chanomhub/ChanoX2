@@ -165,6 +165,7 @@ jobs:
         run: |
           CURRENT_TAG=${GITHUB_REF#refs/tags/}
           echo "Current Tag: $CURRENT_TAG"
+          MAJOR_SUMMARY=""
           
           # Check if it's a Major release (e.g., v2.0.0)
           if [[ "$CURRENT_TAG" =~ ^v[0-9]+\.0\.0$ ]]; then
@@ -172,6 +173,20 @@ jobs:
             PREV_MAJOR=$((MAJOR - 1))
             FROM_TAG="v${PREV_MAJOR}.0.0"
             echo "Detected Major release. Base: $FROM_TAG"
+            
+            # Gather all Minor tags from the previous cycle (e.g., v1.1.0, v1.2.0...)
+            MINOR_TAGS=$(git tag -l "v${PREV_MAJOR}.[0-9]*.0" --sort=v:refname)
+            MAJOR_SUMMARY="### 🏆 Journey through the v${PREV_MAJOR}.x era\n\nThis major release consolidates all improvements from the following milestones:\n"
+            for t in $MINOR_TAGS; do
+              TAG_DATE=$(git log -1 --format=%ai $t 2>/dev/null | cut -d' ' -f1 || echo "unknown")
+              # Get the first line of the tag message or the first commit if no tag message
+              MSG=$(git tag -l --format='%(contents:subject)' $t)
+              if [ -z "$MSG" ]; then
+                MSG=$(git log -1 --format=%s $t)
+              fi
+              MAJOR_SUMMARY="${MAJOR_SUMMARY}- **$t** ($TAG_DATE): ${MSG}\n"
+            done
+            MAJOR_SUMMARY="${MAJOR_SUMMARY}\n---\n"
           
           # Check if it's a Minor release (e.g., v1.3.0)
           elif [[ "$CURRENT_TAG" =~ ^v[0-9]+\.[0-9]+\.0$ ]]; then
@@ -179,16 +194,19 @@ jobs:
             MINOR=$(echo $CURRENT_TAG | cut -d. -f2)
             PREV_MINOR=$((MINOR - 1))
             FROM_TAG="${MAJOR}.${PREV_MINOR}.0"
-            echo "Detected Minor release. Base: $FROM_TAG (Including all patches)"
+            echo "Detected Minor release. Base: $FROM_TAG"
             
           # It's a Patch release (e.g., v1.2.1)
           else
-            # For patch, just get the immediately preceding tag
             FROM_TAG=$(git describe --tags --abbrev=0 ${CURRENT_TAG}^ 2>/dev/null || echo "")
             echo "Detected Patch release. Base: $FROM_TAG"
           fi
           
           echo "from_tag=$FROM_TAG" >> $GITHUB_OUTPUT
+          # Use a multi-line output for the summary
+          echo "major_summary<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$MAJOR_SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Build Changelog
         id: build_changelog
@@ -197,7 +215,7 @@ jobs:
           fromTag: ${{ steps.base_tag.outputs.from_tag }}
           configurationJson: |
             {
-              "template": "## What's Changed in #{{FROM_TAG}} to #{{TO_TAG}}\n\n#{{CHANGELOG}}",
+              "template": "${{ steps.base_tag.outputs.major_summary }}## What's Changed in #{{FROM_TAG}} to #{{TO_TAG}}\n\n#{{CHANGELOG}}",
               "categories": [
                 {
                   "title": "### 🚀 Major / Breaking Changes",
