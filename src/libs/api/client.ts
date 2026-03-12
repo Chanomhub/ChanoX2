@@ -1,6 +1,6 @@
 import { GraphQLClient, ClientError } from 'graphql-request';
 import { print } from 'graphql';
-import { transformImageUrls } from '@/libs/imageUrl';
+import { transformDataUrls } from '@/libs/transform';
 
 const API_URL = 'https://api.chanomhub.com/api/graphql';
 
@@ -151,8 +151,8 @@ export class APQGraphQLClient extends GraphQLClient {
                 throw new Error(`HTTP Error: ${res.status} ${res.statusText}`);
             }
 
-            // Transform image URLs in the response
-            return transformImageUrls(json.data);
+            // Transform data URLs (images and downloads) in the response
+            return transformDataUrls(json.data);
         };
 
         try {

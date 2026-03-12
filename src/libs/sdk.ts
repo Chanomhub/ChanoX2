@@ -3,7 +3,7 @@
  * Shared SDK client for the entire application
  */
 import { createChanomhubClient, createAuthenticatedClient, getFallbackUrl, type ChanomhubClient } from '@chanomhub/sdk';
-import { transformImageUrls } from '@/libs/imageUrl';
+import { transformDataUrls } from '@/libs/transform';
 
 // Supabase configuration from env
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "__VITE_SUPABASE_URL__";
@@ -14,6 +14,7 @@ const baseConfig = {
     apiUrl: 'https://api.chanomhub.com',
     supabaseUrl,
     supabaseAnonKey,
+    storageDownloadUrl: 'https://storage.chanomhub.com',
 };
 
 // Create a single SDK instance for the app with Auth support
@@ -40,11 +41,16 @@ export function getAuthenticatedClient(token: string): ChanomhubClient {
 }
 
 /**
- * Wrapper that applies image URL transformation to any data object
+ * Wrapper that applies data URL transformation (images and downloads) to any data object
  */
-export function withImageTransform<T>(data: T): T {
-    return transformImageUrls(data);
+export function withDataTransform<T>(data: T): T {
+    return transformDataUrls(data);
 }
+
+/**
+ * Legacy alias for withDataTransform
+ */
+export const withImageTransform = withDataTransform;
 
 export { sdk, createAuthenticatedClient, getFallbackUrl };
 export type { ChanomhubClient };

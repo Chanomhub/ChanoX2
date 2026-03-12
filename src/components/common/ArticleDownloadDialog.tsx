@@ -1,14 +1,16 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
-import { Download } from 'lucide-react';
+import { Download, ShoppingCart } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
+import { cn } from '@/lib/utils';
 
 // Temporary interface until we have full GraphQL types
 interface DownloadItem {
     url: string;
     name?: string;
     vipOnly?: boolean;
+    isPurchaseRedirect?: boolean;
 }
 
 interface ArticleDownloadDialogProps {
@@ -24,16 +26,18 @@ export function ArticleDownloadDialog({
     onOpenChange,
     download,
     onDownload,
-
 }: ArticleDownloadDialogProps) {
-
     if (!download) return null;
+
+    const isPurchase = download.isPurchaseRedirect;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px] bg-[#1b2838] border-[#2a475e] text-[#dcdedf]">
                 <DialogHeader>
-                    <DialogTitle className="text-white">Download Options</DialogTitle>
+                    <DialogTitle className="text-white">
+                        {isPurchase ? 'Unlock Required' : 'Download Options'}
+                    </DialogTitle>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
@@ -45,8 +49,13 @@ export function ArticleDownloadDialog({
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-[#8b929a] uppercase">Source</label>
-                        <div className="text-sm text-[#dcdedf] break-all bg-[#101214] p-2 rounded border border-[#2a2e36]">
+                        <label className="text-xs font-bold text-[#8b929a] uppercase">
+                            {isPurchase ? 'Store / Purchase Link' : 
+                             (download.url.includes('google.com') ? 'Google Drive' : 
+                             download.url.includes('mega.nz') ? 'MEGA' : 
+                             download.url.includes('mediafire.com') ? 'MediaFire' : 'Download Link')}
+                        </label>
+                        <div className="text-sm text-[#dcdedf] break-all bg-[#101214] p-2 rounded border border-[#2a2e36] font-mono">
                             {download.url}
                         </div>
                     </div>
@@ -60,6 +69,12 @@ export function ArticleDownloadDialog({
                             />
                         </div>
                     )}
+
+                    {isPurchase && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded text-xs text-yellow-500 leading-relaxed">
+                            This content is locked. You need to purchase the article on the store to access the files.
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-0">
@@ -67,15 +82,27 @@ export function ArticleDownloadDialog({
                         Cancel
                     </Button>
                     <Button
-                        variant="primary"
+                        variant={isPurchase ? "secondary" : "primary"}
                         onClick={() => {
                             onDownload(download.url);
                             onOpenChange(false);
                         }}
-                        className="bg-[#66c0f4] text-white hover:bg-[#4192c0] shadow-none" // Blue for download usually
+                        className={cn(
+                            "text-white shadow-none",
+                            isPurchase ? "bg-yellow-600 hover:bg-yellow-700" : "bg-[#66c0f4] hover:bg-[#4192c0]"
+                        )}
                     >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
+                        {isPurchase ? (
+                            <>
+                                <ShoppingCart className="w-4 h-4 mr-2" />
+                                Unlock Now
+                            </>
+                        ) : (
+                            <>
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                            </>
+                        )}
                     </Button>
                 </DialogFooter>
             </DialogContent>

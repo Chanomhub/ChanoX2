@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { useParams, Link } from 'react-router-dom';
-import { sdk, withImageTransform } from '@/libs/sdk';
+import { sdk, withDataTransform } from '@/libs/sdk';
 import { client } from '@/libs/api/client';
 import { GET_OFFICIAL_DOWNLOAD_SOURCES, GET_DOWNLOADS } from '@/libs/api/queries';
 import type { ArticleWithDownloads, Download } from '@chanomhub/sdk';
@@ -23,7 +23,9 @@ import {
     Image as ImageIcon,
     Gem,
     CloudDownload,
-    ExternalLink
+    ExternalLink,
+    Lock,
+    ShoppingCart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
@@ -50,13 +52,13 @@ const articleFetcher = async ([, slug, language]: [string, string, string]): Pro
             name: d.name || '' // Ensure name is not null as required by SDK types
         })) as Download[];
 
-        return withImageTransform({
+        return withDataTransform({
             article: article as any,
             downloads
         });
     } catch (err) {
         console.error('Failed to fetch downloads:', err);
-        return withImageTransform({
+        return withDataTransform({
             article: article as any,
             downloads: []
         });
@@ -101,11 +103,22 @@ export default function ArticleDetail() {
         article?.favoritesCount || 0
     );
 
-    // Article and downloads are already extracted above
-    const downloads = useMemo(() =>
-        articleData?.downloads?.filter(d => d.isActive) || [],
+    // Check if the article is actually unlocked/purchased based on JWT context
+    const isUnlocked = article?.isUnlocked || article?.price === 0;
+
+    // Filter downloads based on purchase status
+    const actualDownloads = useMemo(() =>
+        articleData?.downloads?.filter(d => d.isActive && !d.isPurchaseRedirect) || [],
         [articleData]
     );
+
+    const purchaseLinks = useMemo(() => {
+        // If already unlocked, we don't need to show purchase links anymore
+        if (isUnlocked) return [];
+        return articleData?.downloads?.filter(d => d.isActive && d.isPurchaseRedirect) || [];
+    }, [articleData, isUnlocked]);
+
+    const downloads = actualDownloads;
 
     // Fetch Official Sources (still using GraphQL - not in SDK yet)
     const articleId = article ? Number(article.id) : null;
@@ -352,12 +365,52 @@ export default function ArticleDetail() {
                 <div className="flex-1" ref={downloadsRef}>
                     <div className="bg-[#1b2838] p-4 rounded-sm border border-[#2a475e] sticky top-6">
 
-                        {(downloads.length > 0 || officialSources.length > 0) ? (
+                        {(downloads.length > 0 || officialSources.length > 0 || purchaseLinks.length > 0) ? (
                             <>
+                                {/* Purchase / Unlock Section */}
+                                {purchaseLinks.length > 0 && (
+                                    <div className="mb-6 pb-6 border-b border-[#2a475e]">
+                                        <h2 className="text-yellow-500 text-lg font-bold mb-4 flex items-center gap-2">
+                                            <Lock className="w-5 h-5" />
+                                            {language === 'th' ? 'ปลดล็อกเนื้อหา' : 'Unlock Content'}
+                                        </h2>
+                                        <p className="text-[#8b929a] text-xs mb-4 leading-relaxed">
+                                            {language === 'th' ? 'ต้องซื้อบทความเพื่อเข้าถึงไฟล์ดาวน์โหลดทั้งหมด' : 'Purchase the article to access all download files.'}
+                                        </p>
+                                        <div className="space-y-3">
+                                            {purchaseLinks.map((link) => (
+                                                <a
+                                                    key={link.id}
+                                                    href={link.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        ElectronDownloader.openDownloadLink(link.url, null);
+                                                    }}
+                                                    className="block bg-gradient-to-r from-[#e39c28] to-[#b37617] hover:from-[#f5a623] hover:to-[#d48912] p-3 rounded border border-yellow-600/30 text-white transition-all shadow-lg group"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <ShoppingCart className="w-4 h-4" />
+                                                            <span className="text-sm font-bold uppercase tracking-wider">
+                                                                {link.name && link.name !== 'Source' ? link.name : (language === 'th' ? 'ไปที่หน้าร้านค้า' : 'Go to Store')}
+                                                            </span>
+                                                        </div>
+                                                        <ExternalLink className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+                                                    </div>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Official Sources */}
                                 {officialSources.length > 0 && (
                                     <div className="mb-6">
-                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">Official Links</h2>
+                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">
+                                            {language === 'th' ? 'ลิงก์อย่างเป็นทางการ' : 'Official Links'}
+                                        </h2>
                                         <div className="space-y-3">
                                             {officialSources.map((source) => (
                                                 <a
@@ -389,27 +442,31 @@ export default function ArticleDetail() {
                                 {/* Downloads */}
                                 {downloads.length > 0 && (
                                     <>
-                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">Available Downloads</h2>
+                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">
+                                            {language === 'th' ? 'ไฟล์เกมที่มีให้โหลด' : 'Available Game Files'}
+                                        </h2>
 
                                         <div className="space-y-3">
                                             {downloads.map((download) => (
                                                 <div
                                                     key={download.id}
                                                     className={cn(
-                                                        "bg-[#101822] p-3 rounded border transition-colors group",
-                                                        download.vipOnly ? "border-yellow-500/30 bg-yellow-900/10" : "border-[#2a475e] hover:border-[#66c0f4]"
+                                                        "bg-[#101822] p-3 rounded border transition-colors group relative overflow-hidden",
+                                                        !isUnlocked ? "opacity-60 grayscale-[0.5]" : (download.vipOnly ? "border-yellow-500/30 bg-yellow-900/10" : "border-[#2a475e] hover:border-[#66c0f4]")
                                                     )}
                                                 >
                                                     <div className="flex items-start justify-between gap-3 mb-2">
                                                         <div className="min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                {download.vipOnly ? (
+                                                                {!isUnlocked ? (
+                                                                    <Lock className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                                                                ) : download.vipOnly ? (
                                                                     <Gem className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                                                                 ) : (
                                                                     <CloudDownload className="w-4 h-4 text-[#66c0f4] flex-shrink-0" />
                                                                 )}
                                                                 <h3 className="text-[#dcdedf] font-medium text-sm truncate group-hover:text-white">
-                                                                    {download.name || 'Game Files'}
+                                                                    {(!download.name || download.name === 'Source') ? (language === 'th' ? 'ไฟล์หลัก' : 'Game Files') : download.name}
                                                                 </h3>
                                                             </div>
                                                             {download.vipOnly && (
@@ -418,12 +475,18 @@ export default function ArticleDetail() {
                                                         </div>
                                                     </div>
 
-                                                    <button
-                                                        onClick={() => setSelectedDownload(download)}
-                                                        className="w-full bg-[#2a475e] hover:bg-[#66c0f4] hover:text-white text-[#66c0f4] text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
-                                                    >
-                                                        <DownloadIcon className="w-3 h-3" /> DOWNLOAD
-                                                    </button>
+                                                    {isUnlocked ? (
+                                                        <button
+                                                            onClick={() => setSelectedDownload(download)}
+                                                            className="w-full bg-[#2a475e] hover:bg-[#66c0f4] hover:text-white text-[#66c0f4] text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
+                                                        >
+                                                            <DownloadIcon className="w-3 h-3" /> DOWNLOAD
+                                                        </button>
+                                                    ) : (
+                                                        <div className="w-full bg-black/40 text-[#8b929a] text-[10px] font-bold py-2 rounded flex items-center justify-center gap-2 uppercase tracking-tighter">
+                                                            Purchase Required to Access
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -432,7 +495,7 @@ export default function ArticleDetail() {
                             </>
                         ) : (
                             <div className="text-center py-6 text-[#8b929a] text-sm italic">
-                                No downloads available yet.
+                                {language === 'th' ? 'ยังไม่มีไฟล์ให้ดาวน์โหลด' : 'No downloads available yet.'}
                             </div>
                         )}
 

@@ -16,8 +16,6 @@ const STORAGE_URL = `https://${CDN_DOMAIN}`;
 // Fields that contain image URLs and should be transformed
 const IMAGE_FIELDS = ['coverImage', 'mainImage', 'backgroundImage', 'image', 'url'];
 
-
-
 /**
  * Resolve image URL to use imgproxy
  *
@@ -80,7 +78,6 @@ export function transformImageUrls<T>(data: T): T {
         return result as T;
     }
 
-
     return data;
 }
 
@@ -102,7 +99,6 @@ export function getOptimizedImageUrl(src: string, options: ImageOptions = {}): s
     if (src.startsWith('data:') || src.startsWith('blob:')) return src;
 
     // Convert 'cover' to 'fill' for imgproxy
-    // 'fill' in imgproxy means resize to fill dimensions (cropping), which is what 'cover' does in CSS
     const resizeType = options.fit === 'cover' ? 'fill' : (options.fit ?? 'fit');
 
     // Convert ImageOptions to ImgproxyOptions
@@ -119,13 +115,9 @@ export function getOptimizedImageUrl(src: string, options: ImageOptions = {}): s
 
 /**
  * Get the original storage URL without optimization (fallback URL)
- * Use this when the imgproxy returns errors
  */
 export function getStorageUrl(src: string): string {
     if (!src) return '';
-
-    // Already a data/blob URL
     if (src.startsWith('data:') || src.startsWith('blob:')) return src;
-
     return getFallbackUrl(src, IMGPROXY_URL, STORAGE_URL) || src;
 }
