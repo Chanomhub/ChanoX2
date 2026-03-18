@@ -44,6 +44,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/Badge';
 import { SafeImage } from '@/components/common/SafeImage';
+import { native } from '@/lib/native';
 
 const formatPlayTime = (seconds?: number) => {
     if (!seconds) return "0.0 hrs";
@@ -112,13 +113,11 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     // Check if shortcut exists on mount
     useEffect(() => {
         const checkShortcut = async () => {
-            if (window.electronAPI?.hasGameShortcut) {
-                const exists = await window.electronAPI.hasGameShortcut(
-                    String(libraryItem.id),
-                    libraryItem.title
-                );
-                setHasShortcut(exists);
-            }
+            const exists = await native.shortcut.hasGameShortcut(
+                String(libraryItem.id),
+                libraryItem.title
+            );
+            setHasShortcut(exists);
         };
         checkShortcut();
     }, [libraryItem.id, libraryItem.title]);
@@ -283,11 +282,9 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     };
 
     const handleCreateShortcut = async () => {
-        if (!window.electronAPI?.createGameShortcut) return;
-
         setShortcutLoading(true);
         try {
-            const result = await window.electronAPI.createGameShortcut(
+            const result = await native.shortcut.createGameShortcut(
                 String(libraryItem.id),
                 libraryItem.title,
                 libraryItem.coverImage
@@ -306,11 +303,9 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     };
 
     const handleDeleteShortcut = async () => {
-        if (!window.electronAPI?.deleteGameShortcut) return;
-
         setShortcutLoading(true);
         try {
-            const result = await window.electronAPI.deleteGameShortcut(
+            const result = await native.shortcut.deleteGameShortcut(
                 String(libraryItem.id),
                 libraryItem.title
             );
@@ -671,11 +666,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                     rel="noopener noreferrer"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        if (window.electronAPI) {
-                                            window.electronAPI.openExternal(source.url);
-                                        } else {
-                                            window.open(source.url, '_blank');
-                                        }
+                                        native.shell.openExternal(source.url);
                                     }}
                                     className="flex items-center justify-between gap-2 px-3 py-2 rounded text-sm font-medium bg-[#101822] hover:bg-[#1a2634] border border-[#2a475e] hover:border-[#66c0f4] transition-colors group"
                                 >
@@ -772,15 +763,15 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         {/* Translate Yourself - opens NST CLI */}
                         <button
                             onClick={async () => {
-                                if (window.electronAPI?.openNstCli) {
-                                    const result = await window.electronAPI.openNstCli(
+                                try {
+                                    const result = await native.nst.openNstCli(
                                         libraryItem.extractedPath,
                                         libraryItem.engine || 'rpgm'
                                     );
                                     if (!result.success) {
                                         alert(`ไม่สามารถเปิด NST ได้: ${result.error || 'Unknown error'}`);
                                     }
-                                } else {
+                                } catch {
                                     alert('ไม่พบ NST CLI');
                                 }
                             }}
@@ -855,8 +846,8 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     );
 
     const handleInstall = async (mod: Mod) => {
-        if (!gamePath || !window.electronAPI) {
-            alert('Cannot install mod: Game path not found or Electron API unavailable.');
+        if (!gamePath) {
+            alert('Cannot install mod: Game path not found.');
             return;
         }
 
@@ -883,8 +874,8 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
             const cleanName = `${mod.name}_${mod.version}`.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
             const safeName = `${cleanName}.lpack`;
 
-            // 4. Call Electron Install
-            const result = await window.electronAPI.installMod(
+            // 4. Call Install via native adapter
+            const result = await native.download.installMod(
                 downloadUrl,
                 gamePath,
                 safeName,
@@ -941,13 +932,11 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
 
                 setIsExtracting(true); // Re-use extracting state for UI feedback
                 try {
-                    if (window.electronAPI) {
-                        const rollbackResult = await window.electronAPI.rollbackLpackExtraction(gamePath || '', latestBackup.id);
-                        if (!rollbackResult.success) {
-                            alert(`Failed to restore files: ${rollbackResult.error}\nUninstalling anyway...`);
-                        } else {
-                            rollbackConfirmed = true;
-                        }
+                    const rollbackResult = await native.mod.rollbackLpackExtraction(gamePath || '', latestBackup.id);
+                    if (!rollbackResult.success) {
+                        alert(`Failed to restore files: ${rollbackResult.error}\nUninstalling anyway...`);
+                    } else {
+                        rollbackConfirmed = true;
                     }
                 } catch (err) {
                     console.error('Rollback failed:', err);
@@ -970,9 +959,9 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     };
 
     const fetchBackups = async (modId: number) => {
-        if (!gamePath || !window.electronAPI) return;
+        if (!gamePath) return;
         try {
-            const result = await window.electronAPI.getModBackups(gamePath, modId);
+            const result = await native.mod.getModBackups(gamePath, modId);
             if (result.success) {
                 setModBackups(prev => ({ ...prev, [modId]: result.backups || [] }));
             }
@@ -983,19 +972,19 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
 
     const handleExtract = async (modId: number) => {
         const mod = installedMods.find(m => m.id === modId);
-        if (!mod || !gamePath || !window.electronAPI) return;
+        if (!mod || !gamePath) return;
 
         const filePath = `${gamePath}/${mod.filename}`;
 
         try {
-            const meta = await window.electronAPI.getLpackMetadata(filePath);
+            const meta = await native.mod.getLpackMetadata(filePath);
             if (!meta.success) {
                 alert(`Failed to read mod metadata: ${meta.error}`);
                 return;
             }
 
             // Check conflicts and new files
-            const conflictResult = await window.electronAPI.checkLpackConflicts(filePath, gamePath);
+            const conflictResult = await native.mod.checkLpackConflicts(filePath, gamePath);
 
             if (conflictResult.success) {
                 setExtractionDialog({
@@ -1019,7 +1008,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     };
 
     const handleApplySuggestion = async (subPath: string) => {
-        if (!extractionDialog || !gamePath || !window.electronAPI) return;
+        if (!extractionDialog || !gamePath) return;
 
         const { modId } = extractionDialog;
         const mod = installedMods.find(m => m.id === modId);
@@ -1029,7 +1018,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
         const filePath = `${gamePath}/${mod.filename}`;
 
         try {
-            const conflictResult = await window.electronAPI.checkLpackConflicts(filePath, absoluteTarget);
+            const conflictResult = await native.mod.checkLpackConflicts(filePath, absoluteTarget);
             if (conflictResult.success) {
                 setExtractionDialog({
                     ...extractionDialog,
@@ -1047,7 +1036,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     };
 
     const handleConfirmExtract = async () => {
-        if (!extractionDialog || !gamePath || !window.electronAPI) return;
+        if (!extractionDialog || !gamePath) return;
 
         const { modId, targetPath } = extractionDialog;
         const mod = installedMods.find(m => m.id === modId);
@@ -1057,7 +1046,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
 
         setIsExtracting(true);
         try {
-            const result = await window.electronAPI.extractLpack(filePath, targetPath, undefined, modId, gamePath);
+            const result = await native.mod.extractLpack(filePath, targetPath, undefined, modId, gamePath);
             if (result.success) {
                 alert('Mod extracted successfully!');
                 fetchBackups(modId);
@@ -1074,11 +1063,11 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     };
 
     const handleRollback = async (modId: number, backupId: string) => {
-        if (!gamePath || !window.electronAPI) return;
+        if (!gamePath) return;
         if (!confirm('Are you sure you want to rollback to this backup? This will overwrite current extracted files.')) return;
 
         try {
-            const result = await window.electronAPI.rollbackLpackExtraction(gamePath, backupId);
+            const result = await native.mod.rollbackLpackExtraction(gamePath, backupId);
             if (result.success) {
                 alert('Rollback successful!');
                 fetchBackups(modId);
@@ -1135,11 +1124,11 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                         onClick={() => {
                             if (onOpenStore) {
                                 onOpenStore();
-                            } else if ((articleId || articleSlug) && window.electronAPI) {
+                            } else if (articleId || articleSlug) {
                                 const url = articleSlug
                                     ? `https://chanomhub.com/articles/${articleSlug}`
                                     : `https://chanomhub.com/posts/${articleId}`;
-                                window.electronAPI.openExternal(url);
+                                native.shell.openExternal(url);
                             }
                         }}
                         className="text-xs text-[#66c0f4] hover:text-white flex items-center gap-1"
@@ -1265,11 +1254,11 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                         onClick={() => {
                             if (onOpenStore) {
                                 onOpenStore();
-                            } else if ((articleId || articleSlug) && window.electronAPI) {
+                            } else if (articleId || articleSlug) {
                                 const url = articleSlug
                                     ? `https://chanomhub.com/articles/${articleSlug}`
                                     : `https://chanomhub.com/posts/${articleId}`;
-                                window.electronAPI.openExternal(url);
+                                native.shell.openExternal(url);
                             }
                         }}
                         className="text-[#66c0f4] hover:underline text-xs flex items-center gap-1"

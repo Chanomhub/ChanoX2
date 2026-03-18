@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { cn } from '@/lib/utils';
 import { Play, CheckCircle2, FileCode, Monitor, FolderOpen, Terminal } from 'lucide-react';
+import { native } from '@/lib/native';
 
 interface LaunchOption {
     path: string;
@@ -279,9 +280,7 @@ export default function GameLaunchDialog({
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        if (window.electronAPI?.openPath) {
-                                            window.electronAPI.openPath(installPath);
-                                        }
+                                        native.shell.openPath(installPath);
                                     }}
                                     className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors border-l border-zinc-800 shrink-0"
                                 >

@@ -7,6 +7,7 @@ import { useDownloads } from '@/contexts/DownloadContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useNewYearCountdown, triggerNewYearPreview } from '@/hooks/useNewYearCountdown';
+import { native } from '@/lib/native';
 
 export default function TitleBar() {
     const navigate = useNavigate();
@@ -34,9 +35,9 @@ export default function TitleBar() {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const notificationRef = useRef<HTMLDivElement>(null);
 
-    const handleMinimize = () => window.electronAPI?.minimizeWindow();
-    const handleMaximize = () => window.electronAPI?.maximizeWindow();
-    const handleClose = () => window.electronAPI?.closeWindow();
+    const handleMinimize = () => native.window.minimize();
+    const handleMaximize = () => native.window.maximize();
+    const handleClose = () => native.window.close();
 
     // Close dropdowns when clicking outside
     useEffect(() => {

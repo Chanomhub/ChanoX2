@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GameConfig as ElectronGameConfig } from '@/types/electron';
+import { native } from '@/lib/native';
 
 export interface GameConfig extends ElectronGameConfig {
     executablePath?: string; // override to match electron type optionality or keep specific
@@ -22,10 +23,8 @@ export const useGameLauncher = (gameId: number | string) => {
     const loadConfig = useCallback(async () => {
         setIsLoading(true);
         try {
-            if (window.electronAPI) {
-                const saved = await window.electronAPI.getGameConfig(String(gameId));
-                setConfig(saved as GameConfig);
-            }
+            const saved = await native.game.getGameConfig(String(gameId));
+            setConfig(saved as GameConfig);
         } catch (err) {
             setError('Failed to load game config');
             console.error(err);
@@ -36,15 +35,12 @@ export const useGameLauncher = (gameId: number | string) => {
 
     const saveConfig = useCallback(async (newConfig: GameConfig) => {
         try {
-            if (window.electronAPI) {
-                await window.electronAPI.saveGameConfig({
-                    gameId: String(gameId),
-                    config: newConfig
-                });
-                setConfig(newConfig);
-                return true;
-            }
-            return false;
+            await native.game.saveGameConfig({
+                gameId: String(gameId),
+                config: newConfig
+            });
+            setConfig(newConfig);
+            return true;
         } catch (err) {
             console.error('Failed to save config', err);
             return false;
@@ -60,20 +56,17 @@ export const useGameLauncher = (gameId: number | string) => {
 
         console.log('Launching game with:', { gameId, config: configToUse });
         try {
-            if (window.electronAPI) {
-                const result = await window.electronAPI.launchGame({
-                    executablePath: configToUse.executablePath,
-                    useWine: configToUse.useWine,
-                    args: configToUse.args,
-                    locale: configToUse.locale,
-                    gameId: String(gameId) // Pass gameId for playtime tracking
-                });
-                if (result.success) {
-                    setIsRunning(true);
-                }
-                return result;
+            const result = await native.game.launchGame({
+                executablePath: configToUse.executablePath,
+                useWine: configToUse.useWine,
+                args: configToUse.args,
+                locale: configToUse.locale,
+                gameId: String(gameId) // Pass gameId for playtime tracking
+            });
+            if (result.success) {
+                setIsRunning(true);
             }
-            return { success: false, error: 'Electron API unavailable' };
+            return result;
         } catch (err: any) {
             return { success: false, error: err.message || 'Unknown error' };
         }
@@ -81,14 +74,11 @@ export const useGameLauncher = (gameId: number | string) => {
 
     const stopGame = useCallback(async () => {
         try {
-            if (window.electronAPI) {
-                const result = await window.electronAPI.stopGame(String(gameId));
-                if (result.success) {
-                    setIsRunning(false);
-                }
-                return result;
+            const result = await native.game.stopGame(String(gameId));
+            if (result.success) {
+                setIsRunning(false);
             }
-            return { success: false, error: 'Electron API unavailable' };
+            return result;
         } catch (err: any) {
             return { success: false, error: err.message || 'Unknown error' };
         }
@@ -97,36 +87,29 @@ export const useGameLauncher = (gameId: number | string) => {
     // Check initial running state and setup event listeners
     useEffect(() => {
         const checkRunning = async () => {
-            if (window.electronAPI) {
-                const running = await window.electronAPI.isGameRunning(String(gameId));
-                setIsRunning(running);
-            }
+            const running = await native.game.isGameRunning(String(gameId));
+            setIsRunning(running);
         };
         checkRunning();
 
         // Listen for game started/stopped events
-        let cleanupStarted: (() => void) | void;
-        let cleanupStopped: (() => void) | void;
+        const cleanupStarted = native.game.onGameStarted((data) => {
+            if (data.gameId === String(gameId)) {
+                console.log('🎮 Game started:', data);
+                setIsRunning(true);
+                setGamePid(data.pid);
+            }
+        });
 
-        if (window.electronAPI) {
-            cleanupStarted = window.electronAPI.onGameStarted((data) => {
-                if (data.gameId === String(gameId)) {
-                    console.log('🎮 Game started:', data);
-                    setIsRunning(true);
-                    setGamePid(data.pid);
-                }
-            });
-
-            cleanupStopped = window.electronAPI.onGameStopped((data) => {
-                if (data.gameId === String(gameId)) {
-                    console.log('🎮 Game stopped:', data);
-                    setIsRunning(false);
-                    setGamePid(null);
-                    // Reload config to get updated playtime
-                    loadConfig();
-                }
-            });
-        }
+        const cleanupStopped = native.game.onGameStopped((data) => {
+            if (data.gameId === String(gameId)) {
+                console.log('🎮 Game stopped:', data);
+                setIsRunning(false);
+                setGamePid(null);
+                // Reload config to get updated playtime
+                loadConfig();
+            }
+        });
 
         return () => {
             if (cleanupStarted) cleanupStarted();

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { native } from '@/lib/native';
 
 export interface ScanResult {
     path: string;
@@ -14,12 +15,9 @@ export const useGameScanner = () => {
 
         setIsScanning(true);
         try {
-            if (window.electronAPI) {
-                const scanResults = await window.electronAPI.scanGameExecutables(path);
-                setResults(scanResults);
-                return scanResults;
-            }
-            return [];
+            const scanResults = await native.game.scanGameExecutables(path);
+            setResults(scanResults);
+            return scanResults;
         } catch (err) {
             console.error('Scan failed', err);
             return [];

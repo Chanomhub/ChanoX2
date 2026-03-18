@@ -107,6 +107,7 @@ export interface ElectronAPI {
     openExternal: (url: string) => void;
     openNewWindow: (url: string) => void;
     extractFile: (filePath: string, destPath: string) => Promise<{ success: boolean; actualPath?: string }>;
+    checkExtractionTools: () => Promise<unknown>;
 
     // Authenticated Download
     downloadFile: (url: string, headers?: Record<string, string>) => void;

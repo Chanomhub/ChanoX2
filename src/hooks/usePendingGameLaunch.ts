@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { native } from '@/lib/native';
 
 /**
  * Hook that listens for pending game launch events from shortcuts or second instance
@@ -6,13 +7,11 @@ import { useEffect } from 'react';
  */
 export const usePendingGameLaunch = (onLaunch: (gameId: string) => void) => {
     useEffect(() => {
-        if (!window.electronAPI?.onPendingGameLaunch) {
-            return;
-        }
+        if (!native.isDesktop) return;
 
         console.log('🎮 Setting up pending game launch listener');
 
-        const cleanup = window.electronAPI.onPendingGameLaunch((data) => {
+        const cleanup = native.shortcut.onPendingGameLaunch((data) => {
             console.log('🎮 Received pending game launch:', data);
             if (data.gameId) {
                 onLaunch(data.gameId);

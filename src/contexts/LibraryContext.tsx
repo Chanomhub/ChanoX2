@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { LibraryItem } from '@/types/libraryItem';
 import { ElectronDownloader } from '@/lib/electronDownloader';
+import { native } from '@/lib/native';
 
 interface LibraryContextType {
     libraryItems: LibraryItem[];
@@ -23,17 +24,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const loadLibrary = async () => {
             try {
-                if (window.electronAPI) {
-                    const saved = await window.electronAPI.getLibrary();
-                    if (saved && Array.isArray(saved)) {
-                        // Restore dates
-                        const restored = saved.map((item: any) => ({
-                            ...item,
-                            addedAt: new Date(item.addedAt),
-                            lastPlayedAt: item.lastPlayedAt ? new Date(item.lastPlayedAt) : undefined,
-                        }));
-                        setLibraryItems(restored as LibraryItem[]);
-                    }
+                const saved = await native.storage.getLibrary();
+                if (saved && Array.isArray(saved)) {
+                    // Restore dates
+                    const restored = saved.map((item: any) => ({
+                        ...item,
+                        addedAt: new Date(item.addedAt),
+                        lastPlayedAt: item.lastPlayedAt ? new Date(item.lastPlayedAt) : undefined,
+                    }));
+                    setLibraryItems(restored as LibraryItem[]);
                 }
             } catch (err) {
                 console.error('Failed to load library:', err);
@@ -42,12 +41,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             }
         };
         loadLibrary();
-    }, []);
+    }, []);;
 
     // Persist library whenever it changes
     useEffect(() => {
-        if (isLoadedRef.current && window.electronAPI) {
-            window.electronAPI.saveLibrary(libraryItems);
+        if (isLoadedRef.current) {
+            native.storage.saveLibrary(libraryItems);
         }
     }, [libraryItems]);
 
@@ -59,9 +58,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         };
 
         // Download cover image for offline support
-        if (item.coverImage && window.electronAPI?.downloadCoverImage) {
+        if (item.coverImage) {
             try {
-                const result = await window.electronAPI.downloadCoverImage(newItem.id, item.coverImage);
+                const result = await native.download.downloadCoverImage(newItem.id, item.coverImage);
                 if (result.success && result.localPath) {
                     newItem.localCoverImage = result.localPath;
                     console.log('✅ Cover image cached for offline:', result.localPath);
@@ -85,18 +84,18 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         if (!item) return;
 
         // Optionally delete game folder
-        if (item.extractedPath && window.electronAPI) {
+        if (item.extractedPath) {
             try {
-                await window.electronAPI.deleteGameFolder(item.extractedPath);
+                await native.fs.deleteGameFolder(item.extractedPath);
             } catch (err) {
                 console.error('Failed to delete game folder:', err);
             }
         }
 
         // Also delete archive if present
-        if (item.archivePath && window.electronAPI) {
+        if (item.archivePath) {
             try {
-                await window.electronAPI.deleteArchive(item.archivePath);
+                await native.fs.deleteArchive(item.archivePath);
             } catch (err) {
                 console.error('Failed to delete archive:', err);
             }
@@ -119,12 +118,10 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         }
 
         // Check if archive exists
-        if (window.electronAPI) {
-            const exists = await window.electronAPI.fileExists(item.archivePath);
-            if (!exists) {
-                alert('Archive file not found. Cannot re-extract.');
-                return;
-            }
+        const exists = await native.fs.fileExists(item.archivePath);
+        if (!exists) {
+            alert('Archive file not found. Cannot re-extract.');
+            return;
         }
 
         // Mark as extracting
@@ -152,13 +149,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         const item = libraryItems.find(i => i.id === id);
         if (!item || !item.archivePath) return false;
 
-        if (window.electronAPI) {
-            const result = await window.electronAPI.deleteArchive(item.archivePath);
-            if (result.success) {
-                // Clear archivePath from item
-                updateLibraryItem(id, { archivePath: undefined });
-                return true;
-            }
+        const result = await native.fs.deleteArchive(item.archivePath);
+        if (result.success) {
+            // Clear archivePath from item
+            updateLibraryItem(id, { archivePath: undefined });
+            return true;
         }
         return false;
     };
@@ -167,10 +162,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         const item = libraryItems.find(i => i.id === id);
         if (!item || !item.archivePath) return false;
 
-        if (window.electronAPI) {
-            return await window.electronAPI.fileExists(item.archivePath);
-        }
-        return false;
+        return await native.fs.fileExists(item.archivePath);
     };
 
     return (

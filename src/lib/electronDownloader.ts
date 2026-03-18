@@ -1,5 +1,7 @@
-// Electron download manager utility
+// Download manager utility — delegates to native adapter
 // Adapted from legacy/utils/electronDownloader.ts
+
+import { native } from '@/lib/native';
 
 interface DownloadProgress {
     totalBytes: number;
@@ -10,21 +12,10 @@ interface DownloadProgress {
 export class ElectronDownloader {
     /**
      * Navigate to download link within the app
-     * Opens in WebView for upload service links
+     * Opens in internal window or external browser
      */
     static openDownloadLink(url: string, _router: any) {
-        if (typeof window !== 'undefined' && window.electronAPI) {
-            // Try to open in new internal window (Legacy behavior)
-            if (window.electronAPI.openNewWindow) {
-                window.electronAPI.openNewWindow(url);
-            } else {
-                // Fallback to external browser if internal window API is missing
-                window.electronAPI.openExternal(url);
-            }
-        } else {
-            console.warn('Electron API not available');
-            window.open(url, '_blank');
-        }
+        native.shell.openNewWindow(url);
     }
 
     /**
@@ -32,13 +23,7 @@ export class ElectronDownloader {
      */
     static downloadFile(url: string, headers?: Record<string, string>) {
         console.log('Using authenticated download:', url);
-        if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.downloadFile) {
-            console.log('Sending download-file IPC');
-            window.electronAPI.downloadFile(url, headers);
-        } else {
-            console.warn('Electron API downloadFile not available, falling back to openDownloadLink');
-            this.openDownloadLink(url, null);
-        }
+        native.download.downloadFile(url, headers);
     }
 
     /**
@@ -52,61 +37,49 @@ export class ElectronDownloader {
         onComplete: (id: number, savePath: string, filename: string) => void,
         onError: (id: number, error: string) => void
     ): (() => void) | undefined {
-        if (typeof window !== 'undefined' && window.electronAPI) {
-            // Each listener returns a cleanup function
-            const cleanupStarted = window.electronAPI.onDownloadStarted((data: any) => {
-                onDownloadStarted(data.id, data.filename, data.totalBytes);
-            }) as (() => void) | undefined;
+        // Each listener returns a cleanup function
+        const cleanupStarted = native.download.onDownloadStarted((data: any) => {
+            onDownloadStarted(data.id, data.filename, data.totalBytes);
+        }) as (() => void) | undefined;
 
-            const cleanupProgress = window.electronAPI.onDownloadProgress((data: any) => {
-                onProgress(data.id, {
-                    totalBytes: data.totalBytes,
-                    receivedBytes: data.receivedBytes,
-                    speed: data.speed
-                });
-            }) as (() => void) | undefined;
+        const cleanupProgress = native.download.onDownloadProgress((data: any) => {
+            onProgress(data.id, {
+                totalBytes: data.totalBytes,
+                receivedBytes: data.receivedBytes,
+                speed: data.speed
+            });
+        }) as (() => void) | undefined;
 
-            const cleanupComplete = window.electronAPI.onDownloadComplete((data: any) => {
-                onComplete(data.id, data.path, data.filename);
-            }) as (() => void) | undefined;
+        const cleanupComplete = native.download.onDownloadComplete((data: any) => {
+            onComplete(data.id, data.path, data.filename);
+        }) as (() => void) | undefined;
 
-            const cleanupError = window.electronAPI.onDownloadError((data: any) => {
-                onError(data.id, data.error);
-            }) as (() => void) | undefined;
+        const cleanupError = native.download.onDownloadError((data: any) => {
+            onError(data.id, data.error);
+        }) as (() => void) | undefined;
 
-            // Return combined cleanup function
-            return () => {
-                if (cleanupStarted) cleanupStarted();
-                if (cleanupProgress) cleanupProgress();
-                if (cleanupComplete) cleanupComplete();
-                if (cleanupError) cleanupError();
-            };
-        }
-        return undefined;
+        // Return combined cleanup function
+        return () => {
+            if (cleanupStarted) cleanupStarted();
+            if (cleanupProgress) cleanupProgress();
+            if (cleanupComplete) cleanupComplete();
+            if (cleanupError) cleanupError();
+        };
     }
 
     static cancelDownload(id: number) {
-        if (typeof window !== 'undefined' && window.electronAPI) {
-            window.electronAPI.cancelDownload(id);
-        }
+        native.download.cancelDownload(id);
     }
 
     static showItemInFolder(path: string) {
-        if (typeof window !== 'undefined' && window.electronAPI) {
-            window.electronAPI.showItemInFolder(path);
-        }
+        native.shell.showItemInFolder(path);
     }
 
     static openPath(path: string) {
-        if (typeof window !== 'undefined' && window.electronAPI) {
-            window.electronAPI.openPath(path);
-        }
+        native.shell.openPath(path);
     }
 
     static async extractFile(filePath: string, destPath: string) {
-        if (typeof window !== 'undefined' && window.electronAPI) {
-            return await window.electronAPI.extractFile(filePath, destPath);
-        }
-        throw new Error('Extraction not supported in this environment');
+        return await native.mod.extractFile(filePath, destPath);
     }
 }

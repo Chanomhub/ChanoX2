@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Folder, File, FileCode, FileImage, FileAudio, FileVideo, ChevronRight, ArrowUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DirectoryEntry } from '@/types/electron';
+import { native } from '@/lib/native';
 
 interface GameFileBrowserProps {
     rootPath: string;
@@ -46,11 +47,10 @@ export default function GameFileBrowser({ rootPath }: GameFileBrowserProps) {
     const [error, setError] = useState<string | null>(null);
 
     const loadDirectory = useCallback(async (dirPath: string) => {
-        if (!window.electronAPI?.readDirectory) return;
         setLoading(true);
         setError(null);
         try {
-            const result = await window.electronAPI.readDirectory(dirPath);
+            const result = await native.fs.readDirectory(dirPath);
             if (result.success) {
                 setEntries(result.entries);
                 setCurrentPath(dirPath);
@@ -105,9 +105,7 @@ export default function GameFileBrowser({ rootPath }: GameFileBrowserProps) {
             loadDirectory(entry.path);
         } else {
             // Open file location in system file manager
-            if (window.electronAPI?.showItemInFolder) {
-                window.electronAPI.showItemInFolder(entry.path);
-            }
+            native.shell.showItemInFolder(entry.path);
         }
     };
 

@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { native } from '@/lib/native';
 
 function SectionHeader({ title }: { title: string }) {
     return (
@@ -23,24 +24,20 @@ export function MacSettings() {
     }, []);
 
     const loadSettings = async () => {
-        if (window.electronAPI) {
-            const settings = await window.electronAPI.getGlobalSettings();
-            if (settings.wineProvider === 'custom') {
-                setUseCustomCommand(true);
-            }
-            if (settings.externalWineCommand) {
-                setExternalCommand(settings.externalWineCommand);
-            }
+        const settings = await native.storage.getGlobalSettings();
+        if (settings.wineProvider === 'custom') {
+            setUseCustomCommand(true);
+        }
+        if (settings.externalWineCommand) {
+            setExternalCommand(settings.externalWineCommand);
         }
     };
 
     const saveSettings = async (enabled: boolean, command: string) => {
-        if (window.electronAPI) {
-            await window.electronAPI.saveGlobalSettings({
-                wineProvider: enabled ? 'custom' : 'internal',
-                externalWineCommand: command
-            });
-        }
+        await native.storage.saveGlobalSettings({
+            wineProvider: enabled ? 'custom' : 'internal',
+            externalWineCommand: command
+        });
     };
 
     const handleToggleCustom = (enabled: boolean) => {

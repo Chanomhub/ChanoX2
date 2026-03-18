@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/ScrollArea';
 import { Home, MessageSquare, Search, Filter, Plus, Clock, Star, Folder, File, Puzzle } from 'lucide-react';
 import { useLibrary } from '@/contexts/LibraryContext';
 import { getCoverImageSrc } from '@/lib/coverImage';
+import { native } from '@/lib/native';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -50,9 +51,8 @@ export default function LibrarySidebar({
     const filteredMods = filteredItems.filter(item => item.isMod);
 
     const handleAddGameFolder = async () => {
-        if (!window.electronAPI) return;
         try {
-            const path = await window.electronAPI.selectGameFolder();
+            const path = await native.dialog.selectGameFolder();
             if (path) {
                 // Use folder name as title
                 const name = path.split(/[/\\]/).pop() || 'Unknown Game';
@@ -67,9 +67,8 @@ export default function LibrarySidebar({
     };
 
     const handleAddGameArchive = async () => {
-        if (!window.electronAPI) return;
         try {
-            const path = await window.electronAPI.selectGameArchive();
+            const path = await native.dialog.selectGameArchive();
             if (path) {
                 // Use filename as title, remove extension
                 const filename = path.split(/[/\\]/).pop() || 'Unknown Game';

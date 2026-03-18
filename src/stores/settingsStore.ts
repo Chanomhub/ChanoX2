@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { native } from '@/lib/native';
 
 export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'mac' | 'notifications' | 'security';
 export type NsfwFilterLevel = 'low' | 'medium' | 'high';
@@ -33,12 +34,10 @@ export const useSettingsStore = create<SettingsStore>()(
             setDownloadPath: (path) => set({ downloadPath: path }),
             setNsfwFilterEnabled: (enabled) => {
                 set({ nsfwFilterEnabled: enabled });
-                // Also save to electron global settings
-                if (window.electronAPI) {
-                    window.electronAPI.getGlobalSettings().then(settings => {
-                        window.electronAPI?.saveGlobalSettings({ ...settings, nsfwFilterEnabled: enabled });
-                    });
-                }
+                // Also save to native global settings
+                native.storage.getGlobalSettings().then(settings => {
+                    native.storage.saveGlobalSettings({ ...settings, nsfwFilterEnabled: enabled });
+                });
             },
             setNsfwFilterLevel: (level) => {
                 set({ nsfwFilterLevel: level });
@@ -47,22 +46,18 @@ export const useSettingsStore = create<SettingsStore>()(
                     nsfwService.clearCache();
                     console.log('🔄 NSFW cache cleared due to sensitivity level change');
                 });
-                // Also save to electron global settings
-                if (window.electronAPI) {
-                    window.electronAPI.getGlobalSettings().then(settings => {
-                        window.electronAPI?.saveGlobalSettings({ ...settings, nsfwFilterLevel: level });
-                    });
-                }
+                // Also save to native global settings
+                native.storage.getGlobalSettings().then(settings => {
+                    native.storage.saveGlobalSettings({ ...settings, nsfwFilterLevel: level });
+                });
             },
             loadFromElectron: async () => {
-                if (window.electronAPI) {
-                    const settings = await window.electronAPI.getGlobalSettings();
-                    if (settings.nsfwFilterEnabled !== undefined) {
-                        set({ nsfwFilterEnabled: settings.nsfwFilterEnabled as boolean });
-                    }
-                    if (settings.nsfwFilterLevel !== undefined) {
-                        set({ nsfwFilterLevel: settings.nsfwFilterLevel as NsfwFilterLevel });
-                    }
+                const settings = await native.storage.getGlobalSettings();
+                if (settings.nsfwFilterEnabled !== undefined) {
+                    set({ nsfwFilterEnabled: settings.nsfwFilterEnabled as boolean });
+                }
+                if (settings.nsfwFilterLevel !== undefined) {
+                    set({ nsfwFilterLevel: settings.nsfwFilterLevel as NsfwFilterLevel });
                 }
             },
         }),

@@ -2,6 +2,7 @@ import { createContext, useContext, ReactNode, useCallback } from 'react';
 import { useDownloadSystem } from '@/hooks/useDownloadSystem';
 import { Download } from '@/types/download';
 import { useLibrary } from '@/contexts/LibraryContext';
+import { native } from '@/lib/native';
 
 interface DownloadContextType {
     downloads: Download[];
@@ -30,9 +31,9 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
             download.filename.toLowerCase().endsWith(ext)
         );
 
-        if (isArchive && download.savePath && window.electronAPI) {
+        if (isArchive && download.savePath) {
             const filename = download.filename;
-            const result = await window.electronAPI.moveArchiveToStorage(download.savePath, filename);
+            const result = await native.fs.moveArchiveToStorage(download.savePath, filename);
             if (result.success && result.newPath) {
                 finalArchivePath = result.newPath;
             }

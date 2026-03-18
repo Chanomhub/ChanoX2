@@ -15,6 +15,7 @@ import {
     XCircle
 } from 'lucide-react';
 import { WinetricksPackage } from '@/types/electron';
+import { native } from '@/lib/native';
 
 interface WinetricksDialogProps {
     open: boolean;
@@ -37,7 +38,7 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
 
     // Check if winetricks is installed and load packages
     useEffect(() => {
-        if (open && window.electronAPI) {
+        if (open) {
             checkWinetricks();
             loadPackages();
         }
@@ -45,9 +46,7 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
 
     // Listen for installation progress
     useEffect(() => {
-        if (!window.electronAPI) return;
-
-        const cleanup = window.electronAPI.onWinetricksProgress((data) => {
+        const cleanup = native.wine.onWinetricksProgress((data) => {
             setInstallOutput(prev => prev + data.output);
         });
 
@@ -57,20 +56,18 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
     }, []);
 
     const checkWinetricks = async () => {
-        if (!window.electronAPI) return;
-        const result = await window.electronAPI.checkWinetricksInstalled();
+        const result = await native.wine.checkWinetricksInstalled();
         setWinetricksInstalled(result.installed);
         setWinetricksVersion(result.version);
     };
 
     const loadPackages = async () => {
-        if (!window.electronAPI) return;
-        const pkgs = await window.electronAPI.getWinetricksPackages();
+        const pkgs = await native.wine.getWinetricksPackages();
         setPackages(pkgs);
     };
 
     const handleInstall = async (packageId: string) => {
-        if (!window.electronAPI || installingPackage) return;
+        if (installingPackage) return;
 
         setInstallingPackage(packageId);
         setInstallOutput('');
@@ -78,7 +75,7 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
         setSuccessMessage(null);
 
         try {
-            const result = await window.electronAPI.installWinetricksPackage(packageId, winePrefix);
+            const result = await native.wine.installWinetricksPackage(packageId, winePrefix);
 
             if (result.success) {
                 setSuccessMessage(`${packageId} installed successfully!`);
@@ -95,8 +92,7 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
     };
 
     const handleCancelInstall = async () => {
-        if (!window.electronAPI) return;
-        await window.electronAPI.cancelWinetricksInstall();
+        await native.wine.cancelWinetricksInstall();
         setInstallingPackage(null);
         setInstallOutput('');
     };

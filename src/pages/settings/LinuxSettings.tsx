@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { native } from '@/lib/native';
 
 function SectionHeader({ title }: { title: string }) {
     return (
@@ -34,27 +35,24 @@ export function LinuxSettings() {
     }, [wineProvider]);
 
     const loadSettings = async () => {
-        if (window.electronAPI) {
-            const settings = await window.electronAPI.getGlobalSettings();
-            if (settings.wineProvider) {
-                setWineProvider(settings.wineProvider);
-            }
-            if (settings.externalWineCommand) {
-                setExternalCommand(settings.externalWineCommand);
-                // Extract bottle name from command
-                const match = settings.externalWineCommand.match(/-b\s+([^\s]+)/);
-                if (match) {
-                    setSelectedBottle(match[1]);
-                }
+        const settings = await native.storage.getGlobalSettings();
+        if (settings.wineProvider) {
+            setWineProvider(settings.wineProvider);
+        }
+        if (settings.externalWineCommand) {
+            setExternalCommand(settings.externalWineCommand);
+            // Extract bottle name from command
+            const match = settings.externalWineCommand.match(/-b\s+([^\s]+)/);
+            if (match) {
+                setSelectedBottle(match[1]);
             }
         }
     };
 
     const loadBottles = async () => {
-        if (!window.electronAPI) return;
         setLoadingBottles(true);
         try {
-            const result = await window.electronAPI.listBottles();
+            const result = await native.wine.listBottles();
             if (result.success && result.bottles.length > 0) {
                 setAvailableBottles(result.bottles);
                 // Auto-select first bottle if none selected
@@ -74,12 +72,10 @@ export function LinuxSettings() {
     };
 
     const saveSettings = async (provider: 'internal' | 'bottles' | 'custom', command: string) => {
-        if (window.electronAPI) {
-            await window.electronAPI.saveGlobalSettings({
-                wineProvider: provider,
-                externalWineCommand: command
-            });
-        }
+        await native.storage.saveGlobalSettings({
+            wineProvider: provider,
+            externalWineCommand: command
+        });
     };
 
     const handleProviderChange = (provider: 'internal' | 'bottles') => {
@@ -106,7 +102,7 @@ export function LinuxSettings() {
 
     // Only show on Linux
     const isLinux = navigator.platform.toLowerCase().includes('linux');
-    if (!isLinux && !window.electronAPI) return null;
+    if (!isLinux && !native.isDesktop) return null;
 
     return (
         <div>

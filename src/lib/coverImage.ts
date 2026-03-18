@@ -2,11 +2,12 @@
  * Get the best available cover image source
  * Prefers local cached image, falls back to online URL
  */
+import { native } from '@/lib/native';
+
 export function getCoverImageSrc(localCoverImage?: string, coverImage?: string): string | undefined {
-    // If we have a local path, use file:// protocol for Electron
+    // If we have a local path, use file:// protocol for desktop environments
     if (localCoverImage) {
-        // Check if running in Electron and path is absolute
-        if (typeof window !== 'undefined' && window.electronAPI) {
+        if (native.isDesktop) {
             return `file://${localCoverImage}`;
         }
         return localCoverImage;

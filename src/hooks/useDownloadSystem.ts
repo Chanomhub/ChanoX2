@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ElectronDownloader } from '@/lib/electronDownloader';
 import { Download } from '@/types/download';
+import { native } from '@/lib/native';
 
 type OnExtractionComplete = (download: Download, extractedPath: string) => void;
 
@@ -18,27 +19,25 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
     useEffect(() => {
         const loadDownloads = async () => {
             try {
-                if (window.electronAPI) {
-                    const saved = await window.electronAPI.getDownloads();
-                    if (saved && Array.isArray(saved)) {
-                        // Restore Dates and filter out completed (they go to Library now)
-                        const restored = saved
-                            .map((d: any) => ({
-                                ...d,
-                                startTime: new Date(d.startTime),
-                                endTime: d.endTime ? new Date(d.endTime) : undefined,
-                                // Reset stuck downloading states
-                                status: d.status === 'downloading' ? 'failed' : d.status,
-                                error: d.status === 'downloading' ? 'Download interrupted by app close' : d.error
-                            }))
-                            // Filter: only keep non-completed (completed items are in Library)
-                            .filter((d: any) => d.status !== 'completed');
+                const saved = await native.storage.getDownloads();
+                if (saved && Array.isArray(saved)) {
+                    // Restore Dates and filter out completed (they go to Library now)
+                    const restored = saved
+                        .map((d: any) => ({
+                            ...d,
+                            startTime: new Date(d.startTime),
+                            endTime: d.endTime ? new Date(d.endTime) : undefined,
+                            // Reset stuck downloading states
+                            status: d.status === 'downloading' ? 'failed' : d.status,
+                            error: d.status === 'downloading' ? 'Download interrupted by app close' : d.error
+                        }))
+                        // Filter: only keep non-completed (completed items are in Library)
+                        .filter((d: any) => d.status !== 'completed');
 
-                        // Deduplicate based on ID
-                        const uniqueDownloads = Array.from(new Map(restored.map((item: any) => [item.id, item])).values());
+                    // Deduplicate based on ID
+                    const uniqueDownloads = Array.from(new Map(restored.map((item: any) => [item.id, item])).values());
 
-                        setDownloads(uniqueDownloads as Download[]);
-                    }
+                    setDownloads(uniqueDownloads as Download[]);
                 }
             } catch (err) {
                 console.error('Failed to load downloads from file system:', err);
@@ -51,10 +50,10 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
 
     // Persist to Electron Store whenever downloads change - only persist non-completed
     useEffect(() => {
-        if (isLoadedRef.current && window.electronAPI) {
+        if (isLoadedRef.current) {
             // Don't persist completed downloads - they are now in Library
             const toSave = downloads.filter(d => d.status !== 'completed');
-            window.electronAPI.saveDownloads(toSave);
+            native.storage.saveDownloads(toSave);
         }
     }, [downloads]);
 

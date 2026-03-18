@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
 import { useSettingsStore, SettingsSection } from '@/stores/settingsStore';
 import packageJson from '../../package.json';
+import { native } from '@/lib/native';
 
 import { format } from 'date-fns';
 import { useNotification } from '@/contexts/NotificationContext';
@@ -197,7 +198,7 @@ function GeneralSection() {
                                 <Loader2 className="w-5 h-5 text-chanox-accent animate-spin" />
                             ) : isUpdateAvailable ? (
                                 <Button
-                                    onClick={() => releaseUrl && window.electronAPI?.openExternal(releaseUrl)}
+                                    onClick={() => releaseUrl && native.shell.openExternal(releaseUrl)}
                                     className="bg-green-600 hover:bg-green-700"
                                     size="sm"
                                     icon={<ExternalLink size={14} />}
@@ -403,24 +404,20 @@ function StorageSection() {
     }, []);
 
     const loadStorageInfo = async () => {
-        if (window.electronAPI) {
-            const path = await window.electronAPI.getDownloadDirectory();
-            setDownloadPath(path);
-            const space = await window.electronAPI.getDiskSpace(path);
-            if (space) {
-                setDiskSpace({ free: space.free, total: space.total });
-            }
+        const path = await native.storage.getDownloadDirectory();
+        setDownloadPath(path);
+        const space = await native.fs.getDiskSpace(path);
+        if (space) {
+            setDiskSpace({ free: space.free, total: space.total });
         }
     };
 
     const handleChangeLocation = async () => {
-        if (window.electronAPI) {
-            const path = await window.electronAPI.selectDownloadDirectory();
-            if (path) {
-                const success = await window.electronAPI.setDownloadDirectory(path);
-                if (success) {
-                    loadStorageInfo();
-                }
+        const path = await native.dialog.selectDownloadDirectory();
+        if (path) {
+            const success = await native.storage.setDownloadDirectory(path);
+            if (success) {
+                loadStorageInfo();
             }
         }
     };

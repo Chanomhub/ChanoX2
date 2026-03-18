@@ -3,6 +3,7 @@ import { login as apiLogin, register as apiRegister, loginWithSupabaseToken, log
 
 import { supabase, isSupabaseConfigured } from '../libs/supabase';
 import { sdk, setToken as sdkSetToken } from '../libs/sdk';
+import { native } from '@/lib/native';
 
 interface AuthContextType {
     user: User | null;
@@ -29,27 +30,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ACCOUNTS_KEY = 'chanox2_accounts';
 const ACTIVE_USER_ID_KEY = 'chanox2_active_user_id';
 
-// Universal Storage (Electron IPC or LocalStorage)
+// Universal Storage — delegates to the active native adapter
 const storage = {
     async getItem(key: string): Promise<string | null> {
-        if (window.electronAPI) {
-            return await window.electronAPI.getAuthData(key);
-        }
-        return localStorage.getItem(key);
+        return await native.storage.getAuthData(key);
     },
     async setItem(key: string, value: string): Promise<void> {
-        if (window.electronAPI) {
-            await window.electronAPI.saveAuthData(key, value);
-        } else {
-            localStorage.setItem(key, value);
-        }
+        await native.storage.saveAuthData(key, value);
     },
     async removeItem(key: string): Promise<void> {
-        if (window.electronAPI) {
-            await window.electronAPI.removeAuthData(key);
-        } else {
-            localStorage.removeItem(key);
-        }
+        await native.storage.removeAuthData(key);
     }
 };
 
@@ -183,12 +173,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
-        // Electron OAuth callback listener
+        // OAuth callback listener via native adapter
         let cleanupOAuth: (() => void) | void;
-        if (window.electronAPI?.onOAuthCallback) {
-            console.log('Setting up Electron OAuth callback listener');
-            cleanupOAuth = window.electronAPI.onOAuthCallback(async (data) => {
-                console.log('OAuth callback received from Electron');
+        if (native.isDesktop) {
+            console.log('Setting up OAuth callback listener');
+            cleanupOAuth = native.oauth.onOAuthCallback(async (data) => {
+                console.log('OAuth callback received');
                 if (data.accessToken) {
                     try {
                         await handleSupabaseCallback(data.accessToken);
@@ -305,13 +295,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loginWithGoogle = async () => {
         if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
 
-        const isElectron = !!window.electronAPI;
-
-        if (isElectron) {
-            // Electron: Open OAuth in external browser
+        if (native.isDesktop) {
+            // Desktop: Open OAuth in external browser
             try {
-                console.log('Starting OAuth server for Electron...');
-                const { port } = await window.electronAPI!.startOAuthServer();
+                console.log('Starting OAuth server...');
+                const { port } = await native.oauth.startOAuthServer();
                 const redirectUrl = `http://localhost:${port}/callback`;
 
                 console.log('OAuth redirect URL:', redirectUrl);
@@ -329,12 +317,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.log('Opening OAuth URL in external browser');
                     // Store URL for manual copy fallback (GNOME may not open browser)
                     setOAuthUrl(url);
-                    window.electronAPI!.openExternal(url);
+                    native.shell.openExternal(url);
                 }
-                // Callback will be handled via IPC event listener
+                // Callback will be handled via event listener
                 return;
             } catch (err) {
-                console.error('Electron OAuth failed, falling back to in-app:', err);
+                console.error('Desktop OAuth failed, falling back to in-app:', err);
                 // Fall through to web flow
             }
         }

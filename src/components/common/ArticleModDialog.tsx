@@ -7,6 +7,7 @@ import { Mod } from '@chanomhub/sdk';
 import useSWR from 'swr';
 import { useInstalledMods } from '@/hooks/useInstalledMods';
 import { useAuth } from '@/contexts/AuthContext';
+import { native } from '@/lib/native';
 
 interface ArticleModDialogProps {
     open: boolean;
@@ -38,8 +39,8 @@ export function ArticleModDialog({
     );
 
     const handleInstall = async (mod: Mod) => {
-        if (!gamePath || !window.electronAPI) {
-            alert('Cannot install mod: Game path not found or Electron API unavailable.');
+        if (!gamePath) {
+            alert('Cannot install mod: Game path not found.');
             return;
         }
 
@@ -66,8 +67,8 @@ export function ArticleModDialog({
             const cleanName = `${mod.name}_${mod.version}`.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
             const safeName = `${cleanName}.lpack`;
 
-            // 4. Call Electron Install
-            const result = await window.electronAPI.installMod(
+            // 4. Call Install via native adapter
+            const result = await native.download.installMod(
                 downloadUrl,
                 gamePath,
                 safeName,
@@ -106,12 +107,10 @@ export function ArticleModDialog({
     };
 
     const handleOpenStore = () => {
-        if (window.electronAPI) {
-            const url = articleSlug
-                ? `https://chanomhub.com/articles/${articleSlug}`
-                : `https://chanomhub.com/posts/${articleId}`;
-            window.electronAPI.openExternal(url);
-        }
+        const url = articleSlug
+            ? `https://chanomhub.com/articles/${articleSlug}`
+            : `https://chanomhub.com/posts/${articleId}`;
+        native.shell.openExternal(url);
     };
 
     return (

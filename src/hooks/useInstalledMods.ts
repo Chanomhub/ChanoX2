@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
+import { native } from '@/lib/native';
 
 export interface InstalledMod {
     id: number;
@@ -16,13 +17,13 @@ export function useInstalledMods(gamePath: string | undefined) {
     const manifestPath = gamePath ? `${gamePath}/installed_mods.json` : undefined;
 
     const loadManifest = useCallback(async () => {
-        if (!manifestPath || !window.electronAPI) {
+        if (!manifestPath) {
             setLoading(false);
             return;
         }
 
         try {
-            const content = await window.electronAPI.readFileContent(manifestPath);
+            const content = await native.fs.readFileContent(manifestPath);
             if (content) {
                 const mods = JSON.parse(content);
                 setInstalledMods(Array.isArray(mods) ? mods : []);
@@ -38,9 +39,9 @@ export function useInstalledMods(gamePath: string | undefined) {
     }, [manifestPath]);
 
     const saveManifest = useCallback(async (mods: InstalledMod[]) => {
-        if (!manifestPath || !window.electronAPI) return;
+        if (!manifestPath) return;
         try {
-            await window.electronAPI.writeFileContent(manifestPath, JSON.stringify(mods, null, 2));
+            await native.fs.writeFileContent(manifestPath, JSON.stringify(mods, null, 2));
             setInstalledMods(mods);
         } catch (err) {
             console.error('Failed to save installed mods manifest:', err);
@@ -58,12 +59,12 @@ export function useInstalledMods(gamePath: string | undefined) {
 
     const removeInstalledMod = async (modId: number) => {
         const mod = installedMods.find(m => m.id === modId);
-        if (!mod || !gamePath || !window.electronAPI) return;
+        if (!mod || !gamePath) return;
 
         // Delete the file first
         const filePath = `${gamePath}/${mod.filename}`;
         try {
-            await window.electronAPI.deleteFile(filePath);
+            await native.fs.deleteFile(filePath);
         } catch (err) {
             console.error('Failed to delete mod file:', err);
             // We might still want to remove it from manifest if file is gone
