@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ElectronDownloader } from '@/lib/electronDownloader';
 import { Download } from '@/types/download';
+import { sdk } from '@/libs/sdk';
 
 type OnExtractionComplete = (download: Download, extractedPath: string) => void;
 
@@ -241,7 +242,14 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
             description,
             body
         };
-        ElectronDownloader.openDownloadLink(url, null);
+
+        // Use parallel/authenticated download for storage.chanomhub.com
+        if (url && url.includes('storage.chanomhub.com') && sdk.config.token) {
+            const headers = { 'Authorization': `Bearer ${sdk.config.token}` };
+            ElectronDownloader.downloadFile(url, headers);
+        } else {
+            ElectronDownloader.openDownloadLink(url, null);
+        }
     };
 
     const cancelDownload = (id: number) => {

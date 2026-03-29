@@ -28,6 +28,7 @@ if (fs.existsSync(envPath)) {
 const platformHandler = require('./platforms/index.cjs');
 const GameCompatibility = require('./services/GameCompatibility.cjs');
 const ExtractorService = require('./services/ExtractorService.cjs');
+const ParallelDownloader = require('./services/ParallelDownloader.cjs');
 
 // Set app name to ensure userData path is correct
 app.name = 'ChanoX2';
@@ -66,6 +67,7 @@ let downloadId = Date.now();
 let downloadDirectory = DEFAULT_DIR;
 let oauthServer = null;
 const OAUTH_CALLBACK_PORT = 9876;
+let parallelDownloader = null;
 
 // Parse command line arguments for game launch
 function parseLaunchGameArg(args) {
@@ -332,6 +334,9 @@ function createWindow() {
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
+
+    // Initialize parallel downloader
+    parallelDownloader = new ParallelDownloader(mainWindow, downloadDirectory, activeDownloads, () => downloadId++);
 }
 
 // ============= IPC Handlers =============
@@ -455,6 +460,17 @@ ipcMain.on('cancel-download', (event, id) => {
 ipcMain.on('download-file', (event, { url, headers }) => {
     console.log('📥 [Main] Received download-file request:', url);
     console.log('   Headers:', headers ? 'Present' : 'None');
+    
+    // Use parallel downloader for storage.chanomhub.com
+    if (url.includes('storage.chanomhub.com')) {
+        if (parallelDownloader) {
+            // Update directory in case it changed
+            parallelDownloader.downloadDirectory = downloadDirectory;
+            parallelDownloader.download(url, headers);
+            return;
+        }
+    }
+
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
         const options = {};
