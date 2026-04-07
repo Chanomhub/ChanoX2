@@ -1030,7 +1030,21 @@ ipcMain.handle('save-game-config', (event, { gameId, config }) => {
 });
 
 ipcMain.handle('get-global-settings', () => loadJsonFile(SETTINGS_FILE));
-ipcMain.handle('save-global-settings', (event, settings) => saveJsonFile(SETTINGS_FILE, settings));
+ipcMain.handle('save-global-settings', (event, settings) => {
+    const oldSettings = loadJsonFile(SETTINGS_FILE);
+    const result = saveJsonFile(SETTINGS_FILE, settings);
+    
+    // Handle Discord RPC toggle
+    if (settings.discordRPCEnabled === true && oldSettings.discordRPCEnabled !== true) {
+        console.log('🎮 [Main] Discord RPC enabled by user');
+        DiscordService.init();
+    } else if (settings.discordRPCEnabled === false && oldSettings.discordRPCEnabled !== false) {
+        console.log('🎮 [Main] Discord RPC disabled by user');
+        DiscordService.shutdown();
+    }
+    
+    return result;
+});
 
 ipcMain.handle('get-downloads', () => loadJsonFile(DOWNLOADS_FILE, []));
 ipcMain.handle('save-downloads', (event, downloads) => saveJsonFile(DOWNLOADS_FILE, downloads));
@@ -1826,7 +1840,12 @@ async function checkForUpdates() {
 // ============= App Lifecycle =============
 
 app.whenReady().then(() => {
-    DiscordService.init();
+    // Check if Discord RPC is enabled in settings before initializing
+    const globalSettings = loadJsonFile(SETTINGS_FILE);
+    if (globalSettings.discordRPCEnabled !== false) {
+        DiscordService.init();
+    }
+    
     createWindow();
     setTimeout(checkForUpdates, 3000);
 

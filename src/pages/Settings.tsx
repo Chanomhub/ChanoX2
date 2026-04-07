@@ -144,7 +144,10 @@ function AccountSection() {
 function GeneralSection() {
     const { t } = useTranslation();
     const { language, setLanguage } = useLanguage();
-    const { nsfwFilterEnabled, setNsfwFilterEnabled, nsfwFilterLevel, setNsfwFilterLevel } = useSettingsStore();
+    const { 
+        nsfwFilterEnabled, setNsfwFilterEnabled, 
+        nsfwFilterLevel, setNsfwFilterLevel
+    } = useSettingsStore();
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -585,6 +588,40 @@ function NotificationsSection() {
     );
 }
 
+function DiscordSection() {
+    const { discordRPCEnabled, setDiscordRPCEnabled } = useSettingsStore();
+    return (
+        <div>
+            <SectionHeader title="Discord Rich Presence" />
+            <Card className="bg-chanox-surface border-chanox-border">
+                <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 bg-blue-500/10 rounded-lg">
+                            <MonitorCog className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                                <Label htmlFor="discord-rpc" className="text-zinc-100 font-medium cursor-pointer">
+                                    Enabled
+                                </Label>
+                                <Checkbox
+                                    id="discord-rpc"
+                                    checked={discordRPCEnabled}
+                                    onCheckedChange={(checked) => setDiscordRPCEnabled(checked as boolean)}
+                                />
+                            </div>
+                            <p className="text-zinc-500 text-sm">
+                                Show your current activity and game status on Discord.
+                                Let your friends know what you're playing through ChanoX2.
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 // Placeholder Section (Renamed or removed if no longer used by others)
 function SecuritySection() {
     return (
@@ -610,6 +647,7 @@ export default function Settings() {
         ...(isLinux ? [{ id: 'linux' as const, label: 'Linux', icon: <MonitorCog size={18} />, group: 'PREFERENCES' }] : []),
         ...(isMac ? [{ id: 'mac' as const, label: 'MacOS', icon: <MonitorCog size={18} />, group: 'PREFERENCES' }] : []),
         { id: 'notifications', label: 'Notifications', icon: <Bell size={18} />, group: 'APPLICATION' },
+        { id: 'discord', label: 'Discord', icon: <MonitorCog size={18} />, group: 'APPLICATION' },
         { id: 'security', label: 'Security', icon: <Shield size={18} />, group: 'APPLICATION' },
     ];
 
@@ -627,6 +665,8 @@ export default function Settings() {
                 return <MacSettings />;
             case 'notifications':
                 return <NotificationsSection />;
+            case 'discord':
+                return <DiscordSection />;
             case 'security':
                 return <SecuritySection />;
             default:

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'mac' | 'notifications' | 'security';
+export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'mac' | 'notifications' | 'security' | 'discord';
 export type NsfwFilterLevel = 'low' | 'medium' | 'high';
 
 interface SettingsStore {
@@ -10,12 +10,14 @@ interface SettingsStore {
     downloadPath: string;
     nsfwFilterEnabled: boolean;
     nsfwFilterLevel: NsfwFilterLevel;
+    discordRPCEnabled: boolean;
     openSettings: () => void;
     closeSettings: () => void;
     setActiveSection: (section: SettingsSection) => void;
     setDownloadPath: (path: string) => void;
     setNsfwFilterEnabled: (enabled: boolean) => void;
     setNsfwFilterLevel: (level: NsfwFilterLevel) => void;
+    setDiscordRPCEnabled: (enabled: boolean) => void;
     loadFromElectron: () => Promise<void>;
 }
 
@@ -27,6 +29,7 @@ export const useSettingsStore = create<SettingsStore>()(
             downloadPath: '',
             nsfwFilterEnabled: false,
             nsfwFilterLevel: 'medium',
+            discordRPCEnabled: true,
             openSettings: () => set({ isOpen: true }),
             closeSettings: () => set({ isOpen: false }),
             setActiveSection: (section) => set({ activeSection: section }),
@@ -54,6 +57,14 @@ export const useSettingsStore = create<SettingsStore>()(
                     });
                 }
             },
+            setDiscordRPCEnabled: (enabled) => {
+                set({ discordRPCEnabled: enabled });
+                if (window.electronAPI) {
+                    window.electronAPI.getGlobalSettings().then(settings => {
+                        window.electronAPI?.saveGlobalSettings({ ...settings, discordRPCEnabled: enabled });
+                    });
+                }
+            },
             loadFromElectron: async () => {
                 if (window.electronAPI) {
                     const settings = await window.electronAPI.getGlobalSettings();
@@ -63,6 +74,9 @@ export const useSettingsStore = create<SettingsStore>()(
                     if (settings.nsfwFilterLevel !== undefined) {
                         set({ nsfwFilterLevel: settings.nsfwFilterLevel as NsfwFilterLevel });
                     }
+                    if (settings.discordRPCEnabled !== undefined) {
+                        set({ discordRPCEnabled: settings.discordRPCEnabled as boolean });
+                    }
                 }
             },
         }),
@@ -71,6 +85,7 @@ export const useSettingsStore = create<SettingsStore>()(
             partialize: (state) => ({
                 nsfwFilterEnabled: state.nsfwFilterEnabled,
                 nsfwFilterLevel: state.nsfwFilterLevel,
+                discordRPCEnabled: state.discordRPCEnabled,
             }),
         }
     )

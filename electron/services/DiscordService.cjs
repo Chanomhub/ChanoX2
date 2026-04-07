@@ -4,7 +4,7 @@ const path = require('path');
 class DiscordService {
     constructor() {
         this.client = null;
-        this.clientId = '1347895058774786048'; // TODO: Replace with real ChanoX2 Client ID
+        this.clientId = '1491120618043609280'; // ChanoX2 Client ID
         this.currentActivity = null;
         this.startTime = Date.now();
         this.reconnectTimer = null;
@@ -14,6 +14,23 @@ class DiscordService {
     async init() {
         if (this.client || this.isConnecting) return;
         
+        // Final safety check: read settings from file
+        try {
+            const { app } = require('electron');
+            const fs = require('fs');
+            const path = require('path');
+            const settingsFile = path.join(app.getPath('userData'), 'settings.json');
+            if (fs.existsSync(settingsFile)) {
+                const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+                if (settings.discordRPCEnabled === false) {
+                    console.log('🎮 [Discord] Skipping initialization: Disabled in settings');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ [Discord] Error checking settings:', e.message);
+        }
+
         console.log('🎮 [Discord] Initializing Discord RPC...');
         this.isConnecting = true;
 
