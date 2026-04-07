@@ -29,6 +29,7 @@ const platformHandler = require('./platforms/index.cjs');
 const GameCompatibility = require('./services/GameCompatibility.cjs');
 const ExtractorService = require('./services/ExtractorService.cjs');
 const ParallelDownloader = require('./services/ParallelDownloader.cjs');
+const DiscordService = require('./services/DiscordService.cjs');
 
 // Set app name to ensure userData path is correct
 app.name = 'ChanoX2';
@@ -1561,6 +1562,18 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
             // Track running game
             if (gameId) {
                 runningGames.set(gameId, { subprocess, startTime, pid: subprocess.pid });
+
+                // Update Discord status
+                try {
+                    const library = loadJsonFile(LIBRARY_FILE, []);
+                    const gameInfo = library.find(item => String(item.id) === String(gameId));
+                    if (gameInfo) {
+                        DiscordService.setGameActivity(gameInfo.title, startTime);
+                    }
+                } catch (e) {
+                    console.warn('⚠️ [Main] Failed to update Discord activity:', e.message);
+                }
+
                 // Notify frontend that game started
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('game-started', { gameId, pid: subprocess.pid });
@@ -1581,6 +1594,9 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
             subprocess.on('close', (code) => {
                 const duration = Math.floor((Date.now() - startTime) / 1000);
                 console.log('🎮 [launch-game] Process closed:', { code, duration, gameId });
+
+                // Reset Discord status to idle
+                DiscordService.setIdleActivity();
 
                 // Remove from running games and notify frontend
                 if (gameId) {
@@ -1810,6 +1826,7 @@ async function checkForUpdates() {
 // ============= App Lifecycle =============
 
 app.whenReady().then(() => {
+    DiscordService.init();
     createWindow();
     setTimeout(checkForUpdates, 3000);
 
@@ -1828,6 +1845,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+    DiscordService.shutdown();
     if (process.platform !== 'darwin') app.quit();
 });
 

@@ -24,6 +24,7 @@
     "@types/dompurify": "^3.2.0",
     "ably": "^2.21.0",
     "date-fns": "^4.1.0",
+    "discord-rpc": "^4.0.1",
     "dompurify": "^3.3.3",
     "graphql": "^16.13.2",
     "graphql-request": "^7.4.0",
