@@ -65,7 +65,7 @@ function ReviewBar({ score, count }: { score?: number; count?: number }) {
 function PriceTag({ price, originalPrice, discount, isFree }: {
     price?: number; originalPrice?: number; discount?: number; isFree?: boolean;
 }) {
-    if (isFree) return (
+    if (isFree || price === 0) return (
         <span className="text-xs font-bold text-[#66c0f4]">FREE</span>
     );
     if (price == null) return null;
