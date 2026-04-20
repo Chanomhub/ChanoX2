@@ -14,6 +14,8 @@ interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     quality?: number;
     resizeType?: ImgproxyResizeType;
     format?: ImgproxyFormat;
+    priority?: boolean;
+    skipNSFW?: boolean;
 }
 
 // imgproxy server URL
@@ -32,6 +34,8 @@ export function SafeImage({
     quality,
     resizeType,
     format,
+    priority,
+    skipNSFW,
     ...props
 }: SafeImageProps) {
     const { nsfwFilterEnabled, nsfwFilterLevel } = useSettingsStore();
@@ -63,7 +67,9 @@ export function SafeImage({
     // Reset state when resolvedSrc changes
     useEffect(() => {
         setIsChecking(false);
-        setIsNSFW(false);
+        // Pre-fill NSFW state from cache if available to avoid flicker/blur
+        const cachedResult = nsfwService.getCachedResult(resolvedSrc);
+        setIsNSFW(cachedResult ?? false);
         setShowAnyway(false);
         setCurrentSrc(resolvedSrc);
         setHasErrored(false);
@@ -93,7 +99,7 @@ export function SafeImage({
     };
 
     const handleLoad = async (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-        if (!nsfwFilterEnabled) return;
+        if (!nsfwFilterEnabled || skipNSFW) return;
 
         const img = e.target as HTMLImageElement;
 
@@ -117,7 +123,7 @@ export function SafeImage({
     };
 
     // If filter is disabled, render normal image with fallback support
-    if (!nsfwFilterEnabled) {
+    if (!nsfwFilterEnabled || skipNSFW) {
         if (!currentSrc) return null;
         return (
             <img
@@ -125,7 +131,7 @@ export function SafeImage({
                 src={currentSrc}
                 alt={alt}
                 className={className}
-                loading="lazy"
+                loading={priority ? "eager" : "lazy"}
                 onLoad={handleImageLoad}
                 onError={handleError}
                 {...props}

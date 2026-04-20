@@ -77,6 +77,7 @@ export default function FeaturedCarousel({ articles, sponsored }: FeaturedCarous
                                 src={getOptimizedImageUrl(currentArticle.coverImage, { height: 320, fit: 'cover' })}
                                 alt={currentArticle.title}
                                 className="w-full h-full object-cover absolute inset-0"
+                                priority
                             />
                         ) : (
                             <div className="w-full h-full bg-[#2a475e] absolute inset-0" />

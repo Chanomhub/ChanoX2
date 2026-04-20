@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Article, ArticleImage } from '@/types/graphql';
 import {
@@ -138,6 +138,7 @@ export default function GameListSection({
     const [hoveredArticle, setHoveredArticle] = useState<ArticleWithImages | null>(null);
     const [previewImageIndex, setPreviewImageIndex] = useState(0);
     const [wishlist, setWishlist] = useState<Set<number>>(new Set());
+    const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleSearch = () => {
         if (searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
@@ -162,8 +163,12 @@ export default function GameListSection({
     }, [articles, currentPage]);
 
     useEffect(() => {
-        if (displayedArticles.length > 0 && !hoveredArticle)
-            setHoveredArticle(displayedArticles[0]);
+        if (displayedArticles.length > 0 && !hoveredArticle) {
+            const t = setTimeout(() => {
+                setHoveredArticle(displayedArticles[0]);
+            }, 500); // Wait 500ms before showing first preview on page load
+            return () => clearTimeout(t);
+        }
     }, [displayedArticles]);
 
     const toggleWishlist = (id: number, e: React.MouseEvent) => {
@@ -209,7 +214,15 @@ export default function GameListSection({
                         const liked = wishlist.has(article.id);
                         return (
                             <Link key={article.id} to={`/article/${article.slug}`}
-                                onMouseEnter={() => setHoveredArticle(article)}
+                                onMouseEnter={() => {
+                                    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                                    hoverTimeoutRef.current = setTimeout(() => {
+                                        setHoveredArticle(article);
+                                    }, 150);
+                                }}
+                                onMouseLeave={() => {
+                                    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                                }}
                                 className={cn(
                                     'relative flex items-stretch border-b border-[#0d1b27] group transition-colors duration-100',
                                     active
@@ -438,6 +451,7 @@ export default function GameListSection({
                                             src={getOptimizedImageUrl(img.url, { width: 66, height: 44, fit: 'cover' })}
                                             alt={`Screen ${i + 1}`}
                                             className="w-full h-full object-cover"
+                                            skipNSFW // Skip NSFW for small thumbnails
                                         />
                                     </button>
                                 ))}

@@ -102,6 +102,9 @@ class NSFWService {
     private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
     private customModelUrl: string | null = null;
     private currentModelUrl: string | null = null;
+    private activeChecks = 0;
+    private readonly MAX_CONCURRENT = 2;
+    private checkQueue: (() => void)[] = [];
 
     constructor() {
         // Load custom model URL from storage
@@ -213,6 +216,16 @@ class NSFWService {
     }
 
     /**
+     * Check cache synchronously for a result
+     * @param imageUrl The image URL to check
+     * @returns True if NSFW, False if safe, Undefined if not in cache
+     */
+    getCachedResult(imageUrl?: string): boolean | undefined {
+        if (!imageUrl) return undefined;
+        return nsfwCache.get(imageUrl);
+    }
+
+    /**
      * Check an image element for NSFW content
      * @param imgElement Must be an HTMLImageElement, HTMLVideoElement, or HTMLCanvasElement
      * @param imageUrl Optional URL to use as cache key
@@ -228,9 +241,16 @@ class NSFWService {
         const cacheKey = imageUrl || (imgElement instanceof HTMLImageElement ? imgElement.src : undefined);
 
         if (cacheKey && nsfwCache.has(cacheKey)) {
-            console.log('NSFW Check (cached):', cacheKey.substring(0, 50), '→', nsfwCache.get(cacheKey) ? 'NSFW' : 'Safe');
+            // console.log('NSFW Check (cached):', cacheKey.substring(0, 50), '→', nsfwCache.get(cacheKey) ? 'NSFW' : 'Safe');
             return nsfwCache.get(cacheKey)!;
         }
+
+        // Concurrency control: wait if too many checks are running
+        if (this.activeChecks >= this.MAX_CONCURRENT) {
+            await new Promise<void>(resolve => this.checkQueue.push(resolve));
+        }
+
+        this.activeChecks++;
 
         try {
             const model = await this.loadModel();
@@ -285,6 +305,14 @@ class NSFWService {
             console.error('Error checking image safety:', error);
             // Fail safe: assume safe if check fails
             return false;
+        } finally {
+            this.activeChecks--;
+            // Run next in queue
+            const next = this.checkQueue.shift();
+            if (next) {
+                this.activeChecks++;
+                next();
+            }
         }
     }
 
