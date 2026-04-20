@@ -161,6 +161,17 @@ export default function GameListSection({
     // Scroll active thumbnail into view
     useEffect(() => {
         if (!thumbnailScrollRef.current) return;
+
+        // Only scroll if the thumbnail container is actually visible in the viewport
+        // to prevent the page from jumping when the user is looking at other sections
+        const rect = thumbnailScrollRef.current.getBoundingClientRect();
+        const isVisible = (
+            rect.top < window.innerHeight &&
+            rect.bottom > 0
+        );
+
+        if (!isVisible) return;
+
         const activeThumb = thumbnailScrollRef.current.children[previewImageIndex] as HTMLElement;
         if (activeThumb) {
             activeThumb.scrollIntoView({

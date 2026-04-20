@@ -81,6 +81,7 @@ export default function SearchFilters({
     resultsCount,
     excludedCount = 0,
 }: SearchFiltersProps) {
+    const [tagSearchQuery, setTagSearchQuery] = useState('');
     const hasActiveFilters =
         filters.tags.length > 0 || filters.categories.length > 0 || filters.platforms.length > 0;
 
@@ -167,15 +168,26 @@ export default function SearchFilters({
                 {/* Tags filter */}
                 {availableTags.length > 0 && (
                     <CollapsibleSection title="Narrow by tag" defaultOpen>
-                        <div className="space-y-0.5 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
-                            {availableTags.slice(0, 20).map((tag) => (
-                                <CheckboxItem
-                                    key={tag.id}
-                                    label={tag.name}
-                                    checked={filters.tags.includes(tag.id)}
-                                    onChange={() => toggleTag(tag.id)}
-                                />
-                            ))}
+                        <div className="mb-2 px-1">
+                            <input
+                                type="text"
+                                placeholder="Search tags..."
+                                value={tagSearchQuery}
+                                onChange={(e) => setTagSearchQuery(e.target.value)}
+                                className="w-full bg-[#16202d] border border-[#2a475e] rounded px-2 py-1 text-[11px] text-[#c7d5e0] focus:outline-none focus:border-[#67c1f5] placeholder:text-zinc-600"
+                            />
+                        </div>
+                        <div className="space-y-0.5 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                            {availableTags
+                                .filter(tag => tag.name.toLowerCase().includes(tagSearchQuery.toLowerCase()))
+                                .map((tag) => (
+                                    <CheckboxItem
+                                        key={tag.id}
+                                        label={tag.name}
+                                        checked={filters.tags.includes(tag.id)}
+                                        onChange={() => toggleTag(tag.id)}
+                                    />
+                                ))}
                         </div>
                     </CollapsibleSection>
                 )}

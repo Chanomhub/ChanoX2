@@ -77,6 +77,31 @@ export default function Search() {
     const debouncedSearchQuery = useDebounce(searchQuery, 400);
     const debouncedFilters = useDebounce(filters, 300);
 
+    // Initial load of filter options
+    useEffect(() => {
+        const fetchInitialFilters = async () => {
+            try {
+                const [tagsRes, catsRes, platsRes] = await Promise.all([
+                    sdk.tags.getAll(),
+                    sdk.categories.getAll(),
+                    sdk.platforms.getAll(),
+                ]);
+                
+                // Map API strings/objects to FilterEntity format if needed
+                const mapToEntity = (items: any[]) => items.map((item, index) => 
+                    typeof item === 'string' ? { id: item, name: item } : item
+                );
+
+                setAvailableTags(mapToEntity(tagsRes.tags || []));
+                setAvailableCategories(mapToEntity(catsRes.categories || []));
+                setAvailablePlatforms(mapToEntity(platsRes.platforms || []));
+            } catch (err) {
+                console.error('Failed to fetch initial filters:', err);
+            }
+        };
+        fetchInitialFilters();
+    }, []);
+
     // Accumulate filter options from search results
     const accumulateFilterOptions = useCallback((items: ArticleListItem[]) => {
         const newTagsMap = new Map<string, NamedEntity>();
@@ -127,7 +152,7 @@ export default function Search() {
 
         setLoading(true);
         try {
-            // Build filter object for API using refs (no dependency on state)
+            // Build filter object for API
             const apiFilter: {
                 tag?: string;
                 category?: string;
@@ -135,12 +160,22 @@ export default function Search() {
                 sequentialCode?: string;
             } = {};
 
-            // If searching by sequential code, that's our primary filter
+            // 1. Get initial filters from URL query parameters
+            const urlTag = searchParams.get('tag');
+            const urlCategory = searchParams.get('category');
+            const urlPlatform = searchParams.get('platform');
+
+            if (urlTag) apiFilter.tag = urlTag;
+            if (urlCategory) apiFilter.category = urlCategory;
+            if (urlPlatform) apiFilter.platform = urlPlatform;
+
+            // 2. Override with specific sequential code if provided
             if (overrideParams?.sequentialCode) {
                 apiFilter.sequentialCode = overrideParams.sequentialCode;
             }
 
-            // API accepts single filter values, so we use the first selected one
+            // 3. Override with UI-selected filters if any are active
+            // This allows the user to change filters after landing from a category link
             if (debouncedFilters.tags.length > 0) {
                 const selectedTag = tagsRef.current.find(t => t.id === debouncedFilters.tags[0]);
                 if (selectedTag) apiFilter.tag = selectedTag.name;
@@ -156,27 +191,23 @@ export default function Search() {
 
             let result;
 
+            const params: any = {
+                limit: 100,
+                offset: 0,
+                ...apiFilter,
+            };
+
+            // Add search query if present
+            if (debouncedSearchQuery.trim()) {
+                params.q = debouncedSearchQuery.trim();
+            }
+
             if (apiFilter.sequentialCode) {
-                // specific code search
-                result = await sdk.articles.getAllPaginated({
-                    limit: 100,
-                    offset: 0,
-                    filter: apiFilter,
-                });
-            } else if (debouncedSearchQuery.trim()) {
-                // Search with query
-                result = await sdk.search.articles(debouncedSearchQuery, {
-                    limit: 100,
-                    offset: 0,
-                });
+                // specific code search (sequentialCode takes priority)
+                result = await sdk.articles.getAllPaginated(params);
             } else {
-                // Get all with filters
-                const hasFilters = Object.keys(apiFilter).length > 0;
-                result = await sdk.articles.getAllPaginated({
-                    limit: 100,
-                    offset: 0,
-                    filter: hasFilters ? apiFilter : undefined,
-                });
+                // Get all with filters and search query
+                result = await sdk.articles.getAllPaginated(params);
             }
 
             const transformed = withImageTransform(result);

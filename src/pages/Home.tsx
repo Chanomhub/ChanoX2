@@ -6,6 +6,8 @@ import type { Article } from '@/types/graphql';
 import FeaturedCarousel from '@/components/common/FeaturedCarousel';
 import HorizontalScroll from '@/components/common/HorizontalScroll';
 import GameListSection from '@/components/common/GameListSection';
+import StatsBar from '@/components/common/StatsBar';
+import CategoryBrowse from '@/components/common/CategoryBrowse';
 import { Loader2 } from 'lucide-react';
 
 // SDK fetcher for SWR - fetch fields needed for list + preview panel
@@ -109,22 +111,45 @@ export default function Home() {
         : allArticles.slice(0, 5);
 
     const developersSection = allArticles.slice(5, 13);
+    const specialOffers = allArticles.filter(a => (a as any).discount && (a as any).discount > 0).slice(0, 8);
     const listSection = allArticles; // Pass all articles for search/list
 
     return (
         <div className="pb-8">
             <div className="flex justify-between items-center p-6 mb-2">
-                <h1 className="text-2xl font-bold text-chanox-accent tracking-wider">STORE</h1>
+                <h1 className="text-2xl font-bold text-chanox-accent tracking-wider uppercase">Store</h1>
             </div>
 
             {/* Featured Carousel */}
-            <FeaturedCarousel articles={featuredArticles} sponsored={hasSponsored} />
+            <div className="mb-6">
+                <FeaturedCarousel articles={featuredArticles} sponsored={hasSponsored} />
+            </div>
+
+            {/* Community Stats Bar */}
+            <StatsBar />
+
+            {/* Special Offers Section */}
+            {specialOffers.length > 0 && (
+                <div className="mt-4">
+                    <HorizontalScroll
+                        title="SPECIAL OFFERS"
+                        articles={specialOffers}
+                    />
+                </div>
+            )}
+
+            {/* Browse by Genre */}
+            <div className="mt-8">
+                <CategoryBrowse />
+            </div>
 
             {/* From recommend Section */}
-            <HorizontalScroll
-                title="Recommend"
-                articles={developersSection}
-            />
+            <div className="mt-4">
+                <HorizontalScroll
+                    title="RECOMMENDED FOR YOU"
+                    articles={developersSection}
+                />
+            </div>
 
             {/* Tabbed List Section */}
             <GameListSection
