@@ -5,7 +5,7 @@ import { useLibrary } from '@/contexts/LibraryContext';
 
 interface DownloadContextType {
     downloads: Download[];
-    openDownloadLink: (url: string, articleId?: number, articleTitle?: string, coverImage?: string, engine?: string, gameVersion?: string, description?: string, body?: string) => void;
+    openDownloadLink: (url: string, articleId?: number, articleTitle?: string, coverImage?: string, engine?: string, gameVersion?: string, description?: string, body?: string, apiDownloadId?: number) => void;
     cancelDownload: (id: number) => void;
     removeDownload: (id: number) => void;
     clearCompleted: () => void;
@@ -41,6 +41,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
         // Add to library
         addToLibrary({
             articleId: download.articleId,
+            apiDownloadId: download.apiDownloadId,
             title: download.articleTitle || download.filename,
             coverImage: download.coverImage,
             description: download.articleDescription,

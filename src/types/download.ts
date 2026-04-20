@@ -14,6 +14,7 @@ export interface Download {
 
     // Metadata
     articleId?: number;
+    apiDownloadId?: number;
     articleTitle?: string;
     articleDescription?: string;
     articleBody?: string;

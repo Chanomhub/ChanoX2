@@ -118,6 +118,7 @@ export function SafeImage({
 
     // If filter is disabled, render normal image with fallback support
     if (!nsfwFilterEnabled) {
+        if (!currentSrc) return null;
         return (
             <img
                 key={currentSrc}
@@ -131,6 +132,8 @@ export function SafeImage({
             />
         );
     }
+
+    if (!currentSrc) return <div className={cn("bg-slate-800 animate-pulse", className)} />;
 
     return (
         <div className={cn("relative overflow-hidden", className)}>

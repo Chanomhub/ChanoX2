@@ -112,7 +112,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         return () => {
             // Cleanup
             if (channelRef.current) {
-                channelRef.current.detach();
+                try {
+                    channelRef.current.unsubscribe();
+                    channelRef.current.detach();
+                } catch (err) {
+                    console.warn('Ably cleanup error:', err);
+                }
             }
         };
     }, []);
@@ -122,8 +127,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         // Unsubscribe from old channel if exists
         if (channelRef.current) {
-            channelRef.current.unsubscribe();
-            channelRef.current.detach();
+            try {
+                channelRef.current.unsubscribe();
+                channelRef.current.detach();
+            } catch (err) {
+                console.warn('Ably channel switch error:', err);
+            }
         }
 
         const channel = clientRef.current.channels.get(channelName);

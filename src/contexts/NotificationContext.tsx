@@ -25,7 +25,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-    const { user, token, loading: authLoading } = useAuth();
+    const { user, token, loading: authLoading, refreshSession } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -39,12 +39,26 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             const data = await getNotifications(token, { take: 20 }); // Get last 20 by default
             setNotifications(data.notifications);
             setUnreadCount(data.unreadCount);
-        } catch (error) {
+        } catch (error: any) {
+            if (error.message === 'Unauthorized') {
+                console.log('Notification fetch unauthorized, attempting token refresh...');
+                const newToken = await refreshSession();
+                if (newToken) {
+                    try {
+                        const data = await getNotifications(newToken, { take: 20 });
+                        setNotifications(data.notifications);
+                        setUnreadCount(data.unreadCount);
+                        return;
+                    } catch (retryError) {
+                        console.error('Failed to fetch notifications after refresh:', retryError);
+                    }
+                }
+            }
             console.error('Failed to fetch notifications:', error);
         } finally {
             setLoading(false);
         }
-    }, [authLoading, user, token]);
+    }, [authLoading, user, token, refreshSession]);
 
     // Initial fetch
     useEffect(() => {

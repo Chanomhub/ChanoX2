@@ -225,6 +225,18 @@ function compareVersions(v1, v2) {
 // ============= Window Creation =============
 
 function createWindow() {
+    // Fix Cloudflare Hotlink Protection (Error 1011)
+    // Some resources on cdn.chanomhub.com have hotlink protection enabled.
+    // We spoof the Referer and Origin to make it look like it's coming from the main site.
+    session.defaultSession.webRequest.onBeforeSendHeaders(
+        { urls: ['*://*.chanomhub.com/*'] },
+        (details, callback) => {
+            details.requestHeaders['Referer'] = 'https://chanomhub.com/';
+            details.requestHeaders['Origin'] = 'https://chanomhub.com';
+            callback({ requestHeaders: details.requestHeaders });
+        }
+    );
+
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,

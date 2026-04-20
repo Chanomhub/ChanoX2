@@ -523,7 +523,10 @@ export default function ArticleDetail() {
                 <ArticleDownloadDialog
                     open={!!selectedDownload}
                     onOpenChange={(isOpen) => !isOpen && setSelectedDownload(null)}
+                    articleId={article?.id ? Number(article.id) : undefined}
+                    articleTitle={article?.title}
                     download={selectedDownload ? {
+                        id: selectedDownload.id,
                         url: selectedDownload.url,
                         name: selectedDownload.name || undefined,
                         vipOnly: selectedDownload.vipOnly
@@ -537,10 +540,10 @@ export default function ArticleDetail() {
                             article?.engine?.name || undefined,
                             article?.ver || undefined,
                             article?.description || undefined,
-                            article?.body || undefined
+                            article?.body || undefined,
+                            selectedDownload?.id
                         );
                     }}
-                    articleTitle={article?.title}
                 />
             </div>
         </div>
