@@ -77,24 +77,80 @@ export default function Search() {
     const debouncedSearchQuery = useDebounce(searchQuery, 400);
     const debouncedFilters = useDebounce(filters, 300);
 
+    // Sync URL params to local state
+    useEffect(() => {
+        // Sync search query
+        const urlQuery = searchParams.get('q');
+        if (urlQuery !== null && urlQuery !== searchQuery) {
+            setSearchQuery(urlQuery);
+        }
+
+        // Sync filters if available options are loaded
+        const urlTag = searchParams.get('tag');
+        const urlCategory = searchParams.get('category');
+        const urlPlatform = searchParams.get('platform');
+
+        if (!urlTag && !urlCategory && !urlPlatform) return;
+
+        setFilters(prev => {
+            const newFilters = { ...prev };
+            let changed = false;
+
+            if (urlTag && availableTags.length > 0) {
+                const tag = availableTags.find(t => 
+                    t.id.toLowerCase() === urlTag.toLowerCase() || 
+                    t.name.toLowerCase() === urlTag.toLowerCase()
+                );
+                if (tag && !newFilters.tags.includes(tag.id)) {
+                    newFilters.tags = [tag.id];
+                    changed = true;
+                }
+            }
+
+            if (urlCategory && availableCategories.length > 0) {
+                const cat = availableCategories.find(c => 
+                    c.id.toLowerCase() === urlCategory.toLowerCase() || 
+                    c.name.toLowerCase() === urlCategory.toLowerCase()
+                );
+                if (cat && !newFilters.categories.includes(cat.id)) {
+                    newFilters.categories = [cat.id];
+                    changed = true;
+                }
+            }
+
+            if (urlPlatform && availablePlatforms.length > 0) {
+                const plat = availablePlatforms.find(p => 
+                    p.id.toLowerCase() === urlPlatform.toLowerCase() || 
+                    p.name.toLowerCase() === urlPlatform.toLowerCase()
+                );
+                if (plat && !newFilters.platforms.includes(plat.id)) {
+                    newFilters.platforms = [plat.id];
+                    changed = true;
+                }
+            }
+
+            return changed ? newFilters : prev;
+        });
+    }, [searchParams, availableTags, availableCategories, availablePlatforms]);
+
     // Initial load of filter options
     useEffect(() => {
         const fetchInitialFilters = async () => {
             try {
-                const [tagsRes, catsRes, platsRes] = await Promise.all([
-                    sdk.tags.getAll(),
-                    sdk.categories.getAll(),
-                    sdk.platforms.getAll(),
+                const [tags, cats, plats] = await Promise.all([
+                    sdk.articles.getTags(),
+                    sdk.articles.getCategories(),
+                    sdk.articles.getPlatforms(),
                 ]);
                 
                 // Map API strings/objects to FilterEntity format if needed
-                const mapToEntity = (items: any[]) => items.map((item, index) => 
+                const mapToEntity = (items: any[]) => items.map((item) => 
                     typeof item === 'string' ? { id: item, name: item } : item
                 );
 
-                setAvailableTags(mapToEntity(tagsRes.tags || []));
-                setAvailableCategories(mapToEntity(catsRes.categories || []));
-                setAvailablePlatforms(mapToEntity(platsRes.platforms || []));
+                setAvailableTags(mapToEntity(tags || []));
+                setAvailableCategories(mapToEntity(cats || []));
+                setAvailablePlatforms(mapToEntity(plats || []));
             } catch (err) {
                 console.error('Failed to fetch initial filters:', err);
             }
@@ -153,80 +209,88 @@ export default function Search() {
         setLoading(true);
         try {
             // Build filter object for API
-            const apiFilter: {
-                tag?: string;
-                category?: string;
-                platform?: string;
-                sequentialCode?: string;
-            } = {};
+            const apiFilter: any = {};
 
-            // 1. Get initial filters from URL query parameters
+            // 1. Get initial filters from URL query parameters (as fallback)
             const urlTag = searchParams.get('tag');
             const urlCategory = searchParams.get('category');
             const urlPlatform = searchParams.get('platform');
 
-            if (urlTag) apiFilter.tag = urlTag;
-            if (urlCategory) apiFilter.category = urlCategory;
-            if (urlPlatform) apiFilter.platform = urlPlatform;
+            // 2. Override with UI-selected filters if any are active
+            // Note: API currently supports single tag/category/platform string
+            if (debouncedFilters.tags.length > 0) {
+                const selectedTag = availableTags.find(t => t.id === debouncedFilters.tags[0]);
+                if (selectedTag) apiFilter.tag = selectedTag.name;
+            } else if (urlTag) {
+                apiFilter.tag = urlTag;
+            }
 
-            // 2. Override with specific sequential code if provided
+            if (debouncedFilters.categories.length > 0) {
+                const selectedCat = availableCategories.find(c => c.id === debouncedFilters.categories[0]);
+                if (selectedCat) apiFilter.category = selectedCat.name;
+            } else if (urlCategory) {
+                apiFilter.category = urlCategory;
+            }
+
+            if (debouncedFilters.platforms.length > 0) {
+                const selectedPlat = availablePlatforms.find(p => p.id === debouncedFilters.platforms[0]);
+                if (selectedPlat) apiFilter.platform = selectedPlat.name;
+            } else if (urlPlatform) {
+                apiFilter.platform = urlPlatform;
+            }
+
+            // If multiple tags/categories/platforms are selected, we need to fetch more 
+            // and filter client-side because the API currently only supports one of each
+            const hasMultipleFilters = debouncedFilters.tags.length > 1 || 
+                                     debouncedFilters.categories.length > 1 || 
+                                     debouncedFilters.platforms.length > 1;
+            
+            // If multiple tags are selected, we don't send a specific tag to the API
+            // to get a broader result set that we can filter client-side
+            if (debouncedFilters.tags.length > 1) delete apiFilter.tag;
+            if (debouncedFilters.categories.length > 1) delete apiFilter.category;
+            if (debouncedFilters.platforms.length > 1) delete apiFilter.platform;
+
+            // Sequential code override
             if (overrideParams?.sequentialCode) {
                 apiFilter.sequentialCode = overrideParams.sequentialCode;
             }
 
-            // 3. Override with UI-selected filters if any are active
-            // This allows the user to change filters after landing from a category link
-            if (debouncedFilters.tags.length > 0) {
-                const selectedTag = tagsRef.current.find(t => t.id === debouncedFilters.tags[0]);
-                if (selectedTag) apiFilter.tag = selectedTag.name;
-            }
-            if (debouncedFilters.categories.length > 0) {
-                const selectedCat = categoriesRef.current.find(c => c.id === debouncedFilters.categories[0]);
-                if (selectedCat) apiFilter.category = selectedCat.name;
-            }
-            if (debouncedFilters.platforms.length > 0) {
-                const selectedPlat = platformsRef.current.find(p => p.id === debouncedFilters.platforms[0]);
-                if (selectedPlat) apiFilter.platform = selectedPlat.name;
+            // Search query
+            if (debouncedSearchQuery.trim()) {
+                apiFilter.q = debouncedSearchQuery.trim();
             }
 
-            let result;
-
-            const params: any = {
-                limit: 100,
+            const options = {
+                limit: hasMultipleFilters ? 500 : 100, // Fetch more if we need to filter client-side
                 offset: 0,
-                ...apiFilter,
+                filter: apiFilter
             };
 
-            // Add search query if present
-            if (debouncedSearchQuery.trim()) {
-                params.q = debouncedSearchQuery.trim();
-            }
-
-            if (apiFilter.sequentialCode) {
-                // specific code search (sequentialCode takes priority)
-                result = await sdk.articles.getAllPaginated(params);
-            } else {
-                // Get all with filters and search query
-                result = await sdk.articles.getAllPaginated(params);
-            }
-
+            const result = await sdk.articles.getAllPaginated(options);
             const transformed = withImageTransform(result);
             let items = [...transformed.items];
 
-            // Apply additional client-side filtering for multiple selections
+            // Apply client-side filtering for multiple selections (AND logic - must have ALL selected tags)
             if (debouncedFilters.tags.length > 1) {
                 items = items.filter((article: ArticleListItem) =>
-                    article.tags?.some((tag) => debouncedFilters.tags.includes(tag.id))
+                    debouncedFilters.tags.every((tagId) => 
+                        article.tags?.some((t) => t.id === tagId)
+                    )
                 );
             }
             if (debouncedFilters.categories.length > 1) {
                 items = items.filter((article: ArticleListItem) =>
-                    article.categories?.some((cat) => debouncedFilters.categories.includes(cat.id))
+                    debouncedFilters.categories.every((catId) => 
+                        article.categories?.some((c) => c.id === catId)
+                    )
                 );
             }
             if (debouncedFilters.platforms.length > 1) {
                 items = items.filter((article: ArticleListItem) =>
-                    article.platforms?.some((plat) => debouncedFilters.platforms.includes(plat.id))
+                    debouncedFilters.platforms.every((platId) => 
+                        article.platforms?.some((p) => p.id === platId)
+                    )
                 );
             }
 
@@ -258,7 +322,8 @@ export default function Search() {
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearchQuery, debouncedFilters, accumulateFilterOptions]);
+    }, [debouncedSearchQuery, debouncedFilters, accumulateFilterOptions, searchParams, availableTags, availableCategories, availablePlatforms]);
+
 
     // Search when query or filters change
     useEffect(() => {
@@ -285,8 +350,66 @@ export default function Search() {
 
     const clearSearch = () => {
         setSearchQuery('');
+        setFilters({
+            tags: [],
+            categories: [],
+            platforms: [],
+            sortBy: 'relevance',
+        });
         setSearchParams({});
     };
+
+    // Update URL params when local state changes
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams);
+        let changed = false;
+
+        if (debouncedSearchQuery !== (searchParams.get('q') || '')) {
+            if (debouncedSearchQuery) params.set('q', debouncedSearchQuery);
+            else params.delete('q');
+            changed = true;
+        }
+
+        const currentTag = searchParams.get('tag');
+        if (debouncedFilters.tags.length > 0) {
+            const tag = availableTags.find(t => t.id === debouncedFilters.tags[0]);
+            if (tag && tag.name !== currentTag) {
+                params.set('tag', tag.name);
+                changed = true;
+            }
+        } else if (currentTag) {
+            params.delete('tag');
+            changed = true;
+        }
+
+        const currentCat = searchParams.get('category');
+        if (debouncedFilters.categories.length > 0) {
+            const cat = availableCategories.find(c => c.id === debouncedFilters.categories[0]);
+            if (cat && cat.name !== currentCat) {
+                params.set('category', cat.name);
+                changed = true;
+            }
+        } else if (currentCat) {
+            params.delete('category');
+            changed = true;
+        }
+
+        const currentPlat = searchParams.get('platform');
+        if (debouncedFilters.platforms.length > 0) {
+            const plat = availablePlatforms.find(p => p.id === debouncedFilters.platforms[0]);
+            if (plat && plat.name !== currentPlat) {
+                params.set('platform', plat.name);
+                changed = true;
+            }
+        } else if (currentPlat) {
+            params.delete('platform');
+            changed = true;
+        }
+
+        if (changed) {
+            setSearchParams(params, { replace: true });
+        }
+    }, [debouncedSearchQuery, debouncedFilters, availableTags, availableCategories, availablePlatforms, searchParams, setSearchParams]);
 
     return (
         <div className="flex flex-col h-full bg-[#1b2838]">
