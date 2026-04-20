@@ -139,6 +139,8 @@ export default function GameListSection({
     const [previewImageIndex, setPreviewImageIndex] = useState(0);
     const [wishlist, setWishlist] = useState<Set<number>>(new Set());
     const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const thumbnailScrollRef = useRef<HTMLDivElement>(null);
+    const [isListHovered, setIsListHovered] = useState(false);
 
     const handleSearch = () => {
         if (searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
@@ -147,14 +149,27 @@ export default function GameListSection({
     useEffect(() => { setCurrentPage(1); }, [activeTab]);
 
     useEffect(() => {
-        if (!hoveredArticle?.images?.length) return;
+        if (!hoveredArticle?.images?.length || isListHovered) return;
         const t = setInterval(() => {
             setPreviewImageIndex(p => (p + 1) % (hoveredArticle.images?.length || 1));
         }, 2800);
         return () => clearInterval(t);
-    }, [hoveredArticle]);
+    }, [hoveredArticle, isListHovered]);
 
     useEffect(() => { setPreviewImageIndex(0); }, [hoveredArticle?.id]);
+
+    // Scroll active thumbnail into view
+    useEffect(() => {
+        if (!thumbnailScrollRef.current) return;
+        const activeThumb = thumbnailScrollRef.current.children[previewImageIndex] as HTMLElement;
+        if (activeThumb) {
+            activeThumb.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [previewImageIndex]);
 
     const totalPages = Math.ceil(articles.length / ITEMS_PER_PAGE);
     const displayedArticles = useMemo(() => {
@@ -218,10 +233,12 @@ export default function GameListSection({
                                     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
                                     hoverTimeoutRef.current = setTimeout(() => {
                                         setHoveredArticle(article);
-                                    }, 150);
+                                    }, 300); // 300ms debounce
+                                    setIsListHovered(true);
                                 }}
                                 onMouseLeave={() => {
                                     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                                    setIsListHovered(false);
                                 }}
                                 className={cn(
                                     'relative flex items-stretch border-b border-[#0d1b27] group transition-colors duration-100',
@@ -436,9 +453,12 @@ export default function GameListSection({
 
                         {/* Thumbnail strip */}
                         {(hoveredArticle.images?.length ?? 0) > 1 && (
-                            <div className="px-4 pb-3 flex gap-1.5 overflow-x-auto flex-shrink-0"
-                                style={{ scrollbarWidth: 'none' }}>
-                                {hoveredArticle.images!.slice(0, 5).map((img, i) => (
+                            <div
+                                ref={thumbnailScrollRef}
+                                className="px-4 pb-3 flex gap-1.5 overflow-x-auto flex-shrink-0 scrollbar-none"
+                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                            >
+                                {hoveredArticle.images!.map((img, i) => (
                                     <button key={img.id}
                                         onClick={e => { e.preventDefault(); setPreviewImageIndex(i); }}
                                         className={cn(
