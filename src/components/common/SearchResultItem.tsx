@@ -39,7 +39,7 @@ const getPlatformIcon = (platformName: string) => {
     return null;
 };
 
-const getReviewData = (id: number, favoritesCount: number, viewsCount: number) => {
+const getReviewData = (favoritesCount: number, viewsCount: number) => {
     const count = favoritesCount;
     if (!viewsCount || viewsCount < 1) return { score: count > 0 ? 88 : 0, count };
 
@@ -105,7 +105,7 @@ export default function SearchResultItem({ article }: SearchResultItemProps) {
 
                     {/* Review Bar */}
                     {(() => {
-                        const { score, count } = getReviewData(article.id, article.favoritesCount || 0, article.viewsCount || 0);
+                        const { score, count } = getReviewData(article.favoritesCount || 0, article.viewsCount || 0);
                         return (
                             <div className="flex items-center gap-1.5 min-w-0">
                                 <div className="w-16 h-1 bg-[#0e1923] rounded-full overflow-hidden shrink-0">

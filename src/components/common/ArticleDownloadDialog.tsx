@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
-import { Download as DownloadIcon, ShoppingCart, ExternalLink, CheckCircle, Clock } from 'lucide-react';
+import { Download as DownloadIcon, ShoppingCart } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import { useLibrary } from '@/contexts/LibraryContext';
@@ -83,7 +83,6 @@ export function ArticleDownloadDialog({
                                     label="In Library"
                                     className="bg-green-500/10 border border-green-500 text-green-500"
                                     labelClassName="text-green-500 text-xs font-bold"
-                                    icon={<CheckCircle className="w-3 h-3 mr-1" />}
                                 />
                             )}
                             {isAlreadyDownloading && (
@@ -91,7 +90,6 @@ export function ArticleDownloadDialog({
                                     label="Downloading..."
                                     className="bg-[#66c0f4]/10 border border-[#66c0f4] text-[#66c0f4]"
                                     labelClassName="text-[#66c0f4] text-xs font-bold"
-                                    icon={<Clock className="w-3 h-3 mr-1" />}
                                 />
                             )}
                         </div>

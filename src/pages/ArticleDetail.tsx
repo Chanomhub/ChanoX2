@@ -526,7 +526,7 @@ export default function ArticleDetail() {
                     articleId={article?.id ? Number(article.id) : undefined}
                     articleTitle={article?.title}
                     download={selectedDownload ? {
-                        id: selectedDownload.id,
+                        id: selectedDownload.id ? Number(selectedDownload.id) : undefined,
                         url: selectedDownload.url,
                         name: selectedDownload.name || undefined,
                         vipOnly: selectedDownload.vipOnly
@@ -541,7 +541,7 @@ export default function ArticleDetail() {
                             article?.ver || undefined,
                             article?.description || undefined,
                             article?.body || undefined,
-                            selectedDownload?.id
+                            selectedDownload?.id ? Number(selectedDownload.id) : undefined
                         );
                     }}
                 />

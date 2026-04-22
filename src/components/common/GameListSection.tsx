@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Article, ArticleImage } from '@/types/graphql';
 import {
     Search, ChevronLeft, ChevronRight,
-    Monitor, Apple, Terminal,
+    Monitor, Apple,
     ShoppingCart, Heart, Star
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -111,7 +111,7 @@ function PlatformIcons({ platforms }: { platforms?: { name: string }[] }) {
 
 // ─── utils ───────────────────────────────────────────────────────────────────
 
-const getReviewData = (id: number, favoritesCount: number, viewsCount: number) => {
+const getReviewData = (favoritesCount: number, viewsCount: number) => {
     const count = favoritesCount;
     if (!viewsCount || viewsCount < 1) return { score: count > 0 ? 88 : 0, count };
 
@@ -301,7 +301,7 @@ export default function GameListSection({
                                             <span className="text-[10px] text-[#4f6479] font-mono">v{article.ver}</span>
                                         )}
                                         {(() => {
-                                            const { score, count } = getReviewData(article.id, article.favoritesCount, article.viewsCount || 0);
+                                            const { score, count } = getReviewData(article.favoritesCount, article.reviewCount || 0);
                                             return (
                                                 <div className="flex items-center gap-1.5">
                                                     <div className="w-16 h-1 bg-[#0e1923] rounded-full overflow-hidden">
@@ -420,7 +420,7 @@ export default function GameListSection({
                                     User Reviews
                                 </div>
                                 {(() => {
-                                    const { score, count } = getReviewData(hoveredArticle.id, hoveredArticle.favoritesCount, hoveredArticle.viewsCount || 0);
+                                    const { score, count } = getReviewData(hoveredArticle.favoritesCount, hoveredArticle.reviewCount || 0);
                                     return <ReviewBar score={hoveredArticle.reviewScore ?? score} count={hoveredArticle.reviewCount ?? count} />;
                                 })()}
                             </div>
