@@ -15,6 +15,7 @@
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:prod": "npm run build && cross-env NODE_ENV=production electron .",
+    "setup:linux-protocol": "bash ./scripts/setup-linux-protocol.sh",
     "prepare": "husky"
   },
   "dependencies": {
@@ -135,6 +136,14 @@
       "category": "public.app-category.games",
       "icon": "public/icon.png"
     },
+    "protocols": [
+      {
+        "name": "ChanoX2 Deep Link",
+        "schemes": [
+          "chanox2"
+        ]
+      }
+    ],
     "dmg": {
       "background": "public/dmg-background.png",
       "icon": "public/icon.png",

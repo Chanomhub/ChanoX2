@@ -34,6 +34,15 @@ const DiscordService = require('./services/DiscordService.cjs');
 // Set app name to ensure userData path is correct
 app.name = 'ChanoX2';
 
+// Register as default protocol client for chanox2://
+if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+        app.setAsDefaultProtocolClient('chanox2', process.execPath, [path.resolve(process.argv[1])]);
+    }
+} else {
+    app.setAsDefaultProtocolClient('chanox2');
+}
+
 // Error handling
 process.on('uncaughtException', (error) => {
     console.error('🔥 Uncaught Exception:', error);
@@ -75,7 +84,34 @@ function parseLaunchGameArg(args) {
     const launchArg = args.find(arg => arg.startsWith('--launch-game='));
     return launchArg ? launchArg.split('=')[1] : null;
 }
+
+// Parse command line arguments for protocol URL
+function parseProtocolUrl(args) {
+    console.log('🔍 [Main] Parsing command line args:', args);
+    // Find any argument that contains chanox2://
+    const protocolArg = args.find(arg => arg.includes('chanox2://'));
+    if (protocolArg) {
+        // Extract the actual URL (in case it's part of a larger string)
+        const match = protocolArg.match(/chanox2:\/\/[^\s"]+/);
+        return match ? match[0] : protocolArg;
+    }
+    return null;
+}
+
 let pendingGameLaunch = parseLaunchGameArg(process.argv.slice(1));
+let pendingDeepLink = parseProtocolUrl(process.argv.slice(1));
+
+// macOS: Handle deep links when app is already running
+app.on('open-url', (event, url) => {
+    event.preventDefault();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('deep-link', { url });
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+    } else {
+        pendingDeepLink = url;
+    }
+});
 
 // Shortcut paths
 // Shortcut paths
@@ -1862,13 +1898,20 @@ app.whenReady().then(() => {
     setTimeout(checkForUpdates, 3000);
 
     // Send pending game launch after window is ready
-    if (pendingGameLaunch) {
+    if (pendingGameLaunch || pendingDeepLink) {
         mainWindow.webContents.once('did-finish-load', () => {
             setTimeout(() => {
                 if (mainWindow && !mainWindow.isDestroyed()) {
-                    console.log('🎮 Sending pending game launch:', pendingGameLaunch);
-                    mainWindow.webContents.send('pending-game-launch', { gameId: pendingGameLaunch });
-                    pendingGameLaunch = null;
+                    if (pendingGameLaunch) {
+                        console.log('🎮 Sending pending game launch:', pendingGameLaunch);
+                        mainWindow.webContents.send('pending-game-launch', { gameId: pendingGameLaunch });
+                        pendingGameLaunch = null;
+                    }
+                    if (pendingDeepLink) {
+                        console.log('🔗 Sending pending deep link:', pendingDeepLink);
+                        mainWindow.webContents.send('deep-link', { url: pendingDeepLink });
+                        pendingDeepLink = null;
+                    }
                 }
             }, 1500); // Wait for React to mount
         });
@@ -1895,6 +1938,13 @@ if (!gotTheLock) {
         if (gameId && mainWindow && !mainWindow.isDestroyed()) {
             console.log('🎮 Second instance game launch:', gameId);
             mainWindow.webContents.send('pending-game-launch', { gameId });
+        }
+
+        // Check for protocol URL
+        const protocolUrl = parseProtocolUrl(commandLine);
+        if (protocolUrl && mainWindow && !mainWindow.isDestroyed()) {
+            console.log('🔗 Second instance deep link:', protocolUrl);
+            mainWindow.webContents.send('deep-link', { url: protocolUrl });
         }
 
         if (mainWindow) {

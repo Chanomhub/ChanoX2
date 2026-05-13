@@ -94,6 +94,9 @@ export interface Download {
     url: string;
     isActive: boolean;
     vipOnly: boolean;
+    forVersion?: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface OfficialDownloadSource {

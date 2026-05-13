@@ -146,6 +146,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('pending-game-launch', handler);
     },
 
+    // Deep link listener (chanox2:// protocol)
+    onDeepLink: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('deep-link');
+        ipcRenderer.on('deep-link', handler);
+        return () => ipcRenderer.removeListener('deep-link', handler);
+    },
+
     // Winetricks
     checkWinetricksInstalled: () => ipcRenderer.invoke('check-winetricks-installed'),
     getWinetricksPackages: () => ipcRenderer.invoke('get-winetricks-packages'),

@@ -10,6 +10,7 @@ import { ChatProvider } from '@/contexts/ChatContext'
 import ChatWindow from '@/components/features/chat/ChatWindow'
 import Layout from '@/components/common/Layout'
 import { usePendingGameLaunch } from '@/hooks/usePendingGameLaunch'
+import { useDeepLink } from '@/hooks/useDeepLink'
 
 // Pages
 import Home from '@/pages/Home'
@@ -38,6 +39,39 @@ function PendingGameLaunchHandler() {
     return null;
 }
 
+// Global deep link handler component
+function DeepLinkHandler() {
+    const navigate = useNavigate();
+
+    const handleDeepLink = useCallback((url: string) => {
+        console.log('🔗 App: Received deep link:', url);
+        
+        // Clean up the URL (remove trailing slashes, spaces)
+        let cleanUrl = url.trim();
+        if (cleanUrl.endsWith('/')) {
+            cleanUrl = cleanUrl.slice(0, -1);
+        }
+
+        // Handle chanox2://article/slug
+        const articlePrefix = 'chanox2://article/';
+        if (cleanUrl.startsWith(articlePrefix)) {
+            const slug = cleanUrl.substring(articlePrefix.length).split('?')[0];
+            if (slug) {
+                console.log('🔗 App: Navigating to article:', slug);
+                navigate(`/article/${slug}`);
+            } else {
+                console.warn('⚠️ App: Deep link article slug is empty');
+            }
+        } else {
+            console.warn('⚠️ App: Unrecognized deep link format:', cleanUrl);
+        }
+    }, [navigate]);
+
+    useDeepLink(handleDeepLink);
+
+    return null;
+}
+
 export default function App() {
     console.log('App rendering');
     return (
@@ -50,6 +84,7 @@ export default function App() {
                                 <ChatProvider>
                                     <Layout>
                                         <PendingGameLaunchHandler />
+                                        <DeepLinkHandler />
                                         <ChatWindow />
                                         <Routes>
                                             <Route path="/" element={<Home />} />
