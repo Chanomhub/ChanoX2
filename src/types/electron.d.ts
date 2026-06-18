@@ -186,7 +186,7 @@ export interface ElectronAPI {
 
     // OAuth
     onOAuthCallback: (callback: (data: OAuthCallbackData) => void) => (() => void) | void;
-    startOAuthServer: () => Promise<{ port: number }>;
+    startOAuthServer: (options?: { apiBaseUrl?: string }) => Promise<{ port: number }>;
     stopOAuthServer: () => Promise<boolean>;
 
     // Game Shortcuts
@@ -206,6 +206,9 @@ export interface ElectronAPI {
 
     // NST CLI Integration
     openNstCli: (projectPath: string, engine: string) => Promise<{ success: boolean; error?: string }>;
+
+    // Deep Links
+    onDeepLink?: (callback: (data: { url: string }) => void) => (() => void) | void;
 }
 
 declare global {

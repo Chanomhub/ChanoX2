@@ -127,7 +127,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     // OAuth server control
-    startOAuthServer: () => ipcRenderer.invoke('start-oauth-server'),
+    startOAuthServer: (options) => ipcRenderer.invoke('start-oauth-server', options),
     stopOAuthServer: () => ipcRenderer.invoke('stop-oauth-server'),
 
     // Game Shortcuts

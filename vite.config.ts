@@ -24,8 +24,6 @@ export default defineConfig({
                     'vendor-router': ['react-router-dom'],
                     // Data fetching
                     'vendor-query': ['@tanstack/react-query', 'graphql', 'graphql-request'],
-                    // Auth/Backend
-                    'vendor-supabase': ['@supabase/supabase-js'],
 
                     // i18n
                     'vendor-i18n': ['i18next', 'react-i18next'],

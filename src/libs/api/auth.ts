@@ -135,28 +135,24 @@ export async function updateUser(token: string, userData: Partial<User>): Promis
     return json.data || json;
 }
 
+
+
 /**
- * Login with Supabase access token (for SSO)
- * This exchanges the Supabase token with the backend to get an internal user
+ * Exchange Better Auth session for legacy JWT tokens
  */
-export async function loginWithSupabaseToken(supabaseAccessToken: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE}/users/login-supabase`, {
+export async function exchangeBetterAuthSession(): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE}/auth/exchange`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            accessToken: supabaseAccessToken,
-        }),
+        credentials: 'include',
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Supabase login failed' }));
-        throw new Error(error.message || 'Supabase login failed');
+        const error = await response.json().catch(() => ({ message: 'Better Auth session exchange failed' }));
+        throw new Error(error.message || 'Better Auth session exchange failed');
     }
 
     const json: ApiResponse<AuthResponse> = await response.json();
-    return json.data;
+    return json.data || (json as any);
 }
 
 /**

@@ -1,12 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function IdlePrankOverlay() {
     const [isVisible, setIsVisible] = useState(false);
     const IDLE_TIMEOUT = 30000; // 30 seconds of inactivity
-
-    const resetTimer = useCallback(() => {
-        setIsVisible(false);
-    }, []);
 
     useEffect(() => {
         let idleTimer: any;

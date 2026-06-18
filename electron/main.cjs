@@ -980,7 +980,8 @@ ipcMain.on('window-maximize', () => {
 ipcMain.on('window-close', () => mainWindow?.close());
 
 // --- OAuth Server ---
-ipcMain.handle('start-oauth-server', () => {
+ipcMain.handle('start-oauth-server', (event, options) => {
+    const apiBaseUrl = (options && options.apiBaseUrl) || process.env.VITE_API_URL || 'https://api.chanomhub.com';
     return new Promise((resolve, reject) => {
         if (oauthServer) {
             resolve({ port: OAUTH_CALLBACK_PORT });
@@ -1005,21 +1006,59 @@ ipcMain.handle('start-oauth-server', () => {
           </head>
           <body>
             <div class="container">
-              <h1>✅ Login Successful!</h1>
+              <h1 id="status">✅ Login Successful!</h1>
               <p>You can close this tab and return to ChanoX2.</p>
             </div>
             <script>
-              const hash = window.location.hash.substring(1);
-              const params = new URLSearchParams(hash || window.location.search);
-              const accessToken = params.get('access_token');
-              const refreshToken = params.get('refresh_token');
-              if (accessToken) {
-                fetch('/oauth-tokens', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ accessToken, refreshToken })
-                }).then(() => setTimeout(() => window.close(), 1500));
-              }
+              const apiBaseUrl = '${apiBaseUrl}';
+
+              // First try Better Auth session exchange (new login)
+              fetch(apiBaseUrl + '/api/auth/exchange', {
+                method: 'POST',
+                credentials: 'include'
+              })
+              .then(res => {
+                if (!res.ok) throw new Error('Better Auth session exchange failed');
+                return res.json();
+              })
+              .then(responseJson => {
+                const loginData = responseJson.data || responseJson;
+                const token = loginData.user?.token || loginData.token;
+                const refreshToken = loginData.refreshToken;
+                if (token) {
+                  return fetch('/oauth-tokens', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: token, refreshToken })
+                  });
+                }
+                throw new Error('No token returned from Better Auth');
+              })
+              .then(() => setTimeout(() => window.close(), 1500))
+              .catch(err => {
+                console.warn('Better Auth exchange failed, trying legacy URL params fallback:', err);
+                
+                // Fallback to legacy URL parameters
+                const hash = window.location.hash.substring(1);
+                const params = new URLSearchParams(hash || window.location.search);
+                const accessToken = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+                
+                if (accessToken) {
+                  fetch('/oauth-tokens', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken, refreshToken })
+                  })
+                  .then(() => setTimeout(() => window.close(), 1500))
+                  .catch(localErr => {
+                    console.error('Local callback post failed:', localErr);
+                    document.getElementById('status').innerText = '❌ Authentication failed: ' + localErr.message;
+                  });
+                } else {
+                  document.getElementById('status').innerText = '❌ Authentication failed: ' + err.message;
+                }
+              });
             </script>
           </body>
           </html>

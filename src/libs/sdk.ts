@@ -5,15 +5,9 @@
 import { createChanomhubClient, createAuthenticatedClient, getFallbackUrl, type ChanomhubClient } from '@chanomhub/sdk';
 import { transformDataUrls } from '@/libs/transform';
 
-// Supabase configuration from env
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "__VITE_SUPABASE_URL__";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "__VITE_SUPABASE_ANON_KEY__";
-
 // Base config for SDK
 const baseConfig = {
     apiUrl: 'https://api.chanomhub.com',
-    supabaseUrl,
-    supabaseAnonKey,
     storageDownloadUrl: 'https://storage.chanomhub.com',
 };
 

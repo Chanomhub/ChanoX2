@@ -8,7 +8,7 @@ export interface FilterState {
     sortBy: 'relevance' | 'date' | 'popularity' | 'title';
 }
 
-interface FilterEntity {
+export interface FilterEntity {
     id: string;
     name: string;
 }

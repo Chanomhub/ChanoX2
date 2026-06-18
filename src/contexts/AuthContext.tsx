@@ -1,8 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, loginWithSupabaseToken, logout as apiLogout, logoutAll as apiLogoutAll, User, LoginCredentials, RegisterData } from '../libs/api/auth';
+import { login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout, logoutAll as apiLogoutAll, User, LoginCredentials, RegisterData } from '../libs/api/auth';
 
-import { supabase, isSupabaseConfigured } from '../libs/supabase';
-import { sdk, setToken as sdkSetToken } from '../libs/sdk';
+import { setToken as sdkSetToken } from '../libs/sdk';
 
 interface AuthContextType {
     user: User | null;
@@ -17,9 +16,8 @@ interface AuthContextType {
     switchAccount: (userId: number) => Promise<void>;
     isAuthenticated: boolean;
     loginWithGoogle: () => Promise<void>;
-    handleSupabaseCallback: (accessToken: string) => Promise<void>;
+    handleExchangeCallback: (accessToken: string, refreshToken?: string, expiresIn?: number) => Promise<void>;
     refreshSession: () => Promise<string | null>;
-    isSupabaseAvailable: boolean;
     oauthUrl: string | null; // OAuth URL for manual copy (GNOME fallback)
     clearOAuthUrl: () => void;
 }
@@ -63,15 +61,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const clearOAuthUrl = useCallback(() => setOAuthUrl(null), []);
 
-    // handleSupabaseCallback - exchanges Supabase token with backend
-    const handleSupabaseCallback = useCallback(async (accessToken: string) => {
-        const response = await loginWithSupabaseToken(accessToken);
+
+
+    const handleExchangeCallback = useCallback(async (accessToken: string, refreshToken?: string, expiresIn?: number) => {
+        const response = await getCurrentUser(accessToken);
         const userId = response.user.id ? Number(response.user.id) : Date.now();
         const newUser = {
             ...response.user,
             id: isNaN(userId) ? Date.now() : userId,
-            refreshToken: response.refreshToken,
-            tokenExpiresAt: response.expiresIn ? Date.now() + (response.expiresIn * 1000) : undefined
+            token: accessToken,
+            refreshToken: refreshToken || response.refreshToken,
+            tokenExpiresAt: expiresIn ? Date.now() + (expiresIn * 1000) : (response.expiresIn ? Date.now() + (response.expiresIn * 1000) : undefined)
         };
 
         // Read fresh accounts from storage (important for OAuth callback scenario)
@@ -91,13 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAccounts(newAccounts);
         setUser(newUser);
         setToken(newUser.token);
-        setLoginVersion(v => {
-            console.log('loginVersion incrementing from', v, 'to', v + 1);
-            return v + 1;
-        });
+        setLoginVersion(v => v + 1);
         await storage.setItem(ACCOUNTS_KEY, JSON.stringify(newAccounts));
         await storage.setItem(ACTIVE_USER_ID_KEY, String(newUser.id));
-        console.log('OAuth user saved. Total accounts:', newAccounts.length);
+        console.log('Exchange user saved. Total accounts:', newAccounts.length);
     }, []);
 
     const loadStoredAuth = async () => {
@@ -176,13 +173,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         loadStoredAuth();
 
-        // Supabase auth state listener (for web browser flow)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-                // Optional: Handle auto-login from Supabase callback if not handled by explicit flow
-            }
-        });
-
         // Electron OAuth callback listener
         let cleanupOAuth: (() => void) | void;
         if (window.electronAPI?.onOAuthCallback) {
@@ -191,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log('OAuth callback received from Electron');
                 if (data.accessToken) {
                     try {
-                        await handleSupabaseCallback(data.accessToken);
+                        await handleExchangeCallback(data.accessToken, data.refreshToken);
                     } catch (error) {
                         console.error('Failed to process OAuth callback:', error);
                     }
@@ -200,10 +190,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         return () => {
-            subscription.unsubscribe();
             if (cleanupOAuth) cleanupOAuth();
         };
-    }, [handleSupabaseCallback]);
+    }, [handleExchangeCallback]);
 
     const saveAccounts = async (newAccounts: User[], activeUser: User) => {
         setAccounts(newAccounts);
@@ -269,7 +258,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setToken(null);
             await storage.removeItem(ACTIVE_USER_ID_KEY);
         }
-        await supabase.auth.signOut();
     };
 
     const logoutAll = async () => {
@@ -290,7 +278,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(null);
         await storage.removeItem(ACCOUNTS_KEY);
         await storage.removeItem(ACTIVE_USER_ID_KEY);
-        await supabase.auth.signOut();
     };
 
     const switchAccount = async (userId: number) => {
@@ -303,35 +290,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const loginWithGoogle = async () => {
-        if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
-
         const isElectron = !!window.electronAPI;
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://api.chanomhub.com';
 
         if (isElectron) {
             // Electron: Open OAuth in external browser
             try {
                 console.log('Starting OAuth server for Electron...');
-                const { port } = await window.electronAPI!.startOAuthServer();
+                const { port } = await window.electronAPI!.startOAuthServer({ apiBaseUrl });
                 const redirectUrl = `http://localhost:${port}/callback`;
 
                 console.log('OAuth redirect URL:', redirectUrl);
 
-                // Get OAuth URL from SDK
-                const url = await sdk.auth.getOAuthUrl('google', {
-                    redirectTo: redirectUrl,
-                    queryParams: {
-                        access_type: 'offline',
-                        prompt: 'select_account',
-                    },
-                });
+                const url = `${apiBaseUrl}/api/auth/login/social?provider=google&callbackURL=${encodeURIComponent(redirectUrl)}`;
 
-                if (url) {
-                    console.log('Opening OAuth URL in external browser');
-                    // Store URL for manual copy fallback (GNOME may not open browser)
-                    setOAuthUrl(url);
-                    window.electronAPI!.openExternal(url);
-                }
-                // Callback will be handled via IPC event listener
+                console.log('Opening OAuth URL in external browser');
+                // Store URL for manual copy fallback (GNOME may not open browser)
+                setOAuthUrl(url);
+                window.electronAPI!.openExternal(url);
                 return;
             } catch (err) {
                 console.error('Electron OAuth failed, falling back to in-app:', err);
@@ -340,17 +316,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Web: Standard in-app OAuth redirect
-        const url = await sdk.auth.getOAuthUrl('google', {
-            redirectTo: window.location.origin + '/callback',
-            queryParams: {
-                access_type: 'offline',
-                prompt: 'consent',
-            },
-        });
+        const redirectUrl = `${window.location.origin}/callback`;
+        const url = `${apiBaseUrl}/api/auth/login/social?provider=google&callbackURL=${encodeURIComponent(redirectUrl)}`;
 
-        if (url) {
-            window.location.href = url;
-        }
+        window.location.href = url;
     };
 
     return (
@@ -367,9 +336,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             switchAccount,
             isAuthenticated: !!user,
             loginWithGoogle,
-            handleSupabaseCallback,
+            handleExchangeCallback,
             refreshSession,
-            isSupabaseAvailable: isSupabaseConfigured(),
             oauthUrl,
             clearOAuthUrl,
         }}>

@@ -11,9 +11,9 @@ import {
     DialogFooter,
 } from '@/components/ui/Dialog';
 import { sdk, withImageTransform } from '@/libs/sdk';
-import type { ArticleListItem, NamedEntity } from '@chanomhub/sdk';
+import type { ArticleListItem } from '@chanomhub/sdk';
 import SearchResultItem from '@/components/common/SearchResultItem';
-import SearchFilters, { type FilterState } from '@/components/common/SearchFilters';
+import SearchFilters, { type FilterState, type FilterEntity } from '@/components/common/SearchFilters';
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -54,14 +54,14 @@ export default function Search() {
     });
 
     // Available filter options - accumulated from search results
-    const [availableTags, setAvailableTags] = useState<NamedEntity[]>([]);
-    const [availableCategories, setAvailableCategories] = useState<NamedEntity[]>([]);
-    const [availablePlatforms, setAvailablePlatforms] = useState<NamedEntity[]>([]);
+    const [availableTags, setAvailableTags] = useState<FilterEntity[]>([]);
+    const [availableCategories, setAvailableCategories] = useState<FilterEntity[]>([]);
+    const [availablePlatforms, setAvailablePlatforms] = useState<FilterEntity[]>([]);
 
     // Use refs to access current filter options without triggering re-renders
-    const tagsRef = useRef<NamedEntity[]>([]);
-    const categoriesRef = useRef<NamedEntity[]>([]);
-    const platformsRef = useRef<NamedEntity[]>([]);
+    const tagsRef = useRef<FilterEntity[]>([]);
+    const categoriesRef = useRef<FilterEntity[]>([]);
+    const platformsRef = useRef<FilterEntity[]>([]);
 
     // Keep refs in sync with state
     useEffect(() => {
@@ -144,8 +144,10 @@ export default function Search() {
                 ]);
                 
                 // Map API strings/objects to FilterEntity format if needed
-                const mapToEntity = (items: any[]) => items.map((item) => 
-                    typeof item === 'string' ? { id: item, name: item } : item
+                const mapToEntity = (items: any[]): FilterEntity[] => items.map((item) => 
+                    typeof item === 'string' 
+                        ? { id: item, name: item } 
+                        : { id: String(item.id), name: item.name }
                 );
 
                 setAvailableTags(mapToEntity(tags || []));
@@ -160,30 +162,30 @@ export default function Search() {
 
     // Accumulate filter options from search results
     const accumulateFilterOptions = useCallback((items: ArticleListItem[]) => {
-        const newTagsMap = new Map<string, NamedEntity>();
+        const newTagsMap = new Map<string, FilterEntity>();
         tagsRef.current.forEach(tag => newTagsMap.set(tag.id, tag));
         items.forEach((article) => {
-            article.tags?.forEach((tag) => newTagsMap.set(tag.id, tag));
+            article.tags?.forEach((tag) => newTagsMap.set(String(tag.id), { id: String(tag.id), name: tag.name }));
         });
         const newTags = Array.from(newTagsMap.values());
         if (newTags.length !== tagsRef.current.length) {
             setAvailableTags(newTags);
         }
 
-        const newCategoriesMap = new Map<string, NamedEntity>();
+        const newCategoriesMap = new Map<string, FilterEntity>();
         categoriesRef.current.forEach(cat => newCategoriesMap.set(cat.id, cat));
         items.forEach((article) => {
-            article.categories?.forEach((cat) => newCategoriesMap.set(cat.id, cat));
+            article.categories?.forEach((cat) => newCategoriesMap.set(String(cat.id), { id: String(cat.id), name: cat.name }));
         });
         const newCategories = Array.from(newCategoriesMap.values());
         if (newCategories.length !== categoriesRef.current.length) {
             setAvailableCategories(newCategories);
         }
 
-        const newPlatformsMap = new Map<string, NamedEntity>();
+        const newPlatformsMap = new Map<string, FilterEntity>();
         platformsRef.current.forEach(plat => newPlatformsMap.set(plat.id, plat));
         items.forEach((article) => {
-            article.platforms?.forEach((plat) => newPlatformsMap.set(plat.id, plat));
+            article.platforms?.forEach((plat) => newPlatformsMap.set(String(plat.id), { id: String(plat.id), name: plat.name }));
         });
         const newPlatforms = Array.from(newPlatformsMap.values());
         if (newPlatforms.length !== platformsRef.current.length) {
@@ -275,21 +277,21 @@ export default function Search() {
             if (debouncedFilters.tags.length > 1) {
                 items = items.filter((article: ArticleListItem) =>
                     debouncedFilters.tags.every((tagId) => 
-                        article.tags?.some((t) => t.id === tagId)
+                        article.tags?.some((t) => String(t.id) === tagId)
                     )
                 );
             }
             if (debouncedFilters.categories.length > 1) {
                 items = items.filter((article: ArticleListItem) =>
                     debouncedFilters.categories.every((catId) => 
-                        article.categories?.some((c) => c.id === catId)
+                        article.categories?.some((c) => String(c.id) === catId)
                     )
                 );
             }
             if (debouncedFilters.platforms.length > 1) {
                 items = items.filter((article: ArticleListItem) =>
                     debouncedFilters.platforms.every((platId) => 
-                        article.platforms?.some((p) => p.id === platId)
+                        article.platforms?.some((p) => String(p.id) === platId)
                     )
                 );
             }

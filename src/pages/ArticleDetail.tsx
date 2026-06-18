@@ -49,7 +49,8 @@ const articleFetcher = async ([, slug, language]: [string, string, string]): Pro
         // Map types carefully to satisfy the SDK's ArticleWithDownloads interface
         const downloads = (downloadsData.downloads || []).map(d => ({
             ...d,
-            name: d.name || '' // Ensure name is not null as required by SDK types
+            name: d.name || '', // Ensure name is not null as required by SDK types
+            type: (d as any).type || ((d as any).isPurchaseRedirect ? 'PURCHASE_REDIRECT' : 'DIRECT_FILE')
         })) as Download[];
 
         return withDataTransform({

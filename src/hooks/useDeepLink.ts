@@ -12,7 +12,7 @@ export const useDeepLink = (onDeepLink: (url: string) => void) => {
 
         console.log('🔗 Setting up deep link listener');
 
-        const cleanup = window.electronAPI.onDeepLink((data) => {
+        const cleanup = window.electronAPI.onDeepLink((data: { url: string }) => {
             console.log('🔗 Received deep link:', data);
             if (data.url) {
                 onDeepLink(data.url);
