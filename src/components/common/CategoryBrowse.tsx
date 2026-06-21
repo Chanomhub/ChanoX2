@@ -18,7 +18,7 @@ export default function CategoryBrowse() {
                 {categories.map((cat) => (
                     <Link
                         key={cat.name}
-                        to={`/search?tag=${cat.slug}`}
+                        to={`/?tag=${cat.slug}`}
                         className={cn(
                             "relative h-24 rounded-sm overflow-hidden group transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:-translate-y-1 bg-gradient-to-br",
                             cat.color

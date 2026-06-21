@@ -6,7 +6,6 @@ const menuItems = [
     { to: '/', label: 'STORE', icon: Store },
     { to: '/library', label: 'LIBRARY', icon: Library },
     { to: '/downloads', label: 'DOWNLOADS', icon: Download },
-    { to: '/search', label: 'SEARCH', icon: Search },
 ];
 
 export default function MenuBar() {

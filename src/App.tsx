@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import { useCallback } from 'react'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { DownloadProvider } from '@/contexts/DownloadContext'
@@ -20,7 +20,6 @@ import Callback from '@/pages/Callback'
 import ArticleDetail from '@/pages/ArticleDetail'
 import Downloads from '@/pages/Downloads'
 import Library from '@/pages/Library'
-import Search from '@/pages/Search'
 import Settings from '@/pages/Settings'
 import Profile from '@/pages/Profile'
 
@@ -94,7 +93,7 @@ export default function App() {
                                             <Route path="/article/:slug" element={<ArticleDetail />} />
                                             <Route path="/downloads" element={<Downloads />} />
                                             <Route path="/library" element={<Library />} />
-                                            <Route path="/search" element={<Search />} />
+                                            <Route path="/search" element={<Navigate to="/" replace />} />
                                             <Route path="/settings" element={<Settings />} />
                                             <Route path="/profile/:username" element={<Profile />} />
                                         </Routes>

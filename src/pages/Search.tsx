@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search as SearchIcon, Loader2, X, Settings2 } from 'lucide-react';
+import { Search as SearchIcon, Loader2, X, Settings2, LayoutGrid, List, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
     Dialog,
@@ -14,6 +14,8 @@ import { sdk, withImageTransform } from '@/libs/sdk';
 import type { ArticleListItem } from '@chanomhub/sdk';
 import SearchResultItem from '@/components/common/SearchResultItem';
 import SearchFilters, { type FilterState, type FilterEntity } from '@/components/common/SearchFilters';
+import GameCard from '@/components/common/GameCard';
+import { cn } from '@/lib/utils';
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -76,6 +78,30 @@ export default function Search() {
 
     const debouncedSearchQuery = useDebounce(searchQuery, 400);
     const debouncedFilters = useDebounce(filters, 300);
+
+    // F95Zone Layout/Pagination/Notice States
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+        return (localStorage.getItem('chanox2_search_viewmode') as 'grid' | 'list') || 'grid';
+    });
+    const [showNotice, setShowNotice] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 24;
+
+    const handleSetViewMode = (mode: 'grid' | 'list') => {
+        setViewMode(mode);
+        localStorage.setItem('chanox2_search_viewmode', mode);
+    };
+
+    // Reset pagination to first page when search or filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [articles.length, debouncedSearchQuery, debouncedFilters]);
+
+    const totalPages = Math.ceil(articles.length / itemsPerPage);
+    const paginatedArticles = articles.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     // Sync URL params to local state
     useEffect(() => {
@@ -413,39 +439,133 @@ export default function Search() {
         }
     }, [debouncedSearchQuery, debouncedFilters, availableTags, availableCategories, availablePlatforms, searchParams, setSearchParams]);
 
-    return (
-        <div className="flex flex-col h-full bg-[#1b2838]">
-            {/* Header */}
-            <div className="bg-gradient-to-b from-[#1b2838] to-[#171a21] border-b border-[#2a475e] py-4 px-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-lg font-medium text-[#c7d5e0] tracking-wide">
-                        All Products
-                    </h1>
+    // Helper to render pagination controls
+    const renderPagination = () => {
+        if (totalPages <= 1) return null;
 
-                    {/* Mobile filter toggle */}
+        const getPageNumbers = () => {
+            const pages = [];
+            const maxVisible = 5;
+            if (totalPages <= maxVisible) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+                if (currentPage <= 3) {
+                    pages.push(1, 2, 3, 4, '...', totalPages);
+                } else if (currentPage >= totalPages - 2) {
+                    pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+                } else {
+                    pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                }
+            }
+            return pages;
+        };
+
+        return (
+            <div className="flex items-center justify-between bg-[#111721] border border-[#2d3a4f]/40 p-2 rounded-md mb-4 mt-2">
+                <div className="flex gap-1">
                     <button
-                        onClick={() => setShowMobileFilters(!showMobileFilters)}
-                        className="lg:hidden flex items-center gap-2 text-[#67c1f5] hover:text-white transition-colors"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        className="px-3 py-1.5 rounded bg-[#161d28] hover:bg-[#202936] text-xs font-semibold text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#161d28] transition-colors"
                     >
-                        <Settings2 size={18} />
-                        <span className="text-sm">Filters</span>
+                        &lt; Prev
+                    </button>
+                    {getPageNumbers().map((p, idx) => (
+                        <button
+                            key={idx}
+                            disabled={p === '...'}
+                            onClick={() => typeof p === 'number' && setCurrentPage(p)}
+                            className={cn(
+                                "px-3 py-1.5 rounded text-xs font-semibold transition-colors",
+                                p === currentPage
+                                    ? "bg-rose-600 text-white"
+                                    : p === '...'
+                                        ? "text-zinc-500 cursor-default bg-transparent"
+                                        : "bg-[#161d28] hover:bg-[#202936] text-zinc-300"
+                            )}
+                        >
+                            {p}
+                        </button>
+                    ))}
+                    <button
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        className="px-3 py-1.5 rounded bg-[#161d28] hover:bg-[#202936] text-xs font-semibold text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#161d28] transition-colors"
+                    >
+                        Next &gt;
                     </button>
                 </div>
 
-                {/* Search Input - Steam style */}
+                <span className="text-[11px] text-zinc-500 hidden sm:inline">
+                    Page {currentPage} of {totalPages} ({articles.length} titles)
+                </span>
+            </div>
+        );
+    };
+
+    return (
+        <div className="flex flex-col h-full bg-[#0a0e14]">
+            {/* Header */}
+            <div className="bg-gradient-to-b from-[#111721] to-[#0a0e14] border-b border-[#2d3a4f]/30 py-4 px-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-[15px] font-bold text-white tracking-wider uppercase">
+                        Downloads Catalog
+                    </h1>
+
+                    <div className="flex items-center gap-3">
+                        {/* Layout Toggle Buttons */}
+                        <div className="flex items-center gap-1.5 bg-[#161d28] border border-[#2d3a4f]/40 p-1 rounded-md">
+                            <button
+                                onClick={() => handleSetViewMode('grid')}
+                                className={cn(
+                                    "p-1.5 rounded transition-all",
+                                    viewMode === 'grid'
+                                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                        : "text-zinc-500 hover:text-zinc-300"
+                                )}
+                                title="Grid View (F95Zone)"
+                            >
+                                <LayoutGrid size={15} />
+                            </button>
+                            <button
+                                onClick={() => handleSetViewMode('list')}
+                                className={cn(
+                                    "p-1.5 rounded transition-all",
+                                    viewMode === 'list'
+                                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                        : "text-zinc-500 hover:text-zinc-300"
+                                )}
+                                title="List View (Steam)"
+                            >
+                                <List size={15} />
+                            </button>
+                        </div>
+
+                        {/* Mobile filter toggle */}
+                        <button
+                            onClick={() => setShowMobileFilters(!showMobileFilters)}
+                            className="lg:hidden flex items-center gap-2 text-[#66c0f4] hover:text-white transition-colors"
+                        >
+                            <Settings2 size={18} />
+                            <span className="text-sm">Filters</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Search Input - Sleek F95 style */}
                 <div className="flex items-center gap-3">
                     <div className="relative flex-1 max-w-md">
                         <input
                             type="text"
-                            placeholder="enter search term or tag"
+                            placeholder="Enter keywords or tag..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-3 pr-10 py-1.5 bg-[#316282] border-none rounded-sm text-[#c7d5e0] placeholder-[#8f98a0] focus:outline-none focus:ring-1 focus:ring-[#67c1f5] text-[13px]"
+                            className="w-full pl-3.5 pr-10 py-2 bg-[#111721] border border-[#2d3a4f]/50 rounded-md text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-rose-500/50 focus:border-rose-500/50 text-[13px] transition-all"
                         />
                         {searchQuery && (
                             <button
                                 onClick={clearSearch}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8f98a0] hover:text-white transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
                             >
                                 <X size={14} />
                             </button>
@@ -453,7 +573,7 @@ export default function Search() {
                     </div>
                     <button
                         onClick={() => searchArticles()}
-                        className="px-4 py-1.5 bg-[#395566] hover:bg-[#45677a] text-[#c7d5e0] text-[13px] rounded-sm transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-[#161d28] hover:bg-rose-600 hover:text-white text-zinc-300 border border-[#2d3a4f]/50 hover:border-rose-500 text-[13px] rounded-md transition-all flex items-center gap-2"
                     >
                         <SearchIcon size={14} />
                         Search
@@ -464,32 +584,69 @@ export default function Search() {
             {/* Main content area */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Results list */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <div className="p-4">
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0a0e14]">
+                    <div className="p-4 max-w-[1400px] mx-auto">
+                        {/* Notice Alert Banner */}
+                        {showNotice && (
+                            <div className="relative flex gap-3 bg-rose-500/10 border border-rose-500/25 rounded-lg p-3.5 mb-4 text-xs text-rose-200">
+                                <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
+                                <div className="flex-1 pr-6 leading-relaxed">
+                                    <p className="font-bold text-white mb-0.5 uppercase tracking-wider text-[10px]">Community Notice</p>
+                                    Welcome to ChanoX2 downloads index. Only official and verified game files are listed here. We have optimized database queries for faster caching. If you encounter any rendering issues, please report them in Settings.
+                                </div>
+                                <button
+                                    onClick={() => setShowNotice(false)}
+                                    className="absolute top-3 right-3 text-rose-400 hover:text-white transition-colors"
+                                    title="Dismiss notice"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center h-64">
-                                <Loader2 className="w-8 h-8 animate-spin text-[#67c1f5] mb-4" />
-                                <p className="text-[#8f98a0] text-sm">Searching...</p>
+                            <div className="flex flex-col items-center justify-center h-80">
+                                <Loader2 className="w-9 h-9 animate-spin text-[#66c0f4] mb-4" />
+                                <p className="text-zinc-500 text-sm font-semibold tracking-wider uppercase">Loading database...</p>
                             </div>
                         ) : articles.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-64 text-center">
-                                <p className="text-[#8f98a0] text-base">No results found</p>
+                            <div className="flex flex-col items-center justify-center h-80 text-center">
+                                <p className="text-zinc-400 text-base font-semibold">No titles found</p>
                                 <p className="text-zinc-600 text-sm mt-1">
-                                    Try different keywords or adjust filters
+                                    Try adjusting your search queries or filter categories
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-0">
-                                {articles.map((article) => (
-                                    <SearchResultItem key={article.id} article={article} />
-                                ))}
-                            </div>
+                            <>
+                                {/* Top Pagination */}
+                                {renderPagination()}
+
+                                {/* Results Grid / List */}
+                                {viewMode === 'grid' ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 py-2">
+                                        {paginatedArticles.map((article) => (
+                                            <GameCard key={article.id} article={article} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-0.5 bg-[#111721] rounded-lg border border-[#2d3a4f]/25 divide-y divide-[#2d3a4f]/15 overflow-hidden">
+                                        {paginatedArticles.map((article) => (
+                                            <SearchResultItem key={article.id} article={article} />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Bottom Pagination */}
+                                <div className="mt-4">
+                                    {renderPagination()}
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
 
                 {/* Filter sidebar - Desktop */}
-                <div className="hidden lg:block border-l border-[#2a475e]">
+                <div className="hidden lg:block">
                     <SearchFilters
                         filters={filters}
                         onFiltersChange={setFilters}
@@ -502,25 +659,27 @@ export default function Search() {
 
                 {/* Filter sidebar - Mobile overlay */}
                 {showMobileFilters && (
-                    <div className="lg:hidden fixed inset-0 z-50 bg-black/70">
-                        <div className="absolute right-0 top-0 bottom-0 w-[300px] bg-[#1b2838] shadow-xl">
-                            <div className="flex items-center justify-between p-3 border-b border-[#2a475e]">
-                                <span className="text-[#c7d5e0] font-medium">Filters</span>
+                    <div className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+                        <div className="absolute right-0 top-0 bottom-0 w-[300px] bg-[#111721] shadow-2xl flex flex-col">
+                            <div className="flex items-center justify-between p-3.5 border-b border-[#2d3a4f]/50 bg-[#161d28]">
+                                <span className="text-white font-bold tracking-wider uppercase text-xs">Filters</span>
                                 <button
                                     onClick={() => setShowMobileFilters(false)}
-                                    className="text-[#8f98a0] hover:text-white"
+                                    className="text-zinc-400 hover:text-white"
                                 >
-                                    <X size={20} />
+                                    <X size={18} />
                                 </button>
                             </div>
-                            <SearchFilters
-                                filters={filters}
-                                onFiltersChange={setFilters}
-                                availableTags={availableTags}
-                                availableCategories={availableCategories}
-                                availablePlatforms={availablePlatforms}
-                                resultsCount={articles.length}
-                            />
+                            <div className="flex-1 overflow-y-auto">
+                                <SearchFilters
+                                    filters={filters}
+                                    onFiltersChange={setFilters}
+                                    availableTags={availableTags}
+                                    availableCategories={availableCategories}
+                                    availablePlatforms={availablePlatforms}
+                                    resultsCount={articles.length}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -528,11 +687,11 @@ export default function Search() {
 
             {/* Sequential Code Confirmation Dialog */}
             <Dialog open={showCodeDialog} onOpenChange={setShowCodeDialog}>
-                <DialogContent className="sm:max-w-md bg-[#1b2838] border-[#2a475e] text-[#c7d5e0]">
+                <DialogContent className="sm:max-w-md bg-[#111721] border-[#2d3a4f]/50 text-zinc-300">
                     <DialogHeader>
                         <DialogTitle className="text-white">Advanced Search Detected</DialogTitle>
-                        <DialogDescription className="text-[#8f98a0]">
-                            We detected a sequential code: <span className="text-white font-mono font-bold">{detectedCode}</span>.
+                        <DialogDescription className="text-zinc-500">
+                            We detected a sequential code: <span className="text-[#66c0f4] font-mono font-bold">{detectedCode}</span>.
                             <br />
                             Do you want to use the Advanced Search for this specific code?
                         </DialogDescription>
@@ -541,21 +700,21 @@ export default function Search() {
                         <Button
                             variant="primary"
                             onClick={confirmCodeSearch}
-                            className="w-full sm:w-auto"
+                            className="w-full sm:w-auto bg-[#66c0f4] hover:bg-[#5ab0e4] text-[#0a0e14]"
                         >
                             Use Advanced Search
                         </Button>
                         <Button
                             variant="secondary"
                             onClick={ignoreCodeSearch}
-                            className="w-full sm:w-auto"
+                            className="w-full sm:w-auto bg-zinc-800 text-zinc-200 border-zinc-700 hover:bg-zinc-700"
                         >
                             Search Normally
                         </Button>
                         <Button
                             variant="ghost"
                             onClick={() => setShowCodeDialog(false)}
-                            className="w-full sm:w-auto"
+                            className="w-full sm:w-auto text-zinc-500 hover:text-zinc-300"
                         >
                             Cancel
                         </Button>

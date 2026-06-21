@@ -143,7 +143,7 @@ export default function GameListSection({
     const [isListHovered, setIsListHovered] = useState(false);
 
     const handleSearch = () => {
-        if (searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        if (searchQuery.trim()) navigate(`/?q=${encodeURIComponent(searchQuery.trim())}`);
     };
 
     useEffect(() => { setCurrentPage(1); }, [activeTab]);
