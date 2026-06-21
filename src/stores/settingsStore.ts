@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'mac' | 'notifications' | 'security' | 'discord';
+export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'mac' | 'notifications' | 'security' | 'application';
 export type NsfwFilterLevel = 'low' | 'medium' | 'high';
 
 interface SettingsStore {
@@ -11,6 +11,7 @@ interface SettingsStore {
     nsfwFilterEnabled: boolean;
     nsfwFilterLevel: NsfwFilterLevel;
     discordRPCEnabled: boolean;
+    autoRedirectToDownloads: boolean;
     openSettings: () => void;
     closeSettings: () => void;
     setActiveSection: (section: SettingsSection) => void;
@@ -18,6 +19,7 @@ interface SettingsStore {
     setNsfwFilterEnabled: (enabled: boolean) => void;
     setNsfwFilterLevel: (level: NsfwFilterLevel) => void;
     setDiscordRPCEnabled: (enabled: boolean) => void;
+    setAutoRedirectToDownloads: (enabled: boolean) => void;
     loadFromElectron: () => Promise<void>;
 }
 
@@ -30,6 +32,7 @@ export const useSettingsStore = create<SettingsStore>()(
             nsfwFilterEnabled: false,
             nsfwFilterLevel: 'medium',
             discordRPCEnabled: true,
+            autoRedirectToDownloads: true,
             openSettings: () => set({ isOpen: true }),
             closeSettings: () => set({ isOpen: false }),
             setActiveSection: (section) => set({ activeSection: section }),
@@ -65,6 +68,7 @@ export const useSettingsStore = create<SettingsStore>()(
                     });
                 }
             },
+            setAutoRedirectToDownloads: (enabled) => set({ autoRedirectToDownloads: enabled }),
             loadFromElectron: async () => {
                 if (window.electronAPI) {
                     const settings = await window.electronAPI.getGlobalSettings();
@@ -86,6 +90,7 @@ export const useSettingsStore = create<SettingsStore>()(
                 nsfwFilterEnabled: state.nsfwFilterEnabled,
                 nsfwFilterLevel: state.nsfwFilterLevel,
                 discordRPCEnabled: state.discordRPCEnabled,
+                autoRedirectToDownloads: state.autoRedirectToDownloads,
             }),
         }
     )

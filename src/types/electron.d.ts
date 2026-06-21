@@ -132,6 +132,8 @@ export interface ElectronAPI {
     getDownloadDirectory: () => Promise<string>;
     selectGameFolder: () => Promise<string | null>;
     selectGameArchive: () => Promise<string | null>;
+    getDirectorySize: (path: string) => Promise<number>;
+    getFileSize: (path: string) => Promise<number>;
 
     // Download event listeners - return cleanup function
     onDownloadStarted: (callback: (data: DownloadStartedData) => void) => (() => void) | void;

@@ -487,6 +487,49 @@ ipcMain.handle('get-disk-space', async (event, checkPath) => {
     }
 });
 
+async function calculateDirSize(dirPath) {
+    let size = 0;
+    try {
+        const files = await fs.promises.readdir(dirPath, { withFileTypes: true });
+        const promises = files.map(async (file) => {
+            const filePath = path.join(dirPath, file.name);
+            if (file.isDirectory()) {
+                size += await calculateDirSize(filePath);
+            } else if (file.isFile()) {
+                const stat = await fs.promises.stat(filePath);
+                size += stat.size;
+            }
+        });
+        await Promise.all(promises);
+    } catch (e) {
+        // Ignore file errors or missing paths silently to avoid crashing
+    }
+    return size;
+}
+
+ipcMain.handle('get-directory-size', async (event, dirPath) => {
+    if (!dirPath || !fs.existsSync(dirPath)) return 0;
+    try {
+        const stats = await fs.promises.stat(dirPath);
+        if (!stats.isDirectory()) return stats.size;
+        return await calculateDirSize(dirPath);
+    } catch (error) {
+        console.error('Failed to get directory size:', error);
+        return 0;
+    }
+});
+
+ipcMain.handle('get-file-size', async (event, filePath) => {
+    if (!filePath || !fs.existsSync(filePath)) return 0;
+    try {
+        const stats = await fs.promises.stat(filePath);
+        return stats.size;
+    } catch (error) {
+        console.error('Failed to get file size:', error);
+        return 0;
+    }
+});
+
 ipcMain.handle('set-download-directory', (event, dirPath) => {
     if (dirPath && fs.existsSync(dirPath)) {
         downloadDirectory = dirPath;

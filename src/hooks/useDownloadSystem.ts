@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ElectronDownloader } from '@/lib/electronDownloader';
 import { Download } from '@/types/download';
 import { sdk } from '@/libs/sdk';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 type OnExtractionComplete = (download: Download, extractedPath: string) => void;
 
 export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
+    const navigate = useNavigate();
     const [downloads, setDownloads] = useState<Download[]>([]);
     const isLoadedRef = useRef(false);
 
@@ -110,6 +113,9 @@ export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
                     };
                     return [newDownload, ...prev];
                 });
+                if (useSettingsStore.getState().autoRedirectToDownloads) {
+                    navigate('/downloads');
+                }
             },
             // On progress
             (id, progress) => {
