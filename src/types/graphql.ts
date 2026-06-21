@@ -93,7 +93,7 @@ export interface Download {
     name: string | null;
     url: string;
     isActive: boolean;
-    vipOnly: boolean;
+    vipOnly?: boolean;
     forVersion?: string | null;
     createdAt: string;
     updatedAt: string;

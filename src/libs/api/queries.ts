@@ -125,7 +125,6 @@ export const GET_DOWNLOADS = gql`
       name
       url
       isActive
-      vipOnly
     }
   }
 `;
