@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ChevronDown, ChevronUp, X,
+    ChevronDown, ChevronUp,
     Gamepad2, Image as ImageIcon, Film, BookOpen, LayoutGrid,
-    Clock, ThumbsUp, Heart, ArrowUpDown, Star, SlidersHorizontal, RefreshCw, Monitor, Apple, Terminal
+    Clock, ThumbsUp, ArrowUpDown, Star, SlidersHorizontal, RefreshCw, Monitor, Apple, Terminal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

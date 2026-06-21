@@ -5,7 +5,7 @@ import { enUS, th } from 'date-fns/locale';
 import type { ArticleListItem } from '@chanomhub/sdk';
 import { SafeImage } from '@/components/common/SafeImage';
 import { getOptimizedImageUrl } from '@/libs/imageUrl';
-import { Clock, ThumbsUp, Eye, Star, Heart } from 'lucide-react';
+import { Clock, Eye, Star, Heart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface GameCardProps {
@@ -137,9 +137,9 @@ export default function GameCard({ article }: GameCardProps) {
                 )}
 
                 {/* Excerpt / Short Description */}
-                {(article.excerpt || article.description) && (
+                {(article.description) && (
                     <p className="text-[11px] text-zinc-400/80 leading-normal line-clamp-2 mt-1 min-h-[32px]">
-                        {article.excerpt || article.description?.replace(/<[^>]*>?/gm, '')}
+                        {article.description?.replace(/<[^>]*>?/gm, '')}
                     </p>
                 )}
 
