@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Store, Library, Download, Search } from 'lucide-react';
+import { Store, Library, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [

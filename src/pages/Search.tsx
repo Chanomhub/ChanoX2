@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search as SearchIcon, Loader2, X, Settings2, LayoutGrid, List, AlertCircle, RefreshCw } from 'lucide-react';
+import { Search as SearchIcon, Loader2, X, Settings2, LayoutGrid, List, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
     Dialog,
