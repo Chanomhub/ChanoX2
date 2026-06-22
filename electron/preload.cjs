@@ -172,4 +172,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // NST CLI Integration
     openNstCli: (projectPath, engine) =>
         ipcRenderer.invoke('open-nst-cli', { projectPath, engine }),
+        
+    // Proton detection
+    findInstalledProtons: () => ipcRenderer.invoke('find-installed-protons'),
 });

@@ -1273,6 +1273,50 @@ ipcMain.handle('remove-auth-data', (event, key) => {
     return saveJsonFile(AUTH_FILE, data);
 });
 
+// --- Proton Detection ---
+ipcMain.handle('find-installed-protons', async () => {
+    const os = require('os');
+    const homedir = os.homedir();
+    const searchDirs = [
+        path.join(homedir, '.local/share/Steam/compatibilitytools.d'),
+        path.join(homedir, '.steam/root/compatibilitytools.d'),
+        path.join(homedir, '.steam/steam/compatibilitytools.d'),
+        path.join(homedir, '.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d'),
+        '/usr/share/steam/compatibilitytools.d'
+    ];
+
+    const detected = [];
+    
+    // Add workspace path for development/testing
+    const workspaceProton = path.join(__dirname, '..', 'GE-Proton10-34');
+    searchDirs.push(path.dirname(workspaceProton));
+
+    for (const dir of searchDirs) {
+        try {
+            if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
+                const subdirs = fs.readdirSync(dir);
+                for (const sub of subdirs) {
+                    const fullPath = path.join(dir, sub);
+                    const protonBin = path.join(fullPath, 'proton');
+                    if (fs.existsSync(protonBin)) {
+                        // Check if we already added this one
+                        if (!detected.some(d => d.path === fullPath)) {
+                            detected.push({
+                                name: sub,
+                                path: fullPath
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn(`[Main] Error searching Proton in ${dir}:`, e.message);
+        }
+    }
+
+    return detected;
+});
+
 // --- Bottles CLI Integration ---
 ipcMain.handle('list-bottles', async () => {
     try {
@@ -1658,7 +1702,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
     }
 
     // Prepare launch command via platform handler
-    const { command, finalArgs, detached } = platformHandler.prepareLaunch(
+    const { command, finalArgs, detached, extraEnv } = platformHandler.prepareLaunch(
         executablePath,
         args,
         { useWine, wineProvider, globalSettings }
@@ -1694,6 +1738,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
                 platform: process.platform
             });
             Object.assign(cleanEnv, compatEnv);
+            if (extraEnv) Object.assign(cleanEnv, extraEnv);
 
             const startTime = Date.now();
             const subprocess = spawn(command, finalArgs, {

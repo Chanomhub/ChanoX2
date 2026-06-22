@@ -56,8 +56,10 @@ export interface GameConfig {
 }
 
 export interface GlobalSettings {
-    wineProvider?: 'internal' | 'bottles' | 'custom';
+    wineProvider?: 'internal' | 'bottles' | 'custom' | 'proton';
     externalWineCommand?: string;
+    protonPath?: string;
+    protonPrefixPath?: string;
     [key: string]: unknown;
 }
 
@@ -211,6 +213,9 @@ export interface ElectronAPI {
 
     // Deep Links
     onDeepLink?: (callback: (data: { url: string }) => void) => (() => void) | void;
+
+    // Proton Detection
+    findInstalledProtons: () => Promise<{ name: string; path: string }[]>;
 }
 
 declare global {

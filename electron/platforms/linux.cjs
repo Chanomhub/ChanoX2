@@ -40,7 +40,37 @@ module.exports = {
         const shouldRunWine = isNative ? false : useWine;
 
         if (shouldRunWine) {
-            if (wineProvider === 'bottles') {
+            if (wineProvider === 'proton') {
+                const protonPath = globalSettings.protonPath || '';
+                const protonBin = path.join(protonPath, 'proton');
+                const steamCompatDataDir = globalSettings.protonPrefixPath ||
+                    path.join(require('os').homedir(), '.local/share/Steam/steamapps/compatdata/chanox');
+                
+                // Ensure the compatibility data directory exists, otherwise Proton fails to create lock files
+                try {
+                    if (!fs.existsSync(steamCompatDataDir)) {
+                        fs.mkdirSync(steamCompatDataDir, { recursive: true });
+                    }
+                } catch (err) {
+                    console.error('Failed to create STEAM_COMPAT_DATA_PATH directory:', err);
+                }
+
+                command = protonBin;
+                finalArgs = ['run', executablePath, ...args];
+                detached = true;
+                // Proton requires these env vars to be set at spawn time; caller merges them via env
+                // We attach them as properties so main.cjs can merge into cleanEnv
+                return {
+                    command,
+                    finalArgs,
+                    detached,
+                    extraEnv: {
+                        STEAM_COMPAT_DATA_PATH: steamCompatDataDir,
+                        STEAM_COMPAT_CLIENT_INSTALL_PATH: protonPath,
+                        PROTON_NO_ESYNC: '0',
+                    }
+                };
+            } else if (wineProvider === 'bottles') {
                 const customCmd = globalSettings.externalWineCommand || 'bottles-cli run -b Gaming -e %EXE%';
                 let cmdString = customCmd.replace('%EXE%', `"${executablePath}"`);
                 if (!customCmd.includes('%EXE%')) cmdString = `${customCmd} "${executablePath}"`;
