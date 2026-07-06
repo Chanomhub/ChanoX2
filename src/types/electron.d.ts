@@ -117,7 +117,6 @@ export interface ElectronAPI {
     installMod: (url: string, installPath: string, filename: string, headers?: Record<string, string>) => Promise<{ success: boolean; path?: string }>;
     readFileContent: (path: string) => Promise<string | null>;
     writeFileContent: (path: string, content: string) => Promise<boolean>;
-    deleteFile: (path: string) => Promise<boolean>;
 
     // LayerPack
     getLpackMetadata: (filePath: string, key?: string) => Promise<{ success: boolean; name?: string; author?: string | null; files?: string[]; error?: string }>;
@@ -173,8 +172,7 @@ export interface ElectronAPI {
 
     // File Management
     moveArchiveToStorage: (sourcePath: string, filename: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;
-    deleteArchive: (archivePath: string) => Promise<{ success: boolean; error?: string }>;
-    deleteGameFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+    deletePath: (path: string) => Promise<{ success: boolean; error?: string }>;
     fileExists: (filePath: string) => Promise<boolean>;
     readDirectory: (dirPath: string) => Promise<ReadDirectoryResult>;
 

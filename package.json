@@ -15,6 +15,10 @@
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:prod": "npm run build && cross-env NODE_ENV=production electron .",
+    "check:types": "tsc --noEmit",
+    "check:unused": "ts-prune",
+    "check:deps": "depcheck",
+    "validate": "bun run check:types && bun run check:unused && bun run check:deps",
     "setup:linux-protocol": "bash ./scripts/setup-linux-protocol.sh",
     "prepare": "husky"
   },

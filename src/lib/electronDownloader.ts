@@ -109,4 +109,12 @@ export class ElectronDownloader {
         }
         throw new Error('Extraction not supported in this environment');
     }
+
+    static async deletePath(path: string) {
+        if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.deletePath) {
+            return await window.electronAPI.deletePath(path);
+        }
+        console.warn('Electron API deletePath not available');
+        return { success: false, error: 'Delete not supported' };
+    }
 }

@@ -12,6 +12,7 @@ interface SettingsStore {
     nsfwFilterLevel: NsfwFilterLevel;
     discordRPCEnabled: boolean;
     autoRedirectToDownloads: boolean;
+    keepArchiveAfterExtraction: boolean;
     openSettings: () => void;
     closeSettings: () => void;
     setActiveSection: (section: SettingsSection) => void;
@@ -20,6 +21,7 @@ interface SettingsStore {
     setNsfwFilterLevel: (level: NsfwFilterLevel) => void;
     setDiscordRPCEnabled: (enabled: boolean) => void;
     setAutoRedirectToDownloads: (enabled: boolean) => void;
+    setKeepArchiveAfterExtraction: (enabled: boolean) => void;
     loadFromElectron: () => Promise<void>;
 }
 
@@ -33,6 +35,7 @@ export const useSettingsStore = create<SettingsStore>()(
             nsfwFilterLevel: 'medium',
             discordRPCEnabled: true,
             autoRedirectToDownloads: true,
+            keepArchiveAfterExtraction: false,
             openSettings: () => set({ isOpen: true }),
             closeSettings: () => set({ isOpen: false }),
             setActiveSection: (section) => set({ activeSection: section }),
@@ -69,6 +72,7 @@ export const useSettingsStore = create<SettingsStore>()(
                 }
             },
             setAutoRedirectToDownloads: (enabled) => set({ autoRedirectToDownloads: enabled }),
+            setKeepArchiveAfterExtraction: (enabled) => set({ keepArchiveAfterExtraction: enabled }),
             loadFromElectron: async () => {
                 if (window.electronAPI) {
                     const settings = await window.electronAPI.getGlobalSettings();
@@ -91,6 +95,7 @@ export const useSettingsStore = create<SettingsStore>()(
                 nsfwFilterLevel: state.nsfwFilterLevel,
                 discordRPCEnabled: state.discordRPCEnabled,
                 autoRedirectToDownloads: state.autoRedirectToDownloads,
+                keepArchiveAfterExtraction: state.keepArchiveAfterExtraction,
             }),
         }
     )

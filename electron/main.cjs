@@ -753,19 +753,6 @@ ipcMain.handle('write-file-content', async (event, { filePath, content }) => {
     }
 });
 
-ipcMain.handle('delete-file', async (event, filePath) => {
-    try {
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            return true;
-        }
-        return false;
-    } catch (err) {
-        console.error(`[Main] Error deleting file ${filePath}:`, err);
-        return false;
-    }
-});
-
 // --- LayerPack Integration ---
 ipcMain.handle('check-lpack-conflicts', async (event, { filePath, destPath, key }) => {
     try {
@@ -1228,30 +1215,28 @@ ipcMain.handle('move-archive-to-storage', async (event, { sourcePath, filename }
     }
 });
 
-// Delete archive file
-ipcMain.handle('delete-archive', async (event, archivePath) => {
+// Delete a file or directory at a given path.
+ipcMain.handle('delete-path', async (event, pathToDelete) => {
     try {
-        if (!archivePath || !fs.existsSync(archivePath)) {
-            return { success: false, error: 'Archive not found' };
+        if (!pathToDelete || typeof pathToDelete !== 'string') {
+            return { success: false, error: 'Invalid path provided' };
         }
-        await fs.promises.unlink(archivePath);
-        return { success: true };
-    } catch (err) {
-        console.error('Failed to delete archive:', err);
-        return { success: false, error: err.message };
-    }
-});
 
-// Delete game folder (extracted)
-ipcMain.handle('delete-game-folder', async (event, folderPath) => {
-    try {
-        if (!folderPath || !fs.existsSync(folderPath)) {
-            return { success: false, error: 'Folder not found' };
+        // Security: Basic check to prevent deleting critical root directories.
+        const restrictedPaths = [app.getPath('home'), app.getPath('userData'), '/'];
+        if (restrictedPaths.includes(path.normalize(pathToDelete))) {
+             return { success: false, error: 'Deletion of critical system path is not allowed' };
         }
-        await fs.promises.rm(folderPath, { recursive: true, force: true });
-        return { success: true };
+
+        if (fs.existsSync(pathToDelete)) {
+            await fs.promises.rm(pathToDelete, { recursive: true, force: true });
+            console.log(`[FS] Deleted path: ${pathToDelete}`);
+            return { success: true };
+        }
+        // If path doesn't exist, it's not an error, the desired state is achieved.
+        return { success: true, warning: 'Path did not exist, no action taken.' };
     } catch (err) {
-        console.error('Failed to delete game folder:', err);
+        console.error(`[FS] Failed to delete path '${pathToDelete}':`, err);
         return { success: false, error: err.message };
     }
 });

@@ -19,7 +19,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     installMod: (url, installPath, filename, headers) => ipcRenderer.invoke('install-mod', { url, installPath, filename, headers }),
     readFileContent: (path) => ipcRenderer.invoke('read-file-content', path),
     writeFileContent: (path, content) => ipcRenderer.invoke('write-file-content', { filePath: path, content }),
-    deleteFile: (path) => ipcRenderer.invoke('delete-file', path),
 
     // LayerPack
     getLpackMetadata: (filePath, key) => ipcRenderer.invoke('get-lpack-metadata', { filePath, key }),
@@ -105,8 +104,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // File Management
     moveArchiveToStorage: (sourcePath, filename) => ipcRenderer.invoke('move-archive-to-storage', { sourcePath, filename }),
-    deleteArchive: (archivePath) => ipcRenderer.invoke('delete-archive', archivePath),
-    deleteGameFolder: (folderPath) => ipcRenderer.invoke('delete-game-folder', folderPath),
+    deletePath: (path) => ipcRenderer.invoke('delete-path', path),
     fileExists: (filePath) => ipcRenderer.invoke('file-exists', filePath),
     readDirectory: (dirPath) => ipcRenderer.invoke('read-directory', dirPath),
 

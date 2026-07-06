@@ -5,15 +5,14 @@ import { useLibrary } from '@/contexts/LibraryContext';
 
 interface DownloadContextType {
     downloads: Download[];
-    openDownloadLink: (url: string, articleId?: number, articleTitle?: string, coverImage?: string, engine?: string, gameVersion?: string, description?: string, body?: string, apiDownloadId?: number) => void;
+    openDownloadLink: (url: string, metadata: Record<string, any>) => void;
     cancelDownload: (id: number) => void;
     removeDownload: (id: number) => void;
     clearCompleted: () => void;
     clearAll: () => void;
     showInFolder: (id: number) => void;
     openFile: (id: number) => void;
-    extractDownload: (id: number) => Promise<void>;
-    toggleFavorite: (id: number) => void;
+    retryDownload: (id: number) => void;
 }
 
 const DownloadContext = createContext<DownloadContextType | undefined>(undefined);
