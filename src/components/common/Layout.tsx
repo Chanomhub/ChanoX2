@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 import TitleBar from './TitleBar';
 import MenuBar from './MenuBar';
 import NewYearCelebration from './NewYearCelebration';
-import IdlePrankOverlay from './IdlePrankOverlay';
 
 interface LayoutProps {
     children: ReactNode;
@@ -13,7 +12,6 @@ export default function Layout({ children }: LayoutProps) {
     return (
         <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
             <NewYearCelebration />
-            <IdlePrankOverlay />
 
             {/* Custom Title Bar */}
             <TitleBar />
