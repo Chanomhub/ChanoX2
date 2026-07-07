@@ -2080,7 +2080,21 @@ async function runUpdateFlow() {
                         console.warn('⚠️ Failed to set execute permissions:', chmodErr.message);
                     }
                 }
-                await shell.openPath(updateDestPath);
+
+                // If running on Linux and executing an AppImage, launch it directly via spawn
+                // to bypass KIO Client desktop environment security restrictions
+                if (process.platform === 'linux' && updateDestPath.toLowerCase().endsWith('.appimage')) {
+                    console.log('🔄 [Updater] Launching AppImage directly via spawn to bypass KIO Client...');
+                    const child = spawn(updateDestPath, [], {
+                        detached: true,
+                        stdio: 'ignore'
+                    });
+                    child.unref();
+                } else {
+                    console.log('🔄 [Updater] Launching installer via shell.openPath...');
+                    await shell.openPath(updateDestPath);
+                }
+
                 setTimeout(() => {
                     app.quit();
                 }, 500);
@@ -2125,6 +2139,7 @@ async function checkForUpdates() {
     } catch (e) { /* use app version */ }
 
     try {
+        console.log(`🔄 [Updater] Current version (local package.json): v${currentVersion}`);
         const response = await fetch('https://api.github.com/repos/Chanomhub/ChanoX2/releases/latest');
         if (!response.ok) {
             throw new Error(`Failed to check updates: ${response.statusText}`);
@@ -2133,6 +2148,8 @@ async function checkForUpdates() {
         const data = await response.json();
         const latestVersion = data.tag_name.replace(/^v/, '').trim();
         latestReleaseVersion = latestVersion;
+
+        console.log(`🔄 [Updater] Latest remote version: v${latestVersion}`);
 
         if (latestVersion !== currentVersion && compareVersions(latestVersion, currentVersion) > 0) {
             const asset = data.assets.find(a => {
@@ -2161,6 +2178,8 @@ async function checkForUpdates() {
                     if (freeSpace < requiredSpace) {
                         hasEnoughSpace = false;
                         console.warn(`Disk space too low for update! Free: ${freeSpace}, Needed: ${requiredSpace}`);
+                    } else {
+                        console.log(`🔄 [Updater] Disk space verified: ${Math.round(freeSpace / (1024 * 1024))}MB available (Need: ${Math.round(requiredSpace / (1024 * 1024))}MB)`);
                     }
                 } catch (spaceErr) {
                     console.warn('⚠️ Disk space verification failed, proceeding:', spaceErr.message);
@@ -2178,21 +2197,26 @@ async function checkForUpdates() {
                 const globalSettings = loadJsonFile(SETTINGS_FILE);
                 const autoUpdateEnabled = globalSettings.autoUpdateEnabled !== false;
 
+                console.log(`🔄 [Updater] Auto-update is enabled? ${autoUpdateEnabled}`);
                 if (autoUpdateEnabled) {
+                    console.log('🔄 [Updater] Downloading update automatically...');
                     runUpdateFlow();
                 } else {
+                    console.log('🔄 [Updater] Auto-update is disabled. Presenting "Update Now" and "Skip & Launch" options...');
                     if (updaterWindow && !updaterWindow.isDestroyed()) {
                         updaterWindow.webContents.send('update-status', `New version v${latestVersion} is available.`);
                         updaterWindow.webContents.send('show-update-options');
                     }
                 }
             } else {
+                console.log('🔄 [Updater] No installer found for current platform.');
                 if (updaterWindow && !updaterWindow.isDestroyed()) {
                     updaterWindow.webContents.send('update-status', 'No installer found for your OS. Skipping update...');
                 }
                 setTimeout(launchMainApp, 1500);
             }
         } else {
+            console.log('🔄 [Updater] App is up to date.');
             if (updaterWindow && !updaterWindow.isDestroyed()) {
                 updaterWindow.webContents.send('update-status', 'App is up to date. Starting ChanoX2...');
             }
