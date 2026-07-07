@@ -63,7 +63,7 @@ export function useInstalledMods(gamePath: string | undefined) {
         // Delete the file first
         const filePath = `${gamePath}/${mod.filename}`;
         try {
-            await window.electronAPI.deleteFile(filePath);
+            await window.electronAPI.deletePath(filePath);
         } catch (err) {
             console.error('Failed to delete mod file:', err);
             // We might still want to remove it from manifest if file is gone

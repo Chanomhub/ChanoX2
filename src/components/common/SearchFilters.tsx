@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
     ChevronDown, ChevronUp,
     Gamepad2, Image as ImageIcon, Film, BookOpen, LayoutGrid,
-    Clock, ThumbsUp, ArrowUpDown, Star, SlidersHorizontal, RefreshCw, Monitor, Apple, Terminal
+    Clock, ThumbsUp, ArrowUpDown, SlidersHorizontal, RefreshCw, Monitor, Apple, Terminal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,7 @@ export interface FilterState {
     tags: string[];
     categories: string[];
     platforms: string[];
-    sortBy: 'relevance' | 'date' | 'popularity' | 'title';
+    sortBy: 'date' | 'popularity' | 'title';
 }
 
 export interface FilterEntity {
@@ -169,7 +169,7 @@ export default function SearchFilters({
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {/* CATEGORIES BUTTONS (F95Zone category grid style) */}
+
                 {availableCategories.length > 0 && (
                     <div className="p-3 border-b border-[#2d3a4f]/40">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-2">
@@ -203,7 +203,7 @@ export default function SearchFilters({
                     <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-2">
                         {t('store.sorting')}
                     </label>
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-3 gap-1.5">
                         {/* Clock -> Release Date */}
                         <button
                             onClick={() => onFiltersChange({ ...filters, sortBy: 'date' })}
@@ -230,20 +230,6 @@ export default function SearchFilters({
                             )}
                         >
                             <ThumbsUp size={14} />
-                        </button>
-
-                        {/* Star -> Star/Relevance */}
-                        <button
-                            onClick={() => onFiltersChange({ ...filters, sortBy: 'relevance' })}
-                            title={t('store.sort_by_relevance')}
-                            className={cn(
-                                "flex flex-col items-center justify-center p-2 rounded border transition-all text-xs gap-1",
-                                filters.sortBy === 'relevance'
-                                    ? "bg-[#66c0f4]/15 border-[#66c0f4]/50 text-[#66c0f4] shadow-[0_0_8px_rgba(102,192,244,0.15)]"
-                                    : "bg-[#161d28] border-[#2d3a4f]/40 text-zinc-400 hover:border-[#66c0f4]/40 hover:text-white"
-                            )}
-                        >
-                            <Star size={14} />
                         </button>
 
                         {/* Name -> Name / Title */}

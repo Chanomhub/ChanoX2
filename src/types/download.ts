@@ -1,18 +1,8 @@
+// src/types/download.ts
+
 export interface Download {
     id: number;
     filename: string;
-    url?: string;
-    savePath?: string;
-    status: 'downloading' | 'completed' | 'failed' | 'cancelled' | 'paused';
-    progress: number;
-    downloadedBytes: number;
-    totalBytes: number;
-    speed: number;
-    startTime: Date;
-    endTime?: Date;
-    error?: string;
-
-    // Metadata
     articleId?: number;
     apiDownloadId?: number;
     articleTitle?: string;
@@ -21,9 +11,16 @@ export interface Download {
     coverImage?: string;
     engine?: string;
     gameVersion?: string;
-    isFavorite?: boolean;
-
-    // Extraction
-    isExtracting?: boolean;
+    status: 'downloading' | 'completed' | 'failed' | 'cancelled' | 'extracting';
+    progress: number;
+    downloadedBytes: number;
+    totalBytes: number;
+    speed: number;
+    startTime: Date;
+    endTime?: Date;
+    savePath?: string;
     extractedPath?: string;
+    isExtracting?: boolean;
+    error?: string;
+    isFavorite: boolean;
 }

@@ -84,19 +84,21 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         const item = libraryItems.find(i => i.id === id);
         if (!item) return;
 
-        // Optionally delete game folder
-        if (item.extractedPath && window.electronAPI) {
+        // Delete game folder
+        if (item.extractedPath && window.electronAPI?.deletePath) {
             try {
-                await window.electronAPI.deleteGameFolder(item.extractedPath);
+                console.log(`[Library] Deleting game folder: ${item.extractedPath}`);
+                await window.electronAPI.deletePath(item.extractedPath);
             } catch (err) {
                 console.error('Failed to delete game folder:', err);
             }
         }
 
         // Also delete archive if present
-        if (item.archivePath && window.electronAPI) {
+        if (item.archivePath && window.electronAPI?.deletePath) {
             try {
-                await window.electronAPI.deleteArchive(item.archivePath);
+                console.log(`[Library] Deleting archive: ${item.archivePath}`);
+                await window.electronAPI.deletePath(item.archivePath);
             } catch (err) {
                 console.error('Failed to delete archive:', err);
             }
@@ -152,8 +154,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         const item = libraryItems.find(i => i.id === id);
         if (!item || !item.archivePath) return false;
 
-        if (window.electronAPI) {
-            const result = await window.electronAPI.deleteArchive(item.archivePath);
+        if (window.electronAPI?.deletePath) {
+            const result = await window.electronAPI.deletePath(item.archivePath);
             if (result.success) {
                 // Clear archivePath from item
                 updateLibraryItem(id, { archivePath: undefined });

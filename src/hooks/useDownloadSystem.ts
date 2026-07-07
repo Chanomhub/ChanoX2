@@ -1,361 +1,54 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ElectronDownloader } from '@/lib/electronDownloader';
+import { useDownloadStore } from '@/stores/downloadStore';
 import { Download } from '@/types/download';
-import { sdk } from '@/libs/sdk';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 type OnExtractionComplete = (download: Download, extractedPath: string) => void;
 
+/**
+ * Hook to interact with the global download system (Zustand store).
+ * This hook initializes the Electron listeners and provides access to download state and actions.
+ * @param onExtractionComplete - Callback function to run when a file extraction is successfully completed.
+ * This is used to add the extracted game to the library.
+ */
 export function useDownloadSystem(onExtractionComplete?: OnExtractionComplete) {
     const navigate = useNavigate();
-    const [downloads, setDownloads] = useState<Download[]>([]);
-    const isLoadedRef = useRef(false);
+    const downloads = useDownloadStore(state => state.downloads);
+    const { initializeListeners, ...actions } = useDownloadStore(state => state.actions);
 
-    // Store callback in ref to avoid stale closures
-    const onExtractionCompleteRef = useRef(onExtractionComplete);
+    const autoRedirectToDownloads = useSettingsStore(state => state.autoRedirectToDownloads);
+
     useEffect(() => {
-        onExtractionCompleteRef.current = onExtractionComplete;
-    }, [onExtractionComplete]);
-
-    // Load from Electron Store on mount - only load active/failed downloads (not completed)
-    useEffect(() => {
-        const loadDownloads = async () => {
-            try {
-                if (window.electronAPI) {
-                    const saved = await window.electronAPI.getDownloads();
-                    if (saved && Array.isArray(saved)) {
-                        // Restore Dates and filter out completed (they go to Library now)
-                        const restored = saved
-                            .map((d: any) => ({
-                                ...d,
-                                startTime: new Date(d.startTime),
-                                endTime: d.endTime ? new Date(d.endTime) : undefined,
-                                // Reset stuck downloading states
-                                status: d.status === 'downloading' ? 'failed' : d.status,
-                                error: d.status === 'downloading' ? 'Download interrupted by app close' : d.error
-                            }))
-                            // Filter: only keep non-completed (completed items are in Library)
-                            .filter((d: any) => d.status !== 'completed');
-
-                        // Deduplicate based on ID
-                        const uniqueDownloads = Array.from(new Map(restored.map((item: any) => [item.id, item])).values());
-
-                        setDownloads(uniqueDownloads as Download[]);
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to load downloads from file system:', err);
-            } finally {
-                isLoadedRef.current = true;
+        const handleExtractionComplete = (download: Download, extractedPath: string) => {
+            if (onExtractionComplete) {
+                onExtractionComplete(download, extractedPath);
             }
         };
-        loadDownloads();
-    }, []);
 
-    // Persist to Electron Store whenever downloads change - only persist non-completed
-    useEffect(() => {
-        if (isLoadedRef.current && window.electronAPI) {
-            // Don't persist completed downloads - they are now in Library
-            const toSave = downloads.filter(d => d.status !== 'completed');
-            window.electronAPI.saveDownloads(toSave);
-        }
-    }, [downloads]);
+        const cleanup = initializeListeners(handleExtractionComplete);
 
-    // Store pending metadata for the next download started
-    const pendingMetadata = useRef<{ 
-        articleId?: number; 
-        apiDownloadId?: number;
-        title?: string; 
-        cover?: string; 
-        engine?: string; 
-        gameVersion?: string; 
-        description?: string; 
-        body?: string 
-    } | null>(null);
-
-    // Helper to call extraction complete callback
-    const handleExtractionComplete = useCallback((download: Download, extractedPath: string) => {
-        if (onExtractionCompleteRef.current) {
-            onExtractionCompleteRef.current(download, extractedPath);
-        }
-    }, []);
-
-    // Setup auto-capture of all downloads
-    useEffect(() => {
-        const cleanup = ElectronDownloader.setupDownloadListeners(
-            // On download started
-            (id, filename, totalBytes) => {
-                setDownloads(prev => {
-                    if (prev.some(d => d.id === id)) return prev;
-
-                    const metadata = pendingMetadata.current;
-                    pendingMetadata.current = null;
-
-                    const newDownload: Download = {
-                        id,
-                        filename,
-                        articleId: metadata?.articleId,
-                        apiDownloadId: metadata?.apiDownloadId,
-                        articleTitle: metadata?.title,
-                        articleDescription: metadata?.description,
-                        articleBody: metadata?.body,
-                        coverImage: metadata?.cover,
-                        engine: metadata?.engine,
-                        gameVersion: metadata?.gameVersion,
-                        status: 'downloading',
-                        progress: 0,
-                        downloadedBytes: 0,
-                        totalBytes,
-                        speed: 0,
-                        startTime: new Date(),
-                        isFavorite: false,
-                    };
-                    return [newDownload, ...prev];
-                });
-                if (useSettingsStore.getState().autoRedirectToDownloads) {
-                    navigate('/downloads');
-                }
-            },
-            // On progress
-            (id, progress) => {
-                setDownloads(prev =>
-                    prev.map(d =>
-                        d.id === id
-                            ? {
-                                ...d,
-                                status: 'downloading' as const,
-                                downloadedBytes: progress.receivedBytes,
-                                totalBytes: progress.totalBytes,
-                                progress: progress.totalBytes > 0 ? (progress.receivedBytes / progress.totalBytes) * 100 : 0,
-                                speed: progress.speed
-                            }
-                            : d
-                    )
-                );
-            },
-            // On complete
-            (id, savePath, filename) => {
-                // Check if file is an archive
-                const lowerFilename = filename.toLowerCase();
-                const archiveExtensions = ['.zip', '.rar', '.7z', '.tar', '.gz', '.xz', '.tgz'];
-                const isArchive = archiveExtensions.some(ext => lowerFilename.endsWith(ext));
-
-                if (isArchive) {
-                    // First update state to show extracting
-                    setDownloads(prev =>
-                        prev.map(d =>
-                            d.id === id
-                                ? {
-                                    ...d,
-                                    status: 'completed' as const,
-                                    progress: 100,
-                                    endTime: new Date(),
-                                    savePath,
-                                    filename,
-                                    speed: 0,
-                                    isExtracting: true
-                                }
-                                : d
-                        )
-                    );
-
-                    // Perform auto-extraction
-                    let destPath = savePath.replace(/\.[^/.]+$/, ""); // strip last extension
-                    if (destPath.endsWith('.tar')) {
-                        destPath = destPath.substring(0, destPath.length - 4);
-                    }
-
-                    // Get the download object for callback
-                    setDownloads(prev => {
-                        const download = prev.find(d => d.id === id);
-                        if (download) {
-                            ElectronDownloader.extractFile(savePath, destPath)
-                                .then((result) => {
-                                    // Use actualPath if provided (smart path detection)
-                                    const finalPath = result.actualPath || destPath;
-                                    console.log('Auto-extraction successful', finalPath);
-                                    // Call the callback to add to library
-                                    handleExtractionComplete({ ...download, savePath, filename }, finalPath);
-                                    // Update state
-                                    setDownloads(p =>
-                                        p.map(d =>
-                                            d.id === id
-                                                ? { ...d, isExtracting: false, extractedPath: finalPath }
-                                                : d
-                                        )
-                                    );
-                                })
-                                .catch(err => {
-                                    console.error('Auto-extraction failed', err);
-                                    setDownloads(p =>
-                                        p.map(d =>
-                                            d.id === id
-                                                ? { ...d, isExtracting: false, error: 'Extraction failed' }
-                                                : d
-                                        )
-                                    );
-                                });
-                        }
-                        return prev;
-                    });
-                } else {
-                    // Non-archive file - complete directly
-                    setDownloads(prev => {
-                        const download = prev.find(d => d.id === id);
-                        if (download) {
-                            // Call callback for non-archive files too
-                            handleExtractionComplete({ ...download, savePath, filename }, savePath);
-                        }
-                        return prev.map(d =>
-                            d.id === id
-                                ? {
-                                    ...d,
-                                    status: 'completed' as const,
-                                    progress: 100,
-                                    endTime: new Date(),
-                                    savePath,
-                                    filename,
-                                    speed: 0,
-                                    isExtracting: false,
-                                    extractedPath: savePath
-                                }
-                                : d
-                        );
-                    });
-                }
-            },
-            // On error
-            (id, error) => {
-                setDownloads(prev =>
-                    prev.map(d =>
-                        d.id === id
-                            ? {
-                                ...d,
-                                status: 'failed' as const,
-                                error,
-                                speed: 0
-                            }
-                            : d
-                    )
-                );
-            }
-        );
-
-        // Cleanup listeners on unmount to prevent duplicate callbacks
+        // This effect should run only once to set up listeners.
+        // The onExtractionComplete callback is handled via the wrapper above
+        // to avoid re-initializing listeners if the callback function instance changes.
         return () => {
             cleanup?.();
         };
-    }, [handleExtractionComplete]);
+    }, [initializeListeners, onExtractionComplete]);
 
-    const openDownloadLink = (url: string, articleId?: number, articleTitle?: string, coverImage?: string, engine?: string, gameVersion?: string, description?: string, body?: string, apiDownloadId?: number) => {
-        pendingMetadata.current = {
-            articleId,
-            apiDownloadId,
-            title: articleTitle,
-            cover: coverImage,
-            engine,
-            gameVersion,
-            description,
-            body
-        };
-
-        // Use parallel/authenticated download for storage.chanomhub.com
-        if (url && url.includes('storage.chanomhub.com') && sdk.config.token) {
-            const headers = { 'Authorization': `Bearer ${sdk.config.token}` };
-            ElectronDownloader.downloadFile(url, headers);
-        } else {
-            ElectronDownloader.openDownloadLink(url, null);
+    // This effect handles the auto-redirect navigation.
+    useEffect(() => {
+        // Find if there's a new download that just started
+        const newDownload = downloads.find(d => d.status === 'downloading' && d.progress === 0 && (Date.now() - d.startTime.getTime()) < 2000);
+        if (newDownload && autoRedirectToDownloads) {
+            navigate('/downloads');
         }
-    };
+    }, [downloads, autoRedirectToDownloads, navigate]);
 
-    const cancelDownload = (id: number) => {
-        ElectronDownloader.cancelDownload(id);
-        setDownloads(prev =>
-            prev.map(d => (d.id === id ? { ...d, status: 'cancelled' as const } : d))
-        );
-    };
-
-    const removeDownload = (id: number) => {
-        setDownloads(prev => prev.filter(d => d.id !== id));
-    };
-
-    const clearCompleted = () => {
-        setDownloads(prev => prev.filter(d => d.status !== 'completed'));
-    };
-
-    const clearAll = () => {
-        downloads.forEach(d => {
-            if (d.status === 'downloading') {
-                ElectronDownloader.cancelDownload(d.id);
-            }
-        });
-        setDownloads([]);
-    };
-
-    const showInFolder = (id: number) => {
-        const download = downloads.find(d => d.id === id);
-        if (download && download.savePath) {
-            ElectronDownloader.showItemInFolder(download.savePath);
-        }
-    };
-
-    const openFile = (id: number) => {
-        const download = downloads.find(d => d.id === id);
-        if (download) {
-            if (download.extractedPath) {
-                ElectronDownloader.openPath(download.extractedPath);
-            } else if (download.savePath) {
-                ElectronDownloader.openPath(download.savePath);
-            }
-        }
-    };
-
-    const extractDownload = async (id: number) => {
-        const download = downloads.find(d => d.id === id);
-        const supportedExtensions = ['.zip', '.tar.xz', '.7z', '.rar', '.tar', '.gz', '.tgz', '.xz'];
-        const isSupported = download?.filename && supportedExtensions.some(ext => download.filename.toLowerCase().endsWith(ext));
-
-        if (!download || !download.savePath || !isSupported) {
-            return;
-        }
-
-        setDownloads(prev => prev.map(d => d.id === id ? { ...d, isExtracting: true } : d));
-
-        try {
-            let destPath = download.savePath.replace(/\.[^/.]+$/, "");
-            if (destPath.endsWith('.tar')) {
-                destPath = destPath.substring(0, destPath.length - 4);
-            }
-            const result = await ElectronDownloader.extractFile(download.savePath, destPath);
-            // Use actualPath if provided (smart path detection)
-            const finalPath = result.actualPath || destPath;
-            // Call callback after manual extraction too
-            handleExtractionComplete(download, finalPath);
-            ElectronDownloader.showItemInFolder(finalPath);
-        } catch (error) {
-            console.error('Extraction failed', error);
-        } finally {
-            setDownloads(prev => prev.map(d => d.id === id ? { ...d, isExtracting: false } : d));
-        }
-    };
-
-    const toggleFavorite = (id: number) => {
-        setDownloads(prev => prev.map(d =>
-            d.id === id ? { ...d, isFavorite: !d.isFavorite } : d
-        ));
-    };
 
     return {
         downloads,
-        openDownloadLink,
-        cancelDownload,
-        removeDownload,
-        clearCompleted,
-        clearAll,
-        showInFolder,
-        openFile,
-        extractDownload,
-        toggleFavorite
+        ...actions
     };
 }
+

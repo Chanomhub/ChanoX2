@@ -400,7 +400,7 @@ function DevModeModelSection() {
 // Storage Section
 function StorageSection() {
     const { t } = useTranslation();
-    const { downloadPath, setDownloadPath } = useSettingsStore();
+    const { downloadPath, setDownloadPath, keepArchiveAfterExtraction, setKeepArchiveAfterExtraction } = useSettingsStore();
     const { libraryItems, removeFromLibrary } = useLibrary();
 
     const [diskSpace, setDiskSpace] = useState<{ free: number; total: number } | null>(null);
@@ -672,6 +672,32 @@ function StorageSection() {
                 </CardContent>
             </Card>
 
+            {/* Archive Management Card */}
+            <Card className="bg-chanox-surface border-chanox-border">
+                <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 bg-purple-500/10 rounded-lg">
+                            <Trash2 className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                                <Label htmlFor="keep-archive" className="text-zinc-100 font-medium cursor-pointer">
+                                    Keep game archive after extraction
+                                </Label>
+                                <Checkbox
+                                    id="keep-archive"
+                                    checked={keepArchiveAfterExtraction}
+                                    onCheckedChange={(checked) => setKeepArchiveAfterExtraction(checked as boolean)}
+                                />
+                            </div>
+                            <p className="text-zinc-500 text-sm">
+                                If enabled, the original compressed file (.zip, .rar) will be kept after the game is extracted. Disabling this saves disk space.
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* List & controls */}
             <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -803,7 +829,7 @@ function StorageSection() {
                                             </p>
                                         </div>
 
-                                        {/* Desktop Last Played */}
+                                        {/* Desktop Last played */}
                                         <div className="w-48 text-right hidden md:block text-xs text-zinc-400 font-medium font-mono">
                                             {item.lastPlayedAt 
                                                 ? t('settings.storage.last_played', `Last played: ${format(new Date(item.lastPlayedAt), 'yyyy-MM-dd')}`, { date: format(new Date(item.lastPlayedAt), 'yyyy-MM-dd') })

@@ -8,9 +8,7 @@ import {
     Settings,
     X,
     FolderOpen,
-    PackageOpen
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { SafeImage } from '@/components/common/SafeImage';
 
 // Helper functions
@@ -68,9 +66,7 @@ const MetricsHeader = ({ currentSpeed, peakSpeed, diskUsage }: { currentSpeed: n
 );
 
 const DownloadItem = ({ download, isCompleted }: { download: DownloadType, isCompleted?: boolean }) => {
-    const { removeDownload, extractDownload, showInFolder } = useDownloads();
-
-    const isExtractable = ['zip', 'tar.xz', '7z', 'rar', 'tar', 'gz'].some(ext => download.filename.endsWith(ext));
+    const { removeDownload, showInFolder } = useDownloads();
 
     return (
         <div className="flex bg-black/20 h-[80px] mb-3 group hover:bg-black/30 transition-colors">
@@ -110,19 +106,6 @@ const DownloadItem = ({ download, isCompleted }: { download: DownloadType, isCom
                         </div>
 
                         <div className="flex gap-2">
-                            {isExtractable && (
-                                <button
-                                    className={cn(
-                                        "flex items-center gap-1 bg-[#2a3f55] px-2 py-1 rounded text-xs font-semibold hover:bg-[#3d5a73] transition-colors",
-                                        download.isExtracting ? "opacity-50 cursor-not-allowed" : "text-white"
-                                    )}
-                                    onClick={() => extractDownload(download.id)}
-                                    disabled={download.isExtracting}
-                                >
-                                    <PackageOpen className="w-4 h-4" />
-                                    {download.isExtracting ? 'EXTRACTING...' : 'EXTRACT'}
-                                </button>
-                            )}
                             <button
                                 className="p-1 bg-[#2a3f55] rounded hover:bg-[#3d5a73] text-[#dcdedf] hover:text-white"
                                 onClick={() => showInFolder(download.id)}
@@ -181,7 +164,7 @@ export default function Downloads() {
     const [peakSpeed, setPeakSpeed] = useState(0);
 
     const activeDownloads = downloads.filter(d =>
-        d.status === 'downloading' || d.status === 'paused' // Treat paused as active/pending logic
+        d.status === 'downloading' || d.status === 'extracting'
     );
     const completedDownloads = downloads.filter(d =>
         d.status === 'completed' || d.status === 'failed' || d.status === 'cancelled'

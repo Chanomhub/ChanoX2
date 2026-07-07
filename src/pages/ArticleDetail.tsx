@@ -270,11 +270,11 @@ export default function ArticleDetail() {
                     </p>
 
                     <div className="space-y-1 text-xs text-[#556772] mb-4">
-                        {article.createdAt && (
+                        {article.updatedAt && (
                             <div className="flex">
-                                <span className="w-24 flex-shrink-0 uppercase">Release Date:</span>
+                                <span className="w-24 flex-shrink-0 uppercase">Last Updated:</span>
                                 <span className="text-[#8f98a0]">
-                                    {new Date(article.createdAt).toLocaleDateString()}
+                                    {new Date(article.updatedAt).toLocaleDateString()}
                                 </span>
                             </div>
                         )}
@@ -533,17 +533,17 @@ export default function ArticleDetail() {
                         vipOnly: selectedDownload.vipOnly
                     } : null}
                     onDownload={(url) => {
-                        openDownloadLink(
-                            url,
-                            article?.id ? Number(article.id) : undefined,
-                            article?.title,
-                            article?.coverImage || article?.mainImage || article?.backgroundImage || undefined,
-                            article?.engine?.name || undefined,
-                            article?.ver || undefined,
-                            article?.description || undefined,
-                            article?.body || undefined,
-                            selectedDownload?.id ? Number(selectedDownload.id) : undefined
-                        );
+                        openDownloadLink(url, {
+                            articleId: article?.id ? Number(article.id) : undefined,
+                            title: article?.title,
+                            cover: article?.coverImage || article?.mainImage || article?.backgroundImage || undefined,
+                            engine: article?.engine?.name || undefined,
+                            gameVersion: article?.ver || undefined,
+                            description: article?.description || undefined,
+                            body: article?.body || undefined,
+                            apiDownloadId: selectedDownload?.id ? Number(selectedDownload.id) : undefined
+                        });
+                        setSelectedDownload(null);
                     }}
                 />
             </div>

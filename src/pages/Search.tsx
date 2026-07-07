@@ -52,7 +52,7 @@ export default function Search() {
         tags: [],
         categories: [],
         platforms: [],
-        sortBy: 'relevance',
+        sortBy: 'date',
     });
 
     // Available filter options - accumulated from search results
@@ -289,8 +289,24 @@ export default function Search() {
                 apiFilter.q = debouncedSearchQuery.trim();
             }
 
+            // Server-side sorting
+            switch (debouncedFilters.sortBy) {
+                case 'date':
+                    apiFilter.sortBy = 'updatedAt';
+                    apiFilter.sortOrder = 'desc';
+                    break;
+                case 'popularity':
+                    apiFilter.sortBy = 'viewsCount';
+                    apiFilter.sortOrder = 'desc';
+                    break;
+                case 'title':
+                    apiFilter.sortBy = 'title';
+                    apiFilter.sortOrder = 'asc';
+                    break;
+            }
+
             const options = {
-                limit: hasMultipleFilters ? 500 : 100, // Fetch more if we need to filter client-side
+                limit: hasMultipleFilters ? 500 : 100,
                 offset: 0,
                 filter: apiFilter
             };
@@ -322,21 +338,20 @@ export default function Search() {
                 );
             }
 
-            // Apply sorting
+            // Client-side fallback sorting
             switch (debouncedFilters.sortBy) {
                 case 'date':
                     items.sort(
                         (a, b) =>
-                            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+                            new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
                     );
                     break;
                 case 'popularity':
-                    items.sort((a, b) => (b.favoritesCount || 0) - (a.favoritesCount || 0));
+                    items.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
                     break;
                 case 'title':
                     items.sort((a, b) => a.title.localeCompare(b.title));
                     break;
-                case 'relevance':
                 default:
                     break;
             }
@@ -382,7 +397,7 @@ export default function Search() {
             tags: [],
             categories: [],
             platforms: [],
-            sortBy: 'relevance',
+            sortBy: 'date',
         });
         setSearchParams({});
     };

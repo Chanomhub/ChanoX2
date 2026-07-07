@@ -36,3 +36,7 @@ _legacy_expo/
 coverage/
 
 !node_modules/@chanomhub/sdk
+
+
+GE-Proton*/
+vkd3d-proton.cache.write
