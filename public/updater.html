@@ -99,6 +99,64 @@
             border-radius: 100px;
             transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .action-container {
+            display: none;
+            gap: 12px;
+            width: 100%;
+            justify-content: center;
+            margin-top: 8px;
+            -webkit-app-region: no-drag;
+        }
+        .btn {
+            border: none;
+            padding: 8px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+        }
+        .btn-update {
+            background: linear-gradient(135deg, #f3ba2f 0%, #e28704 100%);
+            color: #1a1d24;
+            box-shadow: 0 4px 12px rgba(243, 186, 47, 0.25);
+        }
+        .btn-update:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(243, 186, 47, 0.4);
+        }
+        .btn-update:active {
+            transform: translateY(0);
+        }
+        .btn-skip {
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .btn-skip:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .cancel-container {
+            display: none;
+            margin-top: 8px;
+            -webkit-app-region: no-drag;
+        }
+        .btn-cancel {
+            background: none;
+            border: none;
+            color: #475569;
+            font-size: 11px;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color 0.2s ease;
+            outline: none;
+        }
+        .btn-cancel:hover {
+            color: #64748b;
+        }
         .footer {
             margin-top: 12px;
             font-size: 10px;
@@ -131,6 +189,13 @@
                 <div class="progress-bar" id="progress-bar"></div>
             </div>
         </div>
+        <div class="action-container" id="action-container">
+            <button class="btn btn-update" id="btn-update">Update Now</button>
+            <button class="btn btn-skip" id="btn-skip">Skip & Launch</button>
+        </div>
+        <div class="cancel-container" id="cancel-container">
+            <button class="btn-cancel" id="btn-cancel">Skip Update & Launch App</button>
+        </div>
         <div class="footer">Connecting to ChanomHub Network</div>
     </div>
 
@@ -138,6 +203,26 @@
         const { ipcRenderer } = require('electron');
         const statusText = document.getElementById('status-text');
         const progressBar = document.getElementById('progress-bar');
+        const actionContainer = document.getElementById('action-container');
+        const cancelContainer = document.getElementById('cancel-container');
+        const btnUpdate = document.getElementById('btn-update');
+        const btnSkip = document.getElementById('btn-skip');
+        const btnCancel = document.getElementById('btn-cancel');
+
+        btnUpdate.addEventListener('click', () => {
+            ipcRenderer.send('updater-action', 'update');
+            actionContainer.style.display = 'none';
+        });
+
+        btnSkip.addEventListener('click', () => {
+            ipcRenderer.send('updater-action', 'skip');
+            actionContainer.style.display = 'none';
+        });
+
+        btnCancel.addEventListener('click', () => {
+            ipcRenderer.send('updater-action', 'skip');
+            cancelContainer.style.display = 'none';
+        });
 
         ipcRenderer.on('update-status', (event, text) => {
             statusText.innerText = text;
@@ -146,6 +231,21 @@
         ipcRenderer.on('update-progress', (event, percent) => {
             const pct = Math.max(0, Math.min(100, percent));
             progressBar.style.width = `${pct}%`;
+        });
+
+        ipcRenderer.on('show-update-options', () => {
+            actionContainer.style.display = 'flex';
+            cancelContainer.style.display = 'none';
+        });
+
+        ipcRenderer.on('show-download-state', () => {
+            actionContainer.style.display = 'none';
+            cancelContainer.style.display = 'block';
+        });
+
+        ipcRenderer.on('hide-all-options', () => {
+            actionContainer.style.display = 'none';
+            cancelContainer.style.display = 'none';
         });
     </script>
 </body>

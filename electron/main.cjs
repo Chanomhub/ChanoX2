@@ -72,6 +72,10 @@ const ARCHIVES_DIR = path.join(DEFAULT_DIR, 'archives');
 // State
 let mainWindow = null;
 let updaterWindow = null;
+let activeUpdateRequest = null;
+let updateAssetToDownload = null;
+let updateDestPath = null;
+let latestReleaseVersion = null;
 const activeDownloads = new Map();
 const runningGames = new Map(); // Track running game processes: gameId -> { subprocess, startTime }
 let downloadId = Date.now();
@@ -540,6 +544,21 @@ ipcMain.handle('set-download-directory', (event, dirPath) => {
 });
 
 ipcMain.handle('get-download-directory', () => downloadDirectory);
+
+// --- Updater Action ---
+ipcMain.on('updater-action', (event, action) => {
+    if (action === 'skip') {
+        if (activeUpdateRequest) {
+            try {
+                activeUpdateRequest.abort();
+            } catch (e) { /* ignore */ }
+            activeUpdateRequest = null;
+        }
+        launchMainApp();
+    } else if (action === 'update') {
+        runUpdateFlow();
+    }
+});
 
 // --- Download Control ---
 ipcMain.on('cancel-download', (event, id) => {
@@ -1968,13 +1987,17 @@ function downloadUpdateFile(url, destPath) {
             redirect: 'follow'
         });
 
+        activeUpdateRequest = request;
+
         let totalBytes = 0;
         let receivedBytes = 0;
+        let isAborted = false;
 
         request.on('response', (response) => {
             if (response.statusCode !== 200) {
                 file.close();
                 fs.unlink(destPath, () => {});
+                activeUpdateRequest = null;
                 reject(new Error(`Server returned status code ${response.statusCode}`));
                 return;
             }
@@ -1995,19 +2018,32 @@ function downloadUpdateFile(url, destPath) {
             response.pipe(file);
         });
 
+        request.on('abort', () => {
+            isAborted = true;
+            file.close();
+            fs.unlink(destPath, () => {});
+            activeUpdateRequest = null;
+            reject(new Error('aborted'));
+        });
+
         request.on('error', (err) => {
             file.close();
             fs.unlink(destPath, () => {});
+            activeUpdateRequest = null;
             reject(err);
         });
 
         file.on('finish', () => {
             file.close();
-            resolve();
+            activeUpdateRequest = null;
+            if (!isAborted) {
+                resolve();
+            }
         });
 
         file.on('error', (err) => {
             fs.unlink(destPath, () => {});
+            activeUpdateRequest = null;
             reject(err);
         });
 
@@ -2015,9 +2051,58 @@ function downloadUpdateFile(url, destPath) {
     });
 }
 
+async function runUpdateFlow() {
+    if (!updateAssetToDownload || !updateDestPath) {
+        launchMainApp();
+        return;
+    }
+
+    try {
+        if (updaterWindow && !updaterWindow.isDestroyed()) {
+            updaterWindow.webContents.send('update-status', `New version v${latestReleaseVersion} found. Downloading...`);
+            updaterWindow.webContents.send('show-download-state');
+        }
+
+        await downloadUpdateFile(updateAssetToDownload.browser_download_url, updateDestPath);
+
+        if (updaterWindow && !updaterWindow.isDestroyed()) {
+            updaterWindow.webContents.send('update-status', 'Download complete. Launching installer...');
+            updaterWindow.webContents.send('hide-all-options');
+        }
+
+        setTimeout(async () => {
+            try {
+                // Set execute permissions on Linux and macOS for downloaded installers
+                if (process.platform === 'linux' || process.platform === 'darwin') {
+                    try {
+                        fs.chmodSync(updateDestPath, 0o755);
+                    } catch (chmodErr) {
+                        console.warn('⚠️ Failed to set execute permissions:', chmodErr.message);
+                    }
+                }
+                await shell.openPath(updateDestPath);
+                setTimeout(() => {
+                    app.quit();
+                }, 500);
+            } catch (err) {
+                console.error('Failed to open installer:', err);
+                launchMainApp();
+            }
+        }, 1000);
+    } catch (err) {
+        if (err.message === 'aborted') {
+            console.log('Update download aborted by user.');
+            return;
+        }
+        console.error('Failed to download update:', err);
+        launchMainApp();
+    }
+}
+
 async function checkForUpdates() {
     if (updaterWindow && !updaterWindow.isDestroyed()) {
         updaterWindow.webContents.send('update-status', 'Checking for updates...');
+        updaterWindow.webContents.send('hide-all-options');
     }
 
     const isDev = process.env.NODE_ENV === 'development';
@@ -2047,6 +2132,7 @@ async function checkForUpdates() {
 
         const data = await response.json();
         const latestVersion = data.tag_name.replace(/^v/, '').trim();
+        latestReleaseVersion = latestVersion;
 
         if (latestVersion !== currentVersion && compareVersions(latestVersion, currentVersion) > 0) {
             const asset = data.assets.find(a => {
@@ -2063,35 +2149,43 @@ async function checkForUpdates() {
                 const tempDir = app.getPath('temp');
                 const destPath = path.join(tempDir, fileName);
 
-                if (updaterWindow && !updaterWindow.isDestroyed()) {
-                    updaterWindow.webContents.send('update-status', `New version v${latestVersion} found. Downloading...`);
-                }
+                updateAssetToDownload = asset;
+                updateDestPath = destPath;
 
-                await downloadUpdateFile(downloadUrl, destPath);
-
-                if (updaterWindow && !updaterWindow.isDestroyed()) {
-                    updaterWindow.webContents.send('update-status', 'Download complete. Launching installer...');
-                }
-
-                setTimeout(async () => {
-                    try {
-                        // Set execute permissions on Linux and macOS for downloaded installers
-                        if (process.platform === 'linux' || process.platform === 'darwin') {
-                            try {
-                                fs.chmodSync(destPath, 0o755);
-                            } catch (chmodErr) {
-                                console.warn('⚠️ Failed to set execute permissions:', chmodErr.message);
-                            }
-                        }
-                        await shell.openPath(destPath);
-                        setTimeout(() => {
-                            app.quit();
-                        }, 500);
-                    } catch (err) {
-                        console.error('Failed to open installer:', err);
-                        launchMainApp();
+                // 1. Pre-flight Disk Space Check
+                let hasEnoughSpace = true;
+                try {
+                    const stats = await fs.promises.statfs(tempDir);
+                    const freeSpace = stats.bavail * stats.bsize; // in bytes
+                    const requiredSpace = asset.size ? asset.size * 2 : 500 * 1024 * 1024;
+                    if (freeSpace < requiredSpace) {
+                        hasEnoughSpace = false;
+                        console.warn(`Disk space too low for update! Free: ${freeSpace}, Needed: ${requiredSpace}`);
                     }
-                }, 1000);
+                } catch (spaceErr) {
+                    console.warn('⚠️ Disk space verification failed, proceeding:', spaceErr.message);
+                }
+
+                if (!hasEnoughSpace) {
+                    if (updaterWindow && !updaterWindow.isDestroyed()) {
+                        updaterWindow.webContents.send('update-status', 'Low disk space. Skipping update for safety...');
+                    }
+                    setTimeout(launchMainApp, 2500);
+                    return;
+                }
+
+                // 2. Check settings configuration for Auto Update
+                const globalSettings = loadJsonFile(SETTINGS_FILE);
+                const autoUpdateEnabled = globalSettings.autoUpdateEnabled !== false;
+
+                if (autoUpdateEnabled) {
+                    runUpdateFlow();
+                } else {
+                    if (updaterWindow && !updaterWindow.isDestroyed()) {
+                        updaterWindow.webContents.send('update-status', `New version v${latestVersion} is available.`);
+                        updaterWindow.webContents.send('show-update-options');
+                    }
+                }
             } else {
                 if (updaterWindow && !updaterWindow.isDestroyed()) {
                     updaterWindow.webContents.send('update-status', 'No installer found for your OS. Skipping update...');

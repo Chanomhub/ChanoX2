@@ -13,6 +13,7 @@ interface SettingsStore {
     discordRPCEnabled: boolean;
     autoRedirectToDownloads: boolean;
     keepArchiveAfterExtraction: boolean;
+    autoUpdateEnabled: boolean;
     openSettings: () => void;
     closeSettings: () => void;
     setActiveSection: (section: SettingsSection) => void;
@@ -22,6 +23,7 @@ interface SettingsStore {
     setDiscordRPCEnabled: (enabled: boolean) => void;
     setAutoRedirectToDownloads: (enabled: boolean) => void;
     setKeepArchiveAfterExtraction: (enabled: boolean) => void;
+    setAutoUpdateEnabled: (enabled: boolean) => void;
     loadFromElectron: () => Promise<void>;
 }
 
@@ -36,6 +38,7 @@ export const useSettingsStore = create<SettingsStore>()(
             discordRPCEnabled: true,
             autoRedirectToDownloads: true,
             keepArchiveAfterExtraction: false,
+            autoUpdateEnabled: true,
             openSettings: () => set({ isOpen: true }),
             closeSettings: () => set({ isOpen: false }),
             setActiveSection: (section) => set({ activeSection: section }),
@@ -73,6 +76,14 @@ export const useSettingsStore = create<SettingsStore>()(
             },
             setAutoRedirectToDownloads: (enabled) => set({ autoRedirectToDownloads: enabled }),
             setKeepArchiveAfterExtraction: (enabled) => set({ keepArchiveAfterExtraction: enabled }),
+            setAutoUpdateEnabled: (enabled) => {
+                set({ autoUpdateEnabled: enabled });
+                if (window.electronAPI) {
+                    window.electronAPI.getGlobalSettings().then(settings => {
+                        window.electronAPI?.saveGlobalSettings({ ...settings, autoUpdateEnabled: enabled });
+                    });
+                }
+            },
             loadFromElectron: async () => {
                 if (window.electronAPI) {
                     const settings = await window.electronAPI.getGlobalSettings();
@@ -85,6 +96,9 @@ export const useSettingsStore = create<SettingsStore>()(
                     if (settings.discordRPCEnabled !== undefined) {
                         set({ discordRPCEnabled: settings.discordRPCEnabled as boolean });
                     }
+                    if (settings.autoUpdateEnabled !== undefined) {
+                        set({ autoUpdateEnabled: settings.autoUpdateEnabled as boolean });
+                    }
                 }
             },
         }),
@@ -96,6 +110,7 @@ export const useSettingsStore = create<SettingsStore>()(
                 discordRPCEnabled: state.discordRPCEnabled,
                 autoRedirectToDownloads: state.autoRedirectToDownloads,
                 keepArchiveAfterExtraction: state.keepArchiveAfterExtraction,
+                autoUpdateEnabled: state.autoUpdateEnabled,
             }),
         }
     )

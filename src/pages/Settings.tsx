@@ -148,12 +148,14 @@ function GeneralSection() {
     const { language, setLanguage } = useLanguage();
     const { 
         nsfwFilterEnabled, setNsfwFilterEnabled, 
-        nsfwFilterLevel, setNsfwFilterLevel
+        nsfwFilterLevel, setNsfwFilterLevel,
+        autoUpdateEnabled, setAutoUpdateEnabled
     } = useSettingsStore();
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [releaseUrl, setReleaseUrl] = useState<string | null>(null);
+    const [releaseNotes, setReleaseNotes] = useState<string | null>(null);
     const currentVersion = packageJson.version;
 
     useEffect(() => {
@@ -170,6 +172,7 @@ function GeneralSection() {
             const version = data.tag_name.replace(/^v/, '');
             setLatestVersion(version);
             setReleaseUrl(data.html_url);
+            setReleaseNotes(data.body);
         } catch {
             setError('Check failed');
         } finally {
@@ -221,6 +224,35 @@ function GeneralSection() {
                             )}
                         </div>
                     </div>
+
+                    {/* Auto-Update Checkbox Toggle */}
+                    <div className="flex items-start justify-between mt-5 pt-4 border-t border-zinc-800/80">
+                        <div className="flex-1 pr-4">
+                            <Label htmlFor="auto-update" className="text-zinc-100 font-medium cursor-pointer text-sm">
+                                Auto-Update on Startup
+                            </Label>
+                            <p className="text-zinc-500 text-xs mt-1">
+                                Automatically check for updates and install them on application launch. If disabled, you will still be notified of updates but they will not download automatically.
+                            </p>
+                        </div>
+                        <Checkbox
+                            id="auto-update"
+                            checked={autoUpdateEnabled}
+                            onCheckedChange={(checked) => setAutoUpdateEnabled(checked as boolean)}
+                        />
+                    </div>
+
+                    {/* Release Notes Panel */}
+                    {isUpdateAvailable && releaseNotes && (
+                        <div className="mt-5 p-4 bg-zinc-900/40 border border-zinc-800/60 rounded-lg">
+                            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">What's New in v{latestVersion}</p>
+                            <ScrollArea className="h-40 w-full pr-3">
+                                <div className="text-zinc-300 text-xs font-sans whitespace-pre-wrap leading-relaxed select-text">
+                                    {releaseNotes}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
