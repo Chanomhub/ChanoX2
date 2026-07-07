@@ -18,6 +18,14 @@ function SectionHeader({ title }: { title: string }) {
     );
 }
 
+function formatBytes(bytes: number) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 export function LinuxSettings() {
     const [wineProvider, setWineProvider] = useState<WineProvider>('internal');
     const [externalCommand, setExternalCommand] = useState('bottles-cli run -b Gaming -e %EXE%');
@@ -28,11 +36,90 @@ export function LinuxSettings() {
     const [protonPrefixPath, setProtonPrefixPath] = useState('');
     const [detectedProtons, setDetectedProtons] = useState<{ name: string; path: string }[]>([]);
 
+    // GE-Proton Downloader state
+    const [releases, setReleases] = useState<any[]>([]);
+    const [selectedRelease, setSelectedRelease] = useState<string>('');
+    const [isFetchingReleases, setIsFetchingReleases] = useState(false);
+    const [isInstalling, setIsInstalling] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState<any>(null);
+    const [installError, setInstallError] = useState<string | null>(null);
+    const [installSuccess, setInstallSuccess] = useState(false);
+
     useEffect(() => { loadSettings(); }, []);
 
     useEffect(() => {
         if (wineProvider === 'bottles') loadBottles();
     }, [wineProvider]);
+
+    useEffect(() => {
+        if (wineProvider === 'proton' && releases.length === 0) {
+            fetchReleases();
+        }
+    }, [wineProvider]);
+
+    const fetchReleases = async () => {
+        if (!window.electronAPI || !window.electronAPI.getProtonGeReleases) return;
+        setIsFetchingReleases(true);
+        setInstallError(null);
+        try {
+            const rels = await window.electronAPI.getProtonGeReleases();
+            setReleases(rels);
+            if (rels.length > 0) {
+                setSelectedRelease(rels[0].tagName);
+            }
+        } catch (e: any) {
+            console.error('Failed to fetch Proton releases:', e);
+            setInstallError('Failed to fetch Proton releases from GitHub. Please try again.');
+        } finally {
+            setIsFetchingReleases(false);
+        }
+    };
+
+    const handleInstallProton = async () => {
+        const release = releases.find(r => r.tagName === selectedRelease);
+        if (!release || !window.electronAPI || !window.electronAPI.downloadAndInstallProtonGe) return;
+
+        setIsInstalling(true);
+        setInstallError(null);
+        setInstallSuccess(false);
+        setDownloadProgress({ percent: 0, downloadedBytes: 0, totalBytes: release.size, status: 'downloading' });
+
+        let cleanupProgress: (() => void) | void = undefined;
+        if (window.electronAPI.onProtonDownloadProgress) {
+            cleanupProgress = window.electronAPI.onProtonDownloadProgress((data) => {
+                setDownloadProgress(data);
+            });
+        }
+
+        try {
+            const res = await window.electronAPI.downloadAndInstallProtonGe(release.tagName, release.tarUrl);
+            if (res.success) {
+                setInstallSuccess(true);
+                await loadSettings();
+                if (res.path) {
+                    handleProtonPathChange(res.path);
+                }
+            } else {
+                setInstallError(res.error || 'Failed to install Proton.');
+            }
+        } catch (e: any) {
+            console.error('Proton installation error:', e);
+            setInstallError(e.message || 'An error occurred during installation.');
+        } finally {
+            setIsInstalling(false);
+            setDownloadProgress(null);
+            if (cleanupProgress) cleanupProgress();
+        }
+    };
+
+    const handleCancelInstall = async () => {
+        if (!window.electronAPI || !window.electronAPI.cancelProtonDownload) return;
+        try {
+            await window.electronAPI.cancelProtonDownload();
+        } catch (e) {
+            console.error('Failed to cancel Proton download:', e);
+        }
+    };
 
     const loadSettings = async () => {
         if (!window.electronAPI) return;
@@ -298,6 +385,109 @@ export function LinuxSettings() {
                                     </p>
                                 )}
                             </div>
+
+                            {/* GE-Proton Installer */}
+                            <div className="border border-chanox-border rounded-lg p-4 bg-zinc-900/40 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label className="text-zinc-200 text-sm font-semibold">Install GE-Proton from GitHub</Label>
+                                        <p className="text-zinc-500 text-xs mt-0.5">
+                                            Download and install GE-Proton releases automatically.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={fetchReleases}
+                                        disabled={isFetchingReleases || isInstalling}
+                                        className="text-xs text-chanox-accent hover:underline disabled:text-zinc-600 disabled:no-underline"
+                                    >
+                                        {releases.length > 0 ? 'Refresh Releases' : 'Fetch Releases'}
+                                    </button>
+                                </div>
+
+                                {isFetchingReleases && (
+                                    <div className="flex items-center gap-2 text-xs text-zinc-400 py-1">
+                                        <Loader2 size={14} className="animate-spin" />
+                                        Fetching releases from GitHub...
+                                    </div>
+                                )}
+
+                                {!isFetchingReleases && releases.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="flex gap-2 items-center">
+                                            <select
+                                                value={selectedRelease}
+                                                onChange={(e) => setSelectedRelease(e.target.value)}
+                                                disabled={isInstalling}
+                                                className="bg-zinc-800 border border-chanox-border text-zinc-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-chanox-accent flex-1"
+                                            >
+                                                {releases.map((rel) => (
+                                                    <option key={rel.tagName} value={rel.tagName}>
+                                                        {rel.name} ({formatBytes(rel.size)})
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            {!isInstalling ? (
+                                                <button
+                                                    onClick={handleInstallProton}
+                                                    className="bg-chanox-accent hover:bg-chanox-accent/90 text-black text-xs font-semibold px-4 py-1.5 rounded transition-all"
+                                                >
+                                                    Install
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={handleCancelInstall}
+                                                    className="bg-red-600 hover:bg-red-500 text-white text-xs font-semibold px-4 py-1.5 rounded transition-all"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {isInstalling && downloadProgress && (
+                                            <div className="space-y-1.5 pt-1">
+                                                <div className="flex justify-between text-xs text-zinc-400">
+                                                    <span>
+                                                        {downloadProgress.status === 'extracting'
+                                                            ? 'Extracting compatibility tool...'
+                                                            : `Downloading: ${downloadProgress.percent}%`
+                                                        }
+                                                    </span>
+                                                    <span>
+                                                        {downloadProgress.status !== 'extracting' && (
+                                                            <>
+                                                                {formatBytes(downloadProgress.downloadedBytes)} / {formatBytes(downloadProgress.totalBytes)}
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                                                    <div
+                                                        className={cn(
+                                                            "h-1.5 rounded-full transition-all duration-300",
+                                                            downloadProgress.status === 'extracting' ? "bg-amber-500 animate-pulse" : "bg-chanox-accent"
+                                                        )}
+                                                        style={{ width: `${downloadProgress.percent}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {installSuccess && (
+                                            <p className="text-green-400 text-xs font-medium flex items-center gap-1.5 mt-1">
+                                                ✓ Installed and activated successfully!
+                                            </p>
+                                        )}
+
+                                        {installError && (
+                                            <p className="text-red-400 text-xs font-medium flex items-center gap-1.5 mt-1">
+                                                ✗ {installError}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             <div>
                                 <Label className="text-zinc-300 text-sm">Proton Directory</Label>
                                 <p className="text-zinc-500 text-xs mb-2">

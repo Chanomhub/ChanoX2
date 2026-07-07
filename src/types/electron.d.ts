@@ -214,6 +214,26 @@ export interface ElectronAPI {
 
     // Proton Detection
     findInstalledProtons: () => Promise<{ name: string; path: string }[]>;
+    getProtonGeReleases: () => Promise<ProtonGeRelease[]>;
+    downloadAndInstallProtonGe: (tagName: string, downloadUrl: string) => Promise<{ success: boolean; path?: string; error?: string }>;
+    cancelProtonDownload: () => Promise<{ success: boolean; error?: string }>;
+    onProtonDownloadProgress: (callback: (data: ProtonDownloadProgressData) => void) => (() => void) | void;
+}
+
+export interface ProtonGeRelease {
+    tagName: string;
+    name: string;
+    publishedAt: string;
+    tarUrl: string;
+    size: number;
+}
+
+export interface ProtonDownloadProgressData {
+    version: string;
+    percent: number;
+    downloadedBytes: number;
+    totalBytes: number;
+    status?: 'downloading' | 'extracting';
 }
 
 declare global {

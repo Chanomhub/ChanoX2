@@ -1322,6 +1322,202 @@ ipcMain.handle('find-installed-protons', async () => {
     return detected;
 });
 
+// --- GE-Proton Downloader and Installer ---
+let activeProtonDownload = null;
+
+ipcMain.handle('get-proton-ge-releases', async () => {
+    return new Promise((resolve, reject) => {
+        const request = net.request({
+            method: 'GET',
+            url: 'https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases',
+            headers: {
+                'User-Agent': 'ChanoX2'
+            }
+        });
+
+        request.on('response', (response) => {
+            let data = '';
+            response.on('data', (chunk) => {
+                data += chunk.toString();
+            });
+
+            response.on('end', () => {
+                try {
+                    if (response.statusCode === 200) {
+                        const releases = JSON.parse(data);
+                        const formatted = releases.map(r => {
+                            const tarAsset = r.assets.find(a => a.name.endsWith('.tar.gz'));
+                            return {
+                                tagName: r.tag_name,
+                                name: r.name,
+                                publishedAt: r.published_at,
+                                tarUrl: tarAsset ? tarAsset.browser_download_url : null,
+                                size: tarAsset ? tarAsset.size : 0
+                            };
+                        }).filter(r => r.tarUrl !== null);
+                        resolve(formatted);
+                    } else {
+                        reject(new Error(`GitHub API error: status ${response.statusCode}`));
+                    }
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        request.on('error', (err) => {
+            reject(err);
+        });
+
+        request.end();
+    });
+});
+
+ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downloadUrl }) => {
+    if (activeProtonDownload) {
+        return { success: false, error: 'Another Proton installation is currently in progress.' };
+    }
+
+    const compatibilitytoolsDir = path.join(HOME_DIR, '.local/share/Steam/compatibilitytools.d');
+    
+    try {
+        if (!fs.existsSync(compatibilitytoolsDir)) {
+            fs.mkdirSync(compatibilitytoolsDir, { recursive: true });
+        }
+    } catch (err) {
+        return { success: false, error: `Failed to create compatibility directory: ${err.message}` };
+    }
+
+    const tempFileName = `${tagName}.tar.gz.tmp`;
+    const tempFilePath = path.join(compatibilitytoolsDir, tempFileName);
+    const finalFilePath = path.join(compatibilitytoolsDir, `${tagName}.tar.gz`);
+
+    return new Promise((resolve) => {
+        try {
+            const file = fs.createWriteStream(tempFilePath);
+            
+            const request = net.request({
+                url: downloadUrl,
+                method: 'GET',
+                redirect: 'follow'
+            });
+
+            activeProtonDownload = request;
+
+            let downloadedBytes = 0;
+            let totalBytes = 0;
+
+            request.on('response', (response) => {
+                if (response.statusCode !== 200) {
+                    file.close();
+                    fs.unlink(tempFilePath, () => {});
+                    activeProtonDownload = null;
+                    resolve({ success: false, error: `Download failed with status: ${response.statusCode}` });
+                    return;
+                }
+
+                totalBytes = parseInt(response.headers['content-length'], 10) || 0;
+                response.pipe(file);
+
+                response.on('data', (chunk) => {
+                    downloadedBytes += chunk.length;
+                    if (totalBytes > 0 && mainWindow && !mainWindow.isDestroyed()) {
+                        const percent = Math.round((downloadedBytes / totalBytes) * 100);
+                        mainWindow.webContents.send('proton-download-progress', {
+                            version: tagName,
+                            percent,
+                            downloadedBytes,
+                            totalBytes,
+                            status: 'downloading'
+                        });
+                    }
+                });
+
+                response.on('error', (err) => {
+                    console.error('[ProtonInstaller] Response error:', err);
+                    file.close();
+                    fs.unlink(tempFilePath, () => {});
+                    activeProtonDownload = null;
+                    resolve({ success: false, error: err.message });
+                });
+            });
+
+            request.on('error', (err) => {
+                console.error('[ProtonInstaller] Request error:', err);
+                if (!file.destroyed) file.close();
+                fs.unlink(tempFilePath, () => {});
+                activeProtonDownload = null;
+                resolve({ success: false, error: err.message });
+            });
+
+            file.on('finish', async () => {
+                file.close();
+                activeProtonDownload = null;
+                
+                try {
+                    if (fs.existsSync(tempFilePath)) {
+                        fs.renameSync(tempFilePath, finalFilePath);
+                    }
+
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('proton-download-progress', {
+                            version: tagName,
+                            percent: 100,
+                            downloadedBytes: totalBytes,
+                            totalBytes: totalBytes,
+                            status: 'extracting'
+                        });
+                    }
+
+                    console.log(`[ProtonInstaller] Extracting ${finalFilePath} to ${compatibilitytoolsDir}...`);
+                    await ExtractorService.extractArchive(finalFilePath, compatibilitytoolsDir);
+                    
+                    fs.unlinkSync(finalFilePath);
+
+                    console.log(`[ProtonInstaller] Successfully installed ${tagName}!`);
+                    
+                    const installedPath = path.join(compatibilitytoolsDir, tagName);
+                    resolve({ success: true, path: installedPath });
+
+                } catch (err) {
+                    console.error('[ProtonInstaller] Post-download error:', err);
+                    if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+                    if (fs.existsSync(finalFilePath)) fs.unlinkSync(finalFilePath);
+                    resolve({ success: false, error: `Installation/extraction failed: ${err.message}` });
+                }
+            });
+
+            file.on('error', (err) => {
+                console.error('[ProtonInstaller] File write error:', err);
+                fs.unlink(tempFilePath, () => {});
+                activeProtonDownload = null;
+                resolve({ success: false, error: err.message });
+            });
+
+            request.end();
+
+        } catch (err) {
+            console.error('[ProtonInstaller] Init error:', err);
+            activeProtonDownload = null;
+            if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+            resolve({ success: false, error: err.message });
+        }
+    });
+});
+
+ipcMain.handle('cancel-proton-download', async () => {
+    if (activeProtonDownload) {
+        try {
+            activeProtonDownload.abort();
+        } catch (e) {
+            // ignore
+        }
+        activeProtonDownload = null;
+        return { success: true };
+    }
+    return { success: false, error: 'No active download' };
+});
+
 // --- Bottles CLI Integration ---
 ipcMain.handle('list-bottles', async () => {
     try {

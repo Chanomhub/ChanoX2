@@ -173,4 +173,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         
     // Proton detection
     findInstalledProtons: () => ipcRenderer.invoke('find-installed-protons'),
+    getProtonGeReleases: () => ipcRenderer.invoke('get-proton-ge-releases'),
+    downloadAndInstallProtonGe: (tagName, downloadUrl) =>
+        ipcRenderer.invoke('download-and-install-proton-ge', { tagName, downloadUrl }),
+    cancelProtonDownload: () => ipcRenderer.invoke('cancel-proton-download'),
+    onProtonDownloadProgress: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('proton-download-progress');
+        ipcRenderer.on('proton-download-progress', handler);
+        return () => ipcRenderer.removeListener('proton-download-progress', handler);
+    },
 });
