@@ -71,6 +71,7 @@ const ARCHIVES_DIR = path.join(DEFAULT_DIR, 'archives');
 
 // State
 let mainWindow = null;
+let updaterWindow = null;
 const activeDownloads = new Map();
 const runningGames = new Map(); // Track running game processes: gameId -> { subprocess, startTime }
 let downloadId = Date.now();
@@ -1958,7 +1959,80 @@ ipcMain.handle('has-game-shortcut', async (event, { gameId, title }) => {
 });
 
 // --- Auto Update ---
+function downloadUpdateFile(url, destPath) {
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(destPath);
+        const request = net.request({
+            url,
+            method: 'GET',
+            redirect: 'follow'
+        });
+
+        let totalBytes = 0;
+        let receivedBytes = 0;
+
+        request.on('response', (response) => {
+            if (response.statusCode !== 200) {
+                file.close();
+                fs.unlink(destPath, () => {});
+                reject(new Error(`Server returned status code ${response.statusCode}`));
+                return;
+            }
+
+            totalBytes = parseInt(response.headers['content-length'], 10) || 0;
+
+            response.on('data', (chunk) => {
+                receivedBytes += chunk.length;
+                if (totalBytes > 0) {
+                    const percent = Math.round((receivedBytes / totalBytes) * 100);
+                    if (updaterWindow && !updaterWindow.isDestroyed()) {
+                        updaterWindow.webContents.send('update-progress', percent);
+                        updaterWindow.webContents.send('update-status', `Downloading updates... (${percent}%)`);
+                    }
+                }
+            });
+
+            response.pipe(file);
+        });
+
+        request.on('error', (err) => {
+            file.close();
+            fs.unlink(destPath, () => {});
+            reject(err);
+        });
+
+        file.on('finish', () => {
+            file.close();
+            resolve();
+        });
+
+        file.on('error', (err) => {
+            fs.unlink(destPath, () => {});
+            reject(err);
+        });
+
+        request.end();
+    });
+}
+
 async function checkForUpdates() {
+    if (updaterWindow && !updaterWindow.isDestroyed()) {
+        updaterWindow.webContents.send('update-status', 'Checking for updates...');
+    }
+
+    const isDev = process.env.NODE_ENV === 'development';
+    
+    // In development mode, mock the checking process and proceed to app
+    if (isDev) {
+        setTimeout(() => {
+            if (updaterWindow && !updaterWindow.isDestroyed()) {
+                updaterWindow.webContents.send('update-status', 'App is up to date. Starting ChanoX2...');
+            }
+            setTimeout(launchMainApp, 1000);
+        }, 1500);
+        return;
+    }
+
     let currentVersion = app.getVersion();
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
@@ -1967,49 +2041,121 @@ async function checkForUpdates() {
 
     try {
         const response = await fetch('https://api.github.com/repos/Chanomhub/ChanoX2/releases/latest');
-        if (!response.ok) return;
+        if (!response.ok) {
+            throw new Error(`Failed to check updates: ${response.statusText}`);
+        }
 
         const data = await response.json();
         const latestVersion = data.tag_name.replace(/^v/, '').trim();
 
         if (latestVersion !== currentVersion && compareVersions(latestVersion, currentVersion) > 0) {
-            const { response: buttonIndex } = await dialog.showMessageBox(mainWindow, {
-                type: 'info',
-                buttons: ['Update Now', 'Later'],
-                title: 'Update Available',
-                message: `A new version (${latestVersion}) is available.`,
-                detail: `You are currently on version ${currentVersion}.`
+            const asset = data.assets.find(a => {
+                const name = a.name.toLowerCase();
+                if (process.platform === 'win32' && name.endsWith('.exe')) return true;
+                if (process.platform === 'linux' && (name.endsWith('.deb') || name.endsWith('.appimage'))) return true;
+                if (process.platform === 'darwin' && name.endsWith('.dmg')) return true;
+                return false;
             });
 
-            if (buttonIndex === 0) {
-                const asset = data.assets.find(a => {
-                    const name = a.name.toLowerCase();
-                    if (process.platform === 'win32' && name.endsWith('.exe')) return true;
-                    if (process.platform === 'linux' && (name.endsWith('.deb') || name.endsWith('.appimage'))) return true;
-                    if (process.platform === 'darwin' && name.endsWith('.dmg')) return true;
-                    return false;
-                });
-                shell.openExternal(asset?.browser_download_url || data.html_url);
+            if (asset) {
+                const downloadUrl = asset.browser_download_url;
+                const fileName = asset.name;
+                const tempDir = app.getPath('temp');
+                const destPath = path.join(tempDir, fileName);
+
+                if (updaterWindow && !updaterWindow.isDestroyed()) {
+                    updaterWindow.webContents.send('update-status', `New version v${latestVersion} found. Downloading...`);
+                }
+
+                await downloadUpdateFile(downloadUrl, destPath);
+
+                if (updaterWindow && !updaterWindow.isDestroyed()) {
+                    updaterWindow.webContents.send('update-status', 'Download complete. Launching installer...');
+                }
+
+                setTimeout(async () => {
+                    try {
+                        // Set execute permissions on Linux and macOS for downloaded installers
+                        if (process.platform === 'linux' || process.platform === 'darwin') {
+                            try {
+                                fs.chmodSync(destPath, 0o755);
+                            } catch (chmodErr) {
+                                console.warn('⚠️ Failed to set execute permissions:', chmodErr.message);
+                            }
+                        }
+                        await shell.openPath(destPath);
+                        setTimeout(() => {
+                            app.quit();
+                        }, 500);
+                    } catch (err) {
+                        console.error('Failed to open installer:', err);
+                        launchMainApp();
+                    }
+                }, 1000);
+            } else {
+                if (updaterWindow && !updaterWindow.isDestroyed()) {
+                    updaterWindow.webContents.send('update-status', 'No installer found for your OS. Skipping update...');
+                }
+                setTimeout(launchMainApp, 1500);
             }
+        } else {
+            if (updaterWindow && !updaterWindow.isDestroyed()) {
+                updaterWindow.webContents.send('update-status', 'App is up to date. Starting ChanoX2...');
+            }
+            setTimeout(launchMainApp, 1000);
         }
     } catch (error) {
         console.error('Error checking for updates:', error);
+        if (updaterWindow && !updaterWindow.isDestroyed()) {
+            updaterWindow.webContents.send('update-status', 'Offline / Connection error. Starting ChanoX2...');
+        }
+        setTimeout(launchMainApp, 2000);
     }
 }
 
-// ============= App Lifecycle =============
+function createUpdaterWindow() {
+    updaterWindow = new BrowserWindow({
+        width: 480,
+        height: 320,
+        frame: false,
+        transparent: true,
+        resizable: false,
+        center: true,
+        show: false,
+        icon: path.join(__dirname, '../public/icon.png'),
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
 
-app.whenReady().then(() => {
-    // Check if Discord RPC is enabled in settings before initializing
-    const globalSettings = loadJsonFile(SETTINGS_FILE);
-    if (globalSettings.discordRPCEnabled !== false) {
-        DiscordService.init();
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+        updaterWindow.loadURL('http://localhost:5173/updater.html');
+    } else {
+        updaterWindow.loadFile(path.join(__dirname, '../dist/updater.html'));
     }
-    
-    createWindow();
-    setTimeout(checkForUpdates, 3000);
 
-    // Send pending game launch after window is ready
+    updaterWindow.once('ready-to-show', () => {
+        updaterWindow.show();
+        setTimeout(checkForUpdates, 800);
+    });
+}
+
+function launchMainApp() {
+    if (!mainWindow) {
+        createWindow();
+    }
+
+    if (mainWindow) {
+        mainWindow.webContents.once('did-finish-load', () => {
+            if (updaterWindow && !updaterWindow.isDestroyed()) {
+                updaterWindow.close();
+                updaterWindow = null;
+            }
+        });
+    }
+
     if (pendingGameLaunch || pendingDeepLink) {
         mainWindow.webContents.once('did-finish-load', () => {
             setTimeout(() => {
@@ -2025,9 +2171,20 @@ app.whenReady().then(() => {
                         pendingDeepLink = null;
                     }
                 }
-            }, 1500); // Wait for React to mount
+            }, 1500);
         });
     }
+}
+
+// ============= App Lifecycle =============
+
+app.whenReady().then(() => {
+    const globalSettings = loadJsonFile(SETTINGS_FILE);
+    if (globalSettings.discordRPCEnabled !== false) {
+        DiscordService.init();
+    }
+    
+    createUpdaterWindow();
 });
 
 app.on('window-all-closed', () => {

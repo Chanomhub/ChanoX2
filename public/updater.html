@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ChanoX2 Launcher</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #2c323d 0%, #1a1d24 100%);
+            color: #ffffff;
+            font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            -webkit-app-region: drag; /* Allows moving the frameless window */
+        }
+        .container {
+            text-align: center;
+            width: 85%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .logo-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            z-index: 2;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+        }
+        .logo-glow {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            background: rgba(243, 186, 47, 0.2);
+            border-radius: 50%;
+            filter: blur(15px);
+            z-index: 1;
+            animation: pulse-glow 2.5s infinite ease-in-out;
+        }
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+        .status-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .status {
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: 400;
+            height: 18px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: color 0.3s ease;
+        }
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 100px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            -webkit-app-region: no-drag;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #f3ba2f 0%, #e28704 100%);
+            box-shadow: 0 0 12px rgba(243, 186, 47, 0.4);
+            border-radius: 100px;
+            transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .footer {
+            margin-top: 12px;
+            font-size: 10px;
+            color: #475569;
+            letter-spacing: 0.5px;
+        }
+        @keyframes pulse-glow {
+            0%, 100% {
+                transform: scale(0.95);
+                background: rgba(243, 186, 47, 0.15);
+            }
+            50% {
+                transform: scale(1.15);
+                background: rgba(243, 186, 47, 0.35);
+                filter: blur(20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img class="logo" src="icon.png" alt="ChanoX2">
+            <div class="logo-glow"></div>
+        </div>
+        <h1>ChanoX2 Launcher</h1>
+        <div class="status-container">
+            <div class="status" id="status-text">Checking for updates...</div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+        <div class="footer">Connecting to ChanomHub Network</div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const statusText = document.getElementById('status-text');
+        const progressBar = document.getElementById('progress-bar');
+
+        ipcRenderer.on('update-status', (event, text) => {
+            statusText.innerText = text;
+        });
+
+        ipcRenderer.on('update-progress', (event, percent) => {
+            const pct = Math.max(0, Math.min(100, percent));
+            progressBar.style.width = `${pct}%`;
+        });
+    </script>
+</body>
+</html>

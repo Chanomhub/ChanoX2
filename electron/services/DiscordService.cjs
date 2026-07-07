@@ -109,7 +109,11 @@ class DiscordService {
     shutdown() {
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         if (this.client) {
-            this.client.destroy();
+            try {
+                this.client.destroy();
+            } catch (e) {
+                console.warn('⚠️ [Discord] Error while destroying client:', e.message);
+            }
             this.client = null;
         }
     }
