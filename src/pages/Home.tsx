@@ -54,7 +54,7 @@ export default function Home() {
         tags: [],
         categories: [],
         platforms: [],
-        sortBy: 'relevance',
+        sortBy: 'date',
     });
 
     // Available filter options - accumulated from search results
@@ -189,6 +189,22 @@ export default function Home() {
                 apiFilter.q = q.trim();
             }
 
+            // Server-side sorting
+            switch (fState.sortBy) {
+                case 'date':
+                    apiFilter.sortBy = 'updatedAt';
+                    apiFilter.sortOrder = 'desc';
+                    break;
+                case 'popularity':
+                    apiFilter.sortBy = 'viewsCount';
+                    apiFilter.sortOrder = 'desc';
+                    break;
+                case 'title':
+                    apiFilter.sortBy = 'title';
+                    apiFilter.sortOrder = 'asc';
+                    break;
+            }
+
             const limit = multiFilter ? 500 : itemsPerPage;
             const offset = multiFilter ? 0 : (page - 1) * itemsPerPage;
 
@@ -239,10 +255,10 @@ export default function Home() {
 
             switch (debouncedFilters.sortBy) {
                 case 'date':
-                    items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+                    items.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
                     break;
                 case 'popularity':
-                    items.sort((a, b) => (b.favoritesCount || 0) - (a.favoritesCount || 0));
+                    items.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
                     break;
                 case 'title':
                     items.sort((a, b) => a.title.localeCompare(b.title));
@@ -253,13 +269,12 @@ export default function Home() {
             const startIdx = (currentPage - 1) * itemsPerPage;
             items = items.slice(startIdx, startIdx + itemsPerPage);
         } else {
-            // Sort single/no filter items if sortBy is requested
             switch (debouncedFilters.sortBy) {
                 case 'date':
-                    items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+                    items.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
                     break;
                 case 'popularity':
-                    items.sort((a, b) => (b.favoritesCount || 0) - (a.favoritesCount || 0));
+                    items.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
                     break;
                 case 'title':
                     items.sort((a, b) => a.title.localeCompare(b.title));
@@ -395,7 +410,7 @@ export default function Home() {
             tags: [],
             categories: [],
             platforms: [],
-            sortBy: 'relevance',
+            sortBy: 'date',
         });
         setSearchParams({});
     };
