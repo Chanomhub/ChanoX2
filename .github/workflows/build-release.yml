@@ -142,14 +142,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ChanoX2-${{ matrix.platform }}
-          path: |
-            release/*.AppImage
-            release/*.deb
-            release/*.tar.gz
-            release/*.flatpak
-            release/*.rpm
-            release/*.exe
-            release/*.dmg
+          path: release/
           if-no-files-found: ignore
 
   release:
