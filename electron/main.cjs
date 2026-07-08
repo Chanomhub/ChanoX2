@@ -1728,6 +1728,225 @@ ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, 
     }
 });
 
+// --- PE Architecture Detection Helper ---
+function getExeArchitecture(filePath) {
+    try {
+        if (!fs.existsSync(filePath)) return 'x64';
+        const fd = fs.openSync(filePath, 'r');
+        const buffer = Buffer.alloc(64);
+        fs.readSync(fd, buffer, 0, 64, 0);
+        if (buffer.readUInt16LE(0) !== 0x5A4D) { // 'MZ'
+            fs.closeSync(fd);
+            return 'x64';
+        }
+        const peOffset = buffer.readUInt32LE(0x3C);
+        const peBuffer = Buffer.alloc(24);
+        fs.readSync(fd, peBuffer, 0, 24, peOffset);
+        fs.closeSync(fd);
+        if (peBuffer.readUInt32LE(0) !== 0x00004550) { // 'PE\0\0'
+            return 'x64';
+        }
+        const machine = peBuffer.readUInt16LE(4);
+        if (machine === 0x014c) return 'x86';
+        if (machine === 0x8664) return 'x64';
+    } catch (e) {
+        console.error('Failed to read PE architecture:', e);
+    }
+    return 'x64';
+}
+
+// --- Unity Engine Version Detection Helper ---
+function getUnityVersion(exePath) {
+    try {
+        const exeDir = path.dirname(exePath);
+        const files = fs.readdirSync(exeDir);
+        const dataDir = files.find(f => f.toLowerCase().endsWith('_data') && fs.statSync(path.join(exeDir, f)).isDirectory());
+        if (!dataDir) return null;
+
+        const ggPath = path.join(exeDir, dataDir, 'globalgamemanagers');
+        if (!fs.existsSync(ggPath)) return null;
+
+        const fd = fs.openSync(ggPath, 'r');
+        const buffer = Buffer.alloc(200);
+        fs.readSync(fd, buffer, 0, 200, 0);
+        fs.closeSync(fd);
+
+        const content = buffer.toString('ascii');
+        const match = content.match(/\b\d+\.\d+\.\d+[a-zA-Z0-9-.]+/);
+        if (match) {
+            return match[0];
+        }
+    } catch (e) {
+        console.error('Error getting Unity version:', e);
+    }
+    return null;
+}
+
+
+// --- Download File Helper ---
+function downloadFile(url, destPath) {
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(destPath);
+        const request = net.request({
+            url,
+            method: 'GET',
+            redirect: 'follow'
+        });
+        request.on('response', (response) => {
+            if (response.statusCode !== 200) {
+                file.close();
+                fs.unlink(destPath, () => {});
+                reject(new Error(`Download failed: Status ${response.statusCode}`));
+                return;
+            }
+            response.pipe(file);
+            response.on('error', (err) => {
+                file.close();
+                fs.unlink(destPath, () => {});
+                reject(err);
+            });
+        });
+        request.on('error', (err) => {
+            if (!file.destroyed) file.close();
+            fs.unlink(destPath, () => {});
+            reject(err);
+        });
+        file.on('finish', () => {
+            file.close();
+            resolve();
+        });
+        file.on('error', (err) => {
+            fs.unlink(destPath, () => {});
+            reject(err);
+        });
+        request.end();
+    });
+}
+
+// --- Auto-Translator IPC Handlers ---
+ipcMain.handle('check-auto-translator', async (event, { executablePath }) => {
+    try {
+        if (!executablePath || !fs.existsSync(executablePath)) {
+            return { installed: false };
+        }
+        const exeDir = path.dirname(executablePath);
+        const hasBepInEx = fs.existsSync(path.join(exeDir, 'BepInEx')) && fs.existsSync(path.join(exeDir, 'winhttp.dll'));
+        return { installed: hasBepInEx };
+    } catch (e) {
+        console.error('Error checking auto-translator:', e);
+        return { installed: false };
+    }
+});
+
+ipcMain.handle('install-auto-translator', async (event, { executablePath, targetLanguage }) => {
+    try {
+        if (!executablePath || !fs.existsSync(executablePath)) {
+            return { success: false, error: 'Executable path does not exist' };
+        }
+        const exeDir = path.dirname(executablePath);
+        const arch = getExeArchitecture(executablePath);
+        const version = getUnityVersion(executablePath);
+        const isModernUnity = version && (version.startsWith('6') || version.startsWith('2023') || version.startsWith('2024'));
+        console.log(`📦 [install-auto-translator] Game architecture: ${arch}, Unity version: ${version}, Modern Unity: ${isModernUnity} for ${executablePath}`);
+
+        let bepinexUrl;
+        if (isModernUnity) {
+            bepinexUrl = arch === 'x86'
+                ? 'https://builds.bepinex.dev/projects/bepinex_be/785/BepInEx-Unity.Mono-win-x86-6.0.0-be.785%2B6abdba4.zip'
+                : 'https://builds.bepinex.dev/projects/bepinex_be/785/BepInEx-Unity.Mono-win-x64-6.0.0-be.785%2B6abdba4.zip';
+        } else {
+            bepinexUrl = arch === 'x86'
+                ? 'https://github.com/BepInEx/BepInEx/releases/download/v5.4.22/BepInEx_x86_5.4.22.0.zip'
+                : 'https://github.com/BepInEx/BepInEx/releases/download/v5.4.22/BepInEx_x64_5.4.22.0.zip';
+        }
+
+        const autotranslatorUrl = 'https://github.com/bbepis/XUnity.AutoTranslator/releases/download/v5.3.0/XUnity.AutoTranslator-BepInEx-5.3.0.zip';
+
+        const tempDir = path.join(USER_DATA_DIR, 'temp-translator');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        const bepinexZip = path.join(tempDir, `BepInEx_${arch}.zip`);
+        const translatorZip = path.join(tempDir, 'XUnity.AutoTranslator.zip');
+
+        // 1. Download BepInEx
+        console.log(`📥 Downloading BepInEx from ${bepinexUrl}...`);
+        await downloadFile(bepinexUrl, bepinexZip);
+
+        // 2. Download AutoTranslator
+        console.log(`📥 Downloading XUnity.AutoTranslator from ${autotranslatorUrl}...`);
+        await downloadFile(autotranslatorUrl, translatorZip);
+
+        // 3. Extract BepInEx
+        console.log(`📂 Extracting BepInEx to ${exeDir}...`);
+        await ExtractorService.extractArchive(bepinexZip, exeDir);
+
+        // 4. Extract AutoTranslator
+        console.log(`📂 Extracting XUnity.AutoTranslator to ${exeDir}...`);
+        await ExtractorService.extractArchive(translatorZip, exeDir);
+
+        // 5. Configure AutoTranslator
+        const configDir = path.join(exeDir, 'BepInEx', 'config');
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        const iniPath = path.join(configDir, 'AutoTranslatorConfig.ini');
+        const iniContent = `[Service]
+Endpoint=GoogleTranslate
+
+[Language]
+From=ja
+To=${targetLanguage || 'th'}
+
+[Behaviour]
+MaxTransitiveLookups=3
+MaxTranslationsPerPage=100
+MinDelayBetweenTransitiveLookups=1
+OverrideFont=
+`;
+        fs.writeFileSync(iniPath, iniContent, 'utf-8');
+
+        // Clean up temp zips
+        try {
+            fs.unlinkSync(bepinexZip);
+            fs.unlinkSync(translatorZip);
+        } catch (e) {
+            // ignore
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to install auto translator:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('uninstall-auto-translator', async (event, { executablePath }) => {
+    try {
+        if (!executablePath) {
+            return { success: false, error: 'Executable path not provided' };
+        }
+        const exeDir = path.dirname(executablePath);
+        const pathsToDelete = [
+            path.join(exeDir, 'BepInEx'),
+            path.join(exeDir, 'winhttp.dll'),
+            path.join(exeDir, 'doorstop_config.ini'),
+            path.join(exeDir, 'changelog.txt'),
+            path.join(exeDir, '.doorstop_version')
+        ];
+        for (const p of pathsToDelete) {
+            if (fs.existsSync(p)) {
+                fs.rmSync(p, { recursive: true, force: true });
+            }
+        }
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to uninstall auto translator:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 // --- Game Scanning & Launching ---
 
 function scanDir(dir, depth = 0, maxDepth = 3) {
@@ -1839,10 +2058,25 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
         platformHandler.ensureExecutable(executablePath);
     }
 
+    // Detect engine and append unity locale flags if engine is unity and locale is provided
+    let finalArgsList = [...args];
+    const gameConfig = gameId ? allConfigs[gameId] : null;
+    const gameEngine = gameConfig ? (gameConfig.engine || '') : '';
+    if (locale && gameEngine.toLowerCase().includes('unity')) {
+        const hasLangArg = finalArgsList.some(arg => arg.startsWith('-language=') || arg === '-language');
+        if (!hasLangArg) {
+            finalArgsList.push(`-language=${locale}`);
+        }
+        const hasCustomLocaleArg = finalArgsList.some(arg => arg.startsWith('-customLocale=') || arg === '-customLocale');
+        if (!hasCustomLocaleArg) {
+            finalArgsList.push(`-customLocale=${locale}`);
+        }
+    }
+
     // Prepare launch command via platform handler
     const { command, finalArgs, detached, extraEnv } = platformHandler.prepareLaunch(
         executablePath,
-        args,
+        finalArgsList,
         { useWine, wineProvider, globalSettings }
     );
 
@@ -1866,8 +2100,36 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
             const cleanEnv = { ...process.env };
             delete cleanEnv.ELECTRON_RUN_AS_NODE;
             if (locale) {
-                cleanEnv.LANG = locale;
-                cleanEnv.LC_ALL = locale;
+                const LOCALE_MAP = {
+                    'th': 'th_TH.UTF-8',
+                    'en': 'en_US.UTF-8',
+                    'ja': 'ja_JP.UTF-8',
+                    'zh-cn': 'zh_CN.UTF-8',
+                    'zh-tw': 'zh_TW.UTF-8',
+                    'zh': 'zh_CN.UTF-8',
+                    'ko': 'ko_KR.UTF-8'
+                };
+                const normalizedLocale = locale.toLowerCase();
+                const systemLocale = LOCALE_MAP[normalizedLocale] || locale;
+                cleanEnv.LANG = systemLocale;
+                cleanEnv.LC_ALL = systemLocale;
+            }
+
+            // Auto-detect BepInEx and set Wine DLL override if running via Wine
+            if (useWine) {
+                const exeDir = path.dirname(executablePath);
+                const hasBepInEx = fs.existsSync(path.join(exeDir, 'BepInEx')) && fs.existsSync(path.join(exeDir, 'winhttp.dll'));
+                if (hasBepInEx) {
+                    const existingOverrides = cleanEnv.WINEDLLOVERRIDES || '';
+                    if (existingOverrides) {
+                        if (!existingOverrides.includes('winhttp')) {
+                            cleanEnv.WINEDLLOVERRIDES = `${existingOverrides};winhttp=n,b`;
+                        }
+                    } else {
+                        cleanEnv.WINEDLLOVERRIDES = 'winhttp=n,b';
+                    }
+                    console.log('🍷 [launch-game] Applied BepInEx WINEDLLOVERRIDES:', cleanEnv.WINEDLLOVERRIDES);
+                }
             }
 
             // [Auto Compatibility] Apply fixes

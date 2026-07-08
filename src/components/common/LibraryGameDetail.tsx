@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLibrary } from '@/contexts/LibraryContext';
 import { LibraryItem } from '@/types/libraryItem';
 import { client } from '@/libs/api/client';
@@ -38,7 +38,8 @@ import {
     Wine,
     Languages,
     Download as DownloadIcon,
-    Check
+    Check,
+    CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -122,6 +123,72 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
         };
         checkShortcut();
     }, [libraryItem.id, libraryItem.title]);
+
+    const [translatorStatus, setTranslatorStatus] = useState<'checking' | 'installed' | 'not_installed'>('checking');
+    const [isInstallingTranslator, setIsInstallingTranslator] = useState(false);
+    const [translatorLang, setTranslatorLang] = useState('th');
+
+    const isUnityGame = libraryItem.engine?.toLowerCase().includes('unity') || config?.engine?.toLowerCase().includes('unity');
+
+    const showTranslationCard = (isUnityGame && config?.executablePath) || 
+        ['rpgm', 'rpgmaker', 'tyrano'].includes((libraryItem.engine || '').toLowerCase()) ||
+        (libraryItem.engine || '').toLowerCase().includes('rpg');
+
+    const checkTranslator = useCallback(async () => {
+        if (!window.electronAPI?.checkAutoTranslator || !config?.executablePath) {
+            setTranslatorStatus('not_installed');
+            return;
+        }
+        try {
+            const res = await window.electronAPI.checkAutoTranslator(config.executablePath);
+            setTranslatorStatus(res.installed ? 'installed' : 'not_installed');
+        } catch (e) {
+            console.error('Error checking auto translator:', e);
+            setTranslatorStatus('not_installed');
+        }
+    }, [config?.executablePath]);
+
+    useEffect(() => {
+        if (isUnityGame) {
+            checkTranslator();
+        }
+    }, [checkTranslator, isUnityGame]);
+
+    const handleInstallTranslator = async () => {
+        if (!window.electronAPI?.installAutoTranslator || !config?.executablePath) return;
+        setIsInstallingTranslator(true);
+        try {
+            const res = await window.electronAPI.installAutoTranslator(config.executablePath, translatorLang);
+            if (res.success) {
+                alert('ติดตั้ง Auto-Translator เรียบร้อยแล้ว!\nตัวเกมจะถูกแปลภาษาโดยอัตโนมัติในขณะที่คุณเล่น');
+                setTranslatorStatus('installed');
+            } else {
+                alert(`ติดตั้งไม่สำเร็จ: ${res.error}`);
+            }
+        } catch (err: any) {
+            alert(`เกิดข้อผิดพลาด: ${err.message || err}`);
+        } finally {
+            setIsInstallingTranslator(false);
+        }
+    };
+
+    const handleUninstallTranslator = async () => {
+        if (!window.electronAPI?.uninstallAutoTranslator || !config?.executablePath) return;
+        const confirmed = window.confirm('ต้องการถอนการติดตั้ง Auto-Translator หรือไม่?');
+        if (!confirmed) return;
+        
+        try {
+            const res = await window.electronAPI.uninstallAutoTranslator(config.executablePath);
+            if (res.success) {
+                alert('ถอนการติดตั้งเรียบร้อยแล้ว');
+                setTranslatorStatus('not_installed');
+            } else {
+                alert(`ถอนการติดตั้งไม่สำเร็จ: ${res.error}`);
+            }
+        } catch (err: any) {
+            alert(`เกิดข้อผิดพลาด: ${err.message || err}`);
+        }
+    };
 
     // Fetch official download sources if articleId is available
     useEffect(() => {
@@ -653,6 +720,109 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         </div>
                     )}
 
+                    {/* Translation Section */}
+                    {showTranslationCard && (
+                        <div className="bg-black/20 p-4 rounded-sm space-y-3">
+                            <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-2">Translation</h3>
+                            
+                            {/* Unity Real-time Auto-Translator */}
+                            {isUnityGame && config?.executablePath && (
+                                <div className="space-y-2 border-b border-zinc-800/40 pb-3 last:border-0 last:pb-0">
+                                    <div className="text-xs font-bold text-zinc-300">Auto-Translator (Unity)</div>
+                                    <p className="text-[10px] text-[#acb2b8] leading-relaxed">
+                                        แปลข้อความในเกมแบบเรียลไทม์ (ใช้ BepInEx)
+                                    </p>
+                                    
+                                    {translatorStatus === 'checking' ? (
+                                        <div className="flex items-center gap-2 text-[10px] text-[#8b929a] py-1">
+                                            <Loader2 className="w-3 h-3 animate-spin text-[#66c0f4]" />
+                                            กำลังตรวจสอบสถานะ...
+                                        </div>
+                                    ) : translatorStatus === 'not_installed' ? (
+                                        <div className="space-y-2 pt-1">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">แปลเป็นภาษา (Target)</span>
+                                                <select
+                                                    value={translatorLang}
+                                                    onChange={(e) => setTranslatorLang(e.target.value)}
+                                                    className="flex w-full rounded border border-[#2a475e] bg-[#101822] px-2 py-1 text-[11px] text-zinc-200 focus:outline-none focus:border-[#66c0f4] h-7"
+                                                >
+                                                    <option value="th">ภาษาไทย (Thai)</option>
+                                                    <option value="en">English</option>
+                                                    <option value="ja">日本語 (Japanese)</option>
+                                                    <option value="ko">한국어 (Korean)</option>
+                                                </select>
+                                            </div>
+                                            <button
+                                                onClick={handleInstallTranslator}
+                                                disabled={isInstallingTranslator}
+                                                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] font-bold bg-[#66c0f4] hover:bg-[#47a8e5] text-black transition-colors disabled:opacity-50"
+                                            >
+                                                {isInstallingTranslator ? (
+                                                    <>
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                        กำลังติดตั้ง...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Languages className="w-3 h-3" />
+                                                        ติดตั้ง Auto-Translator
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2 pt-1">
+                                            <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
+                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                ติดตั้งระบบแปลภาษาแล้ว
+                                            </div>
+                                            <button
+                                                onClick={handleUninstallTranslator}
+                                                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] font-medium bg-[#2a2e36] hover:bg-[#3d2e2e] text-[#f38181] transition-colors"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                                ถอนการติดตั้ง
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* NST CLI Translation */}
+                            {((libraryItem.engine || 'rpgm') === 'rpgm' || 
+                              ['rpgm', 'rpgmaker', 'tyrano'].includes((libraryItem.engine || '').toLowerCase()) ||
+                              (libraryItem.engine || '').toLowerCase().includes('rpg') ||
+                              isUnityGame) && (
+                                <div className="space-y-2 pt-1">
+                                    <div className="text-xs font-bold text-zinc-300">Translate Yourself (NST)</div>
+                                    <p className="text-[10px] text-[#acb2b8] leading-relaxed">
+                                        สกัดและแปลข้อความด้วยตนเองโดยใช้ NST CLI
+                                    </p>
+                                    <button
+                                        onClick={async () => {
+                                            if (window.electronAPI?.openNstCli) {
+                                                const result = await window.electronAPI.openNstCli(
+                                                    libraryItem.extractedPath,
+                                                    libraryItem.engine || 'rpgm'
+                                                );
+                                                if (!result.success) {
+                                                    alert(`ไม่สามารถเปิด NST ได้: ${result.error || 'Unknown error'}`);
+                                                }
+                                            } else {
+                                                alert('ไม่พบ NST CLI');
+                                            }
+                                        }}
+                                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors"
+                                    >
+                                        <Languages className="w-3.5 h-3.5" />
+                                        เปิดเครื่องมือ NST
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Official Sources */}
                     {loadingOfficialSources ? (
                         <div className="bg-black/20 p-4 rounded-sm">
@@ -769,26 +939,6 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                             </button>
                         )}
 
-                        {/* Translate Yourself - opens NST CLI */}
-                        <button
-                            onClick={async () => {
-                                if (window.electronAPI?.openNstCli) {
-                                    const result = await window.electronAPI.openNstCli(
-                                        libraryItem.extractedPath,
-                                        libraryItem.engine || 'rpgm'
-                                    );
-                                    if (!result.success) {
-                                        alert(`ไม่สามารถเปิด NST ได้: ${result.error || 'Unknown error'}`);
-                                    }
-                                } else {
-                                    alert('ไม่พบ NST CLI');
-                                }
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors"
-                        >
-                            <Languages className="w-4 h-4" />
-                            Translate Yourself (NST)
-                        </button>
                     </div>
 
                 </div>
