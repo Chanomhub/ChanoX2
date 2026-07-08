@@ -35,7 +35,6 @@
     "graphql": "^16.14.2",
     "graphql-request": "^7.4.0",
     "i18next": "^25.10.10",
-    "layer-pack-node": "^0.1.1",
     "radix-ui": "^1.6.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -177,12 +176,6 @@
         "height": 400
       }
     }
-  },
-  "overrides": {
-    "layer-pack-node-win32-x64-msvc": "npm:layer-pack-node@0.1.1",
-    "layer-pack-node-darwin-x64": "npm:layer-pack-node@0.1.1",
-    "layer-pack-node-linux-x64-gnu": "npm:layer-pack-node@0.1.1",
-    "layer-pack-node-darwin-arm64": "npm:layer-pack-node@0.1.1"
   },
   "private": true
 }

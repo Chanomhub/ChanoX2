@@ -755,165 +755,15 @@ ipcMain.handle('write-file-content', async (event, { filePath, content }) => {
 
 // --- LayerPack Integration ---
 ipcMain.handle('check-lpack-conflicts', async (event, { filePath, destPath, key }) => {
-    try {
-        const { JsLayerPack } = require('layer-pack-node');
-        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "__LPACK_SECURITY_KEY__" || "__LPACK_ENCRYPTION_KEY__" || "";
-        const pack = new JsLayerPack(filePath, lpackKey);
-        const files = pack.getFileList();
-
-        const conflicts = [];
-        const newFiles = [];
-        const modDirs = new Set();
-
-        for (const file of files) {
-            const parts = file.split(/[/\\]/);
-            if (parts.length > 1) {
-                modDirs.add(parts[0]);
-            }
-
-            const fullPath = path.join(destPath, file);
-            if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-                conflicts.push(file);
-            } else {
-                newFiles.push(file);
-            }
-        }
-
-        // Structural Heuristic: Check if mod's top-level folders exist in destination
-        const mismatchedDirs = [];
-        for (const dir of modDirs) {
-            const dirPath = path.join(destPath, dir);
-            if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
-                mismatchedDirs.push(dir);
-            }
-        }
-
-        // Path Auto-Correction Logic
-        let suggestedPath = null;
-        if (mismatchedDirs.length > 0 && conflicts.length === 0) {
-            // Check common subdirectories for a better match
-            const commonSubs = ['www', 'game', 'Content', 'StreamingAssets'];
-            for (const sub of commonSubs) {
-                const subPath = path.join(destPath, sub);
-                if (fs.existsSync(subPath) && fs.statSync(subPath).isDirectory()) {
-                    // Count how many modDirs exist in this subPath
-                    let matches = 0;
-                    for (const dir of modDirs) {
-                        try {
-                            const checkPath = path.join(subPath, dir);
-                            if (fs.existsSync(checkPath)) {
-                                matches++;
-                            }
-                        } catch (e) { }
-                    }
-                    if (matches > 0 && matches >= modDirs.size / 2) {
-                        suggestedPath = subPath;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // If conflicts are 0 but the mod has many files that would be in subdirectories
-        // that don't exist, it's a strong sign of a mismatch.
-        const structureWarning = mismatchedDirs.length > 0 && conflicts.length === 0;
-
-        return {
-            success: true,
-            conflicts,
-            newFiles,
-            structureWarning,
-            mismatchedDirs,
-            suggestedPath: suggestedPath ? path.relative(destPath, suggestedPath) : null
-        };
-    } catch (err) {
-        console.error(`[Main] Error checking lpack conflicts:`, err);
-        return { success: false, error: err.message };
-    }
+    return { success: false, error: 'LayerPack integration is currently disabled' };
 });
 
 ipcMain.handle('get-lpack-metadata', async (event, { filePath, key }) => {
-    try {
-        const { JsLayerPack } = require('layer-pack-node');
-        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "__LPACK_SECURITY_KEY__" || "__LPACK_ENCRYPTION_KEY__" || "";
-        const pack = new JsLayerPack(filePath, lpackKey);
-        return {
-            success: true,
-            name: pack.name,
-            author: pack.author,
-            files: pack.getFileList()
-        };
-    } catch (err) {
-        console.error(`[Main] Error reading lpack metadata:`, err);
-        return { success: false, error: err.message };
-    }
+    return { success: false, error: 'LayerPack integration is currently disabled' };
 });
 
 ipcMain.handle('extract-lpack', async (event, { filePath, destPath, key, modId, gamePath }) => {
-    try {
-        const { JsLayerPack } = require('layer-pack-node');
-        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "__LPACK_SECURITY_KEY__" || "__LPACK_ENCRYPTION_KEY__" || "";
-        const pack = new JsLayerPack(filePath, lpackKey);
-        const files = pack.getFileList();
-
-        if (!fs.existsSync(destPath)) {
-            fs.mkdirSync(destPath, { recursive: true });
-        }
-
-        const timestamp = Date.now();
-        // Use gamePath (root) for backups if provided, otherwise fallback to destPath
-        const rootPath = gamePath || destPath;
-        const backupDir = path.join(rootPath, '.chanox2', 'backups', `mod_${modId}_${timestamp}`);
-        const manifestPath = path.join(backupDir, 'backup-manifest.json');
-        const backedUpFiles = [];
-        const extractedFiles = [];
-
-        for (const file of files) {
-            const fullPath = path.join(destPath, file);
-            const dir = path.dirname(fullPath);
-
-            // 1. Backup if file exists
-            if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-                if (!fs.existsSync(backupDir)) {
-                    fs.mkdirSync(backupDir, { recursive: true });
-                }
-                const backupPath = path.join(backupDir, file);
-                const backupFileDir = path.dirname(backupPath);
-                if (!fs.existsSync(backupFileDir)) {
-                    fs.mkdirSync(backupFileDir, { recursive: true });
-                }
-                fs.copyFileSync(fullPath, backupPath);
-                backedUpFiles.push(file);
-            }
-
-            // 2. Extract
-            const content = pack.readFile(file);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
-            }
-            fs.writeFileSync(fullPath, content);
-            extractedFiles.push(file);
-        }
-
-        // Save manifest if there were backups/extractions
-        if (backedUpFiles.length > 0 || extractedFiles.length > 0) {
-            if (!fs.existsSync(backupDir)) {
-                fs.mkdirSync(backupDir, { recursive: true });
-            }
-            fs.writeFileSync(manifestPath, JSON.stringify({
-                modId,
-                timestamp,
-                backedUpFiles,
-                extractedFiles,
-                destPath: path.relative(rootPath, destPath) // Store where we extracted
-            }, null, 2));
-        }
-
-        return { success: true, backupId: backedUpFiles.length > 0 ? `mod_${modId}_${timestamp}` : null };
-    } catch (err) {
-        console.error(`[Main] Error extracting lpack:`, err);
-        return { success: false, error: err.message };
-    }
+    return { success: false, error: 'LayerPack integration is currently disabled' };
 });
 
 ipcMain.handle('rollback-lpack-extraction', async (event, { gamePath, backupId }) => {
@@ -988,16 +838,7 @@ ipcMain.handle('get-mod-backups', async (event, { gamePath, modId }) => {
 });
 
 ipcMain.handle('read-lpack-file', async (event, { filePath, key, innerPath }) => {
-    try {
-        const { JsLayerPack } = require('layer-pack-node');
-        const lpackKey = key || process.env.LPACK_SECURITY_KEY || process.env.LPACK_ENCRYPTION_KEY || "";
-        const pack = new JsLayerPack(filePath, lpackKey);
-        const content = pack.readFile(innerPath);
-        return { success: true, content };
-    } catch (err) {
-        console.error(`[Main] Error reading file from lpack:`, err);
-        return { success: false, error: err.message };
-    }
+    return { success: false, error: 'LayerPack integration is currently disabled' };
 });
 
 // --- Window Controls ---
