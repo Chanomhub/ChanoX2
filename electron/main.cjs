@@ -1168,6 +1168,7 @@ function getProtonGeReleasesFromFeed() {
                         const entries = [];
                         const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
                         let match;
+                        const isArm64 = process.arch === 'arm64';
                         while ((match = entryRegex.exec(data)) !== null) {
                             const entryContent = match[1];
                             const linkMatch = entryContent.match(/href="[^"]*\/releases\/tag\/([^"]+)"/);
@@ -1177,11 +1178,12 @@ function getProtonGeReleasesFromFeed() {
                                 const tagName = linkMatch[1];
                                 const name = titleMatch ? titleMatch[1] : tagName;
                                 const publishedAt = updatedMatch ? updatedMatch[1] : new Date().toISOString();
+                                const tarFilename = isArm64 ? `${tagName}-aarch64.tar.gz` : `${tagName}.tar.gz`;
                                 entries.push({
                                     tagName,
                                     name,
                                     publishedAt,
-                                    tarUrl: `https://github.com/GloriousEggroll/proton-ge-custom/releases/download/${tagName}/${tagName}.tar.gz`,
+                                    tarUrl: `https://github.com/GloriousEggroll/proton-ge-custom/releases/download/${tagName}/${tarFilename}`,
                                     size: 0
                                 });
                             }
@@ -1229,8 +1231,18 @@ ipcMain.handle('get-proton-ge-releases', async () => {
                     try {
                         if (response.statusCode === 200) {
                             const releases = JSON.parse(data);
+                            const isArm64 = process.arch === 'arm64';
                             const formatted = releases.map(r => {
-                                const tarAsset = r.assets.find(a => a.name.endsWith('.tar.gz'));
+                                const tarAsset = r.assets.find(a => {
+                                    const name = a.name.toLowerCase();
+                                    if (!name.endsWith('.tar.gz')) return false;
+                                    const isArmAsset = name.includes('aarch64') || name.includes('arm64') || name.includes('arm');
+                                    if (isArm64) {
+                                        return isArmAsset;
+                                    } else {
+                                        return !isArmAsset;
+                                    }
+                                }) || r.assets.find(a => a.name.endsWith('.tar.gz'));
                                 return {
                                     tagName: r.tag_name,
                                     name: r.name,
@@ -1369,7 +1381,39 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
 
                     console.log(`[ProtonInstaller] Successfully installed ${tagName}!`);
 
-                    const installedPath = path.join(compatibilitytoolsDir, tagName);
+                    let installedPath = path.join(compatibilitytoolsDir, tagName);
+                    try {
+                        const subdirs = fs.readdirSync(compatibilitytoolsDir);
+                        const matchedDir = subdirs.find(sub => {
+                            const fullPath = path.join(compatibilitytoolsDir, sub);
+                            try {
+                                if (!fs.statSync(fullPath).isDirectory()) return false;
+                                if (sub === tagName || sub.startsWith(tagName + '-')) {
+                                    return fs.existsSync(path.join(fullPath, 'proton'));
+                                }
+                            } catch (e) {
+                                return false;
+                            }
+                            return false;
+                        });
+                        if (matchedDir) {
+                            installedPath = path.join(compatibilitytoolsDir, matchedDir);
+                            console.log(`[ProtonInstaller] Detected actual extracted folder: ${matchedDir}`);
+                        }
+                    } catch (scanErr) {
+                        console.warn('[ProtonInstaller] Failed to scan compatibilitytoolsDir for actual path:', scanErr.message);
+                    }
+
+                    // Safety measure: Ensure the proton binary has execute permission
+                    try {
+                        const protonBinPath = path.join(installedPath, 'proton');
+                        if (fs.existsSync(protonBinPath)) {
+                            fs.chmodSync(protonBinPath, '755');
+                        }
+                    } catch (chmodErr) {
+                        console.warn('[ProtonInstaller] Failed to set execute permission on proton script:', chmodErr.message);
+                    }
+
                     resolve({ success: true, path: installedPath });
 
                 } catch (err) {
