@@ -142,7 +142,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ChanoX2-${{ matrix.platform }}
-          path: release/
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+            release/*.tar.gz
+            release/*.flatpak
+            release/latest*.yml
           if-no-files-found: ignore
 
   release:
@@ -251,7 +259,15 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.tar.gz
+            artifacts/**/*.flatpak
+            artifacts/**/latest*.yml
           body: ${{ steps.build_changelog.outputs.changelog }}
           generate_release_notes: false
           append_body: false
