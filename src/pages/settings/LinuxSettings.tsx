@@ -422,7 +422,7 @@ export function LinuxSettings() {
                                             >
                                                 {releases.map((rel) => (
                                                     <option key={rel.tagName} value={rel.tagName}>
-                                                        {rel.name} ({formatBytes(rel.size)})
+                                                        {rel.name}{rel.size > 0 ? ` (${formatBytes(rel.size)})` : ''}
                                                     </option>
                                                 ))}
                                             </select>

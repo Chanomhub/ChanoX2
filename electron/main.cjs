@@ -552,7 +552,7 @@ ipcMain.on('cancel-download', (event, id) => {
 ipcMain.on('download-file', (event, { url, headers }) => {
     console.log('📥 [Main] Received download-file request:', url);
     console.log('   Headers:', headers ? 'Present' : 'None');
-    
+
     // Use parallel downloader for storage.chanomhub.com
     if (url.includes('storage.chanomhub.com')) {
         if (parallelDownloader) {
@@ -991,7 +991,7 @@ ipcMain.handle('get-global-settings', () => loadJsonFile(SETTINGS_FILE));
 ipcMain.handle('save-global-settings', (event, settings) => {
     const oldSettings = loadJsonFile(SETTINGS_FILE);
     const result = saveJsonFile(SETTINGS_FILE, settings);
-    
+
     // Handle Discord RPC toggle
     if (settings.discordRPCEnabled === true && oldSettings.discordRPCEnabled !== true) {
         console.log('🎮 [Main] Discord RPC enabled by user');
@@ -1000,7 +1000,7 @@ ipcMain.handle('save-global-settings', (event, settings) => {
         console.log('🎮 [Main] Discord RPC disabled by user');
         DiscordService.shutdown();
     }
-    
+
     return result;
 });
 
@@ -1066,7 +1066,7 @@ ipcMain.handle('delete-path', async (event, pathToDelete) => {
         // Security: Basic check to prevent deleting critical root directories.
         const restrictedPaths = [app.getPath('home'), app.getPath('userData'), '/'];
         if (restrictedPaths.includes(path.normalize(pathToDelete))) {
-             return { success: false, error: 'Deletion of critical system path is not allowed' };
+            return { success: false, error: 'Deletion of critical system path is not allowed' };
         }
 
         if (fs.existsSync(pathToDelete)) {
@@ -1112,7 +1112,7 @@ ipcMain.handle('find-installed-protons', async () => {
     ];
 
     const detected = [];
-    
+
     // Add workspace path for development/testing
     const workspaceProton = path.join(__dirname, '..', 'GE-Proton10-34');
     searchDirs.push(path.dirname(workspaceProton));
@@ -1146,11 +1146,11 @@ ipcMain.handle('find-installed-protons', async () => {
 // --- GE-Proton Downloader and Installer ---
 let activeProtonDownload = null;
 
-ipcMain.handle('get-proton-ge-releases', async () => {
+function getProtonGeReleasesFromFeed() {
     return new Promise((resolve, reject) => {
         const request = net.request({
             method: 'GET',
-            url: 'https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases',
+            url: 'https://github.com/GloriousEggroll/proton-ge-custom/releases.atom',
             headers: {
                 'User-Agent': 'ChanoX2'
             }
@@ -1165,20 +1165,34 @@ ipcMain.handle('get-proton-ge-releases', async () => {
             response.on('end', () => {
                 try {
                     if (response.statusCode === 200) {
-                        const releases = JSON.parse(data);
-                        const formatted = releases.map(r => {
-                            const tarAsset = r.assets.find(a => a.name.endsWith('.tar.gz'));
-                            return {
-                                tagName: r.tag_name,
-                                name: r.name,
-                                publishedAt: r.published_at,
-                                tarUrl: tarAsset ? tarAsset.browser_download_url : null,
-                                size: tarAsset ? tarAsset.size : 0
-                            };
-                        }).filter(r => r.tarUrl !== null);
-                        resolve(formatted);
+                        const entries = [];
+                        const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+                        let match;
+                        while ((match = entryRegex.exec(data)) !== null) {
+                            const entryContent = match[1];
+                            const linkMatch = entryContent.match(/href="[^"]*\/releases\/tag\/([^"]+)"/);
+                            const titleMatch = entryContent.match(/<title>([^<]+)<\/title>/);
+                            const updatedMatch = entryContent.match(/<updated>([^<]+)<\/updated>/);
+                            if (linkMatch) {
+                                const tagName = linkMatch[1];
+                                const name = titleMatch ? titleMatch[1] : tagName;
+                                const publishedAt = updatedMatch ? updatedMatch[1] : new Date().toISOString();
+                                entries.push({
+                                    tagName,
+                                    name,
+                                    publishedAt,
+                                    tarUrl: `https://github.com/GloriousEggroll/proton-ge-custom/releases/download/${tagName}/${tagName}.tar.gz`,
+                                    size: 0
+                                });
+                            }
+                        }
+                        if (entries.length > 0) {
+                            resolve(entries);
+                        } else {
+                            reject(new Error('No releases parsed from the Atom feed.'));
+                        }
                     } else {
-                        reject(new Error(`GitHub API error: status ${response.statusCode}`));
+                        reject(new Error(`GitHub feed error: status ${response.statusCode}`));
                     }
                 } catch (err) {
                     reject(err);
@@ -1192,6 +1206,64 @@ ipcMain.handle('get-proton-ge-releases', async () => {
 
         request.end();
     });
+}
+
+ipcMain.handle('get-proton-ge-releases', async () => {
+    try {
+        return await new Promise((resolve, reject) => {
+            const request = net.request({
+                method: 'GET',
+                url: 'https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases',
+                headers: {
+                    'User-Agent': 'ChanoX2'
+                }
+            });
+
+            request.on('response', (response) => {
+                let data = '';
+                response.on('data', (chunk) => {
+                    data += chunk.toString();
+                });
+
+                response.on('end', () => {
+                    try {
+                        if (response.statusCode === 200) {
+                            const releases = JSON.parse(data);
+                            const formatted = releases.map(r => {
+                                const tarAsset = r.assets.find(a => a.name.endsWith('.tar.gz'));
+                                return {
+                                    tagName: r.tag_name,
+                                    name: r.name,
+                                    publishedAt: r.published_at,
+                                    tarUrl: tarAsset ? tarAsset.browser_download_url : null,
+                                    size: tarAsset ? tarAsset.size : 0
+                                };
+                            }).filter(r => r.tarUrl !== null);
+                            resolve(formatted);
+                        } else {
+                            reject(new Error(`GitHub API error: status ${response.statusCode}`));
+                        }
+                    } catch (err) {
+                        reject(err);
+                    }
+                });
+            });
+
+            request.on('error', (err) => {
+                reject(err);
+            });
+
+            request.end();
+        });
+    } catch (apiError) {
+        console.warn('[Main] GitHub REST API failed, falling back to RSS Atom feed:', apiError.message);
+        try {
+            return await getProtonGeReleasesFromFeed();
+        } catch (feedError) {
+            console.error('[Main] Both GitHub API and RSS feed failed:', feedError.message);
+            throw apiError;
+        }
+    }
 });
 
 ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downloadUrl }) => {
@@ -1200,7 +1272,7 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
     }
 
     const compatibilitytoolsDir = path.join(HOME_DIR, '.local/share/Steam/compatibilitytools.d');
-    
+
     try {
         if (!fs.existsSync(compatibilitytoolsDir)) {
             fs.mkdirSync(compatibilitytoolsDir, { recursive: true });
@@ -1216,7 +1288,7 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
     return new Promise((resolve) => {
         try {
             const file = fs.createWriteStream(tempFilePath);
-            
+
             const request = net.request({
                 url: downloadUrl,
                 method: 'GET',
@@ -1231,7 +1303,7 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
             request.on('response', (response) => {
                 if (response.statusCode !== 200) {
                     file.close();
-                    fs.unlink(tempFilePath, () => {});
+                    fs.unlink(tempFilePath, () => { });
                     activeProtonDownload = null;
                     resolve({ success: false, error: `Download failed with status: ${response.statusCode}` });
                     return;
@@ -1257,7 +1329,7 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
                 response.on('error', (err) => {
                     console.error('[ProtonInstaller] Response error:', err);
                     file.close();
-                    fs.unlink(tempFilePath, () => {});
+                    fs.unlink(tempFilePath, () => { });
                     activeProtonDownload = null;
                     resolve({ success: false, error: err.message });
                 });
@@ -1266,7 +1338,7 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
             request.on('error', (err) => {
                 console.error('[ProtonInstaller] Request error:', err);
                 if (!file.destroyed) file.close();
-                fs.unlink(tempFilePath, () => {});
+                fs.unlink(tempFilePath, () => { });
                 activeProtonDownload = null;
                 resolve({ success: false, error: err.message });
             });
@@ -1274,7 +1346,7 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
             file.on('finish', async () => {
                 file.close();
                 activeProtonDownload = null;
-                
+
                 try {
                     if (fs.existsSync(tempFilePath)) {
                         fs.renameSync(tempFilePath, finalFilePath);
@@ -1292,11 +1364,11 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
 
                     console.log(`[ProtonInstaller] Extracting ${finalFilePath} to ${compatibilitytoolsDir}...`);
                     await ExtractorService.extractArchive(finalFilePath, compatibilitytoolsDir);
-                    
+
                     fs.unlinkSync(finalFilePath);
 
                     console.log(`[ProtonInstaller] Successfully installed ${tagName}!`);
-                    
+
                     const installedPath = path.join(compatibilitytoolsDir, tagName);
                     resolve({ success: true, path: installedPath });
 
@@ -1310,7 +1382,7 @@ ipcMain.handle('download-and-install-proton-ge', async (event, { tagName, downlo
 
             file.on('error', (err) => {
                 console.error('[ProtonInstaller] File write error:', err);
-                fs.unlink(tempFilePath, () => {});
+                fs.unlink(tempFilePath, () => { });
                 activeProtonDownload = null;
                 resolve({ success: false, error: err.message });
             });
@@ -2130,7 +2202,7 @@ function createUpdaterWindow() {
         if (!isDev) {
             setTimeout(() => autoUpdater.checkForUpdates(), 1000);
         } else {
-             setTimeout(() => {
+            setTimeout(() => {
                 if (updaterWindow && !updaterWindow.isDestroyed()) {
                     updaterWindow.webContents.send('update-status', 'Dev mode: Skipping update check. Starting ChanoX2...');
                 }
