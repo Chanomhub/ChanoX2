@@ -30,6 +30,8 @@
     "date-fns": "^4.4.0",
     "discord-rpc": "^4.0.1",
     "dompurify": "^3.4.11",
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.9",
     "graphql": "^16.14.2",
     "graphql-request": "^7.4.0",
     "i18next": "^25.10.10",
@@ -41,9 +43,7 @@
     "react-router-dom": "^7.18.1",
     "socket.io-client": "^4.8.3",
     "swr": "^2.4.2",
-    "zustand": "^5.0.14",
-    "electron-updater": "^6.8.9",
-    "electron-log": "^5.4.4"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.20",
@@ -177,6 +177,12 @@
         "height": 400
       }
     }
+  },
+  "overrides": {
+    "layer-pack-node-win32-x64-msvc": "npm:layer-pack-node@0.1.1",
+    "layer-pack-node-darwin-x64": "npm:layer-pack-node@0.1.1",
+    "layer-pack-node-linux-x64-gnu": "npm:layer-pack-node@0.1.1",
+    "layer-pack-node-darwin-arm64": "npm:layer-pack-node@0.1.1"
   },
   "private": true
 }

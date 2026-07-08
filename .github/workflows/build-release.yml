@@ -41,7 +41,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'npm'
 
       - name: Cache Electron
@@ -59,7 +59,7 @@ jobs:
             electron-${{ runner.os }}-
 
       - name: Install dependencies
-        uses: nick-fields/retry@v4
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -110,7 +110,7 @@ jobs:
 
       - name: Build Electron (Linux)
         if: matrix.platform == 'linux'
-        uses: nick-fields/retry@v4
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
@@ -120,7 +120,7 @@ jobs:
 
       - name: Build Electron (Windows)
         if: matrix.platform == 'win'
-        uses: nick-fields/retry@v4
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 20
           max_attempts: 3
@@ -130,7 +130,7 @@ jobs:
 
       - name: Build Electron (macOS)
         if: matrix.platform == 'mac'
-        uses: nick-fields/retry@v4
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 20
           max_attempts: 3
