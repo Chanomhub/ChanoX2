@@ -41,11 +41,13 @@
     "react-router-dom": "^7.18.1",
     "socket.io-client": "^4.8.3",
     "swr": "^2.4.2",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "electron-updater": "^6.8.9",
+    "electron-log": "^5.4.4"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.20",
-    "@types/node": "^22.20.0",
+    "@types/node": "^22.20.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
@@ -73,6 +75,13 @@
   "build": {
     "appId": "com.chanomhub.chanox2",
     "productName": "ChanoX2",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Chanomhub",
+        "repo": "ChanoX2"
+      }
+    ],
     "directories": {
       "output": "release",
       "buildResources": "public"
