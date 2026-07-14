@@ -1838,6 +1838,26 @@ ipcMain.handle('check-auto-translator', async (event, { executablePath }) => {
     }
 });
 
+function getSdfFontForUnityVersion(version) {
+    if (!version) return 'arialuni_sdf_u2018';
+    if (version.startsWith('6') || version.startsWith('2023') || version.startsWith('2024') || version.startsWith('2025')) {
+        return 'arialuni_sdf_u2018';
+    }
+    if (version.startsWith('2022')) {
+        return 'arialuni_sdf_u2022';
+    }
+    if (version.startsWith('2021')) {
+        return 'arialuni_sdf_u2021';
+    }
+    if (version.startsWith('2019') || version.startsWith('2020')) {
+        return 'arialuni_sdf_u2019';
+    }
+    if (version.startsWith('2018')) {
+        return 'arialuni_sdf_u2018';
+    }
+    return 'arialuni_sdf-u55to2017';
+}
+
 ipcMain.handle('install-auto-translator', async (event, { executablePath, targetLanguage }) => {
     try {
         if (!executablePath || !fs.existsSync(executablePath)) {
@@ -1852,8 +1872,8 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
         let bepinexUrl;
         if (isModernUnity) {
             bepinexUrl = arch === 'x86'
-                ? 'https://builds.bepinex.dev/projects/bepinex_be/785/BepInEx-Unity.Mono-win-x86-6.0.0-be.785%2B6abdba4.zip'
-                : 'https://builds.bepinex.dev/projects/bepinex_be/785/BepInEx-Unity.Mono-win-x64-6.0.0-be.785%2B6abdba4.zip';
+                ? 'https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.5/BepInEx_win_x86_5.4.23.5.zip'
+                : 'https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.5/BepInEx_win_x64_5.4.23.5.zip';
         } else {
             bepinexUrl = arch === 'x86'
                 ? 'https://github.com/BepInEx/BepInEx/releases/download/v5.4.22/BepInEx_x86_5.4.22.0.zip'
@@ -1861,6 +1881,7 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
         }
 
         const autotranslatorUrl = 'https://github.com/bbepis/XUnity.AutoTranslator/releases/download/v5.3.0/XUnity.AutoTranslator-BepInEx-5.3.0.zip';
+        const fontBundleUrl = 'https://github.com/bbepis/XUnity.AutoTranslator/releases/download/v5.5.0/TMP_Font_AssetBundles_2025-12-08.7z';
 
         const tempDir = path.join(USER_DATA_DIR, 'temp-translator');
         if (!fs.existsSync(tempDir)) {
@@ -1869,6 +1890,7 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
 
         const bepinexZip = path.join(tempDir, `BepInEx_${arch}.zip`);
         const translatorZip = path.join(tempDir, 'XUnity.AutoTranslator.zip');
+        const fontBundleZip = path.join(tempDir, 'TMP_Font_AssetBundles.7z');
 
         // 1. Download BepInEx
         console.log(`📥 Downloading BepInEx from ${bepinexUrl}...`);
@@ -1878,32 +1900,71 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
         console.log(`📥 Downloading XUnity.AutoTranslator from ${autotranslatorUrl}...`);
         await downloadFile(autotranslatorUrl, translatorZip);
 
-        // 3. Extract BepInEx
+        // 3. Download Font Asset Bundles (resolves Thai square boxes/□□□ issue)
+        console.log(`📥 Downloading TMP Font Asset Bundles from ${fontBundleUrl}...`);
+        await downloadFile(fontBundleUrl, fontBundleZip);
+
+        // 4. Extract BepInEx
         console.log(`📂 Extracting BepInEx to ${exeDir}...`);
         await ExtractorService.extractArchive(bepinexZip, exeDir);
 
-        // 4. Extract AutoTranslator
+        // 5. Extract AutoTranslator
         console.log(`📂 Extracting XUnity.AutoTranslator to ${exeDir}...`);
         await ExtractorService.extractArchive(translatorZip, exeDir);
 
-        // 5. Configure AutoTranslator
+        // 6. Extract Font Asset Bundles
+        console.log(`📂 Extracting TMP Font Asset Bundles to ${exeDir}...`);
+        await ExtractorService.extractArchive(fontBundleZip, exeDir);
+
+        // 7. Configure AutoTranslator
         const configDir = path.join(exeDir, 'BepInEx', 'config');
         if (!fs.existsSync(configDir)) {
             fs.mkdirSync(configDir, { recursive: true });
         }
         const iniPath = path.join(configDir, 'AutoTranslatorConfig.ini');
+        const customThaiFontPath = path.join(exeDir, 'thai_sdf');
+        const hasCustomThaiFont = fs.existsSync(customThaiFontPath);
+
+        let actualTargetLanguage;
+        let overrideFontName;
+        let overrideFontSdf;
+
+        if (hasCustomThaiFont) {
+            actualTargetLanguage = targetLanguage || 'th';
+            overrideFontName = 'Noto Sans Thai';
+            overrideFontSdf = 'thai_sdf';
+        } else {
+            actualTargetLanguage = isModernUnity ? 'en' : (targetLanguage || 'th');
+            overrideFontName = actualTargetLanguage === 'en' ? '' : 'Noto Sans Thai';
+            overrideFontSdf = actualTargetLanguage === 'en' ? '' : getSdfFontForUnityVersion(version);
+        }
+
         const iniContent = `[Service]
 Endpoint=GoogleTranslate
 
+[General]
+Language=${actualTargetLanguage}
+FromLanguage=ja
+
 [Language]
 From=ja
-To=${targetLanguage || 'th'}
+To=${actualTargetLanguage}
 
 [Behaviour]
 MaxTransitiveLookups=3
 MaxTranslationsPerPage=100
 MinDelayBetweenTransitiveLookups=1
-OverrideFont=
+OverrideFont=${overrideFontName}
+OverrideFontTextMeshPro=${overrideFontSdf}
+FallbackFontTextMeshPro=${overrideFontSdf}
+
+[TextFrameworks]
+EnableIMGUI=True
+EnableUGUI=True
+EnableNGUI=True
+EnableTextMeshPro=True
+EnableTextMesh=True
+EnableFairyGUI=True
 `;
         fs.writeFileSync(iniPath, iniContent, 'utf-8');
 
@@ -1911,6 +1972,7 @@ OverrideFont=
         try {
             fs.unlinkSync(bepinexZip);
             fs.unlinkSync(translatorZip);
+            fs.unlinkSync(fontBundleZip);
         } catch (e) {
             // ignore
         }
@@ -1933,7 +1995,9 @@ ipcMain.handle('uninstall-auto-translator', async (event, { executablePath }) =>
             path.join(exeDir, 'winhttp.dll'),
             path.join(exeDir, 'doorstop_config.ini'),
             path.join(exeDir, 'changelog.txt'),
-            path.join(exeDir, '.doorstop_version')
+            path.join(exeDir, '.doorstop_version'),
+            path.join(exeDir, 'arialuni_sdf_u2018'),
+            path.join(exeDir, 'arialuni_sdf_u2019')
         ];
         for (const p of pathsToDelete) {
             if (fs.existsSync(p)) {
