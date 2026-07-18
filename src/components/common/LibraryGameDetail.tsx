@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import GameLaunchDialog, { GameLaunchConfig } from './GameLaunchDialog';
 import GameFileBrowser from './GameFileBrowser';
 import WinetricksDialog from './WinetricksDialog';
+import FontSelectionDialog from './FontSelectionDialog';
 import { ArticleModDialog } from './ArticleModDialog';
 import { ModExtractionDialog } from './ModExtractionDialog';
 import { useGameLauncher } from '@/hooks/useGameLauncher';
@@ -127,6 +128,10 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     const [translatorStatus, setTranslatorStatus] = useState<'checking' | 'installed' | 'not_installed'>('checking');
     const [isInstallingTranslator, setIsInstallingTranslator] = useState(false);
     const [translatorLang, setTranslatorLang] = useState('th');
+    const [fonts, setFonts] = useState<any[]>([]);
+    const [selectedFontId, setSelectedFontId] = useState<string>('');
+    const [loadingFonts, setLoadingFonts] = useState(false);
+    const [fontDialogOpen, setFontDialogOpen] = useState(false);
 
     const isUnityGame = libraryItem.engine?.toLowerCase().includes('unity') || config?.engine?.toLowerCase().includes('unity');
 
@@ -154,11 +159,39 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
         }
     }, [checkTranslator, isUnityGame]);
 
+    useEffect(() => {
+        const fetchFonts = async () => {
+            setLoadingFonts(true);
+            try {
+                const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://api.chanomhub.com';
+                const url = `${apiBaseUrl}/api/fonts?engine=unity&language=${translatorLang}`;
+                const res = await fetch(url);
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.data && Array.isArray(json.data.fonts)) {
+                        setFonts(json.data.fonts);
+                    } else if (json && Array.isArray(json.fonts)) {
+                        setFonts(json.fonts);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching fonts:', err);
+            } finally {
+                setLoadingFonts(false);
+            }
+        };
+        
+        if (isUnityGame) {
+            fetchFonts();
+        }
+    }, [translatorLang, isUnityGame]);
+
     const handleInstallTranslator = async () => {
         if (!window.electronAPI?.installAutoTranslator || !config?.executablePath) return;
         setIsInstallingTranslator(true);
         try {
-            const res = await window.electronAPI.installAutoTranslator(config.executablePath, translatorLang);
+            const selectedFont = fonts.find(f => String(f.id) === selectedFontId);
+            const res = await window.electronAPI.installAutoTranslator(config.executablePath, translatorLang, selectedFont);
             if (res.success) {
                 alert('ติดตั้ง Auto-Translator เรียบร้อยแล้ว!\nตัวเกมจะถูกแปลภาษาโดยอัตโนมัติในขณะที่คุณเล่น');
                 setTranslatorStatus('installed');
@@ -753,6 +786,19 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                                     <option value="ko">한국어 (Korean)</option>
                                                 </select>
                                             </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">ฟอนต์สำหรับแสดงผล (Font)</span>
+                                                <button
+                                                    onClick={() => setFontDialogOpen(true)}
+                                                    className="flex items-center justify-between w-full rounded border border-[#2a475e] bg-[#101822] px-2.5 py-1.5 text-[11px] text-zinc-200 hover:border-[#66c0f4] hover:bg-[#15202d] transition-colors h-8 text-left group"
+                                                    disabled={loadingFonts}
+                                                >
+                                                    <span className="truncate flex-1 mr-2">
+                                                        {fonts.find(f => String(f.id) === selectedFontId)?.name || 'Default Font (ระบบเลือกให้อัตโนมัติ)'}
+                                                    </span>
+                                                    <span className="text-[9px] text-[#66c0f4] group-hover:text-[#47a8e5] shrink-0 font-bold uppercase transition-colors">แก้ไข</span>
+                                                </button>
+                                            </div>
                                             <button
                                                 onClick={handleInstallTranslator}
                                                 disabled={isInstallingTranslator}
@@ -959,6 +1005,15 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
             <WinetricksDialog
                 open={winetricksDialogOpen}
                 onOpenChange={setWinetricksDialogOpen}
+            />
+
+            <FontSelectionDialog
+                open={fontDialogOpen}
+                onOpenChange={setFontDialogOpen}
+                fonts={fonts}
+                selectedFontId={selectedFontId}
+                onSelectFont={setSelectedFontId}
+                loading={loadingFonts}
             />
 
             {libraryItem.articleId && (

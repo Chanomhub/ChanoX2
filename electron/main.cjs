@@ -1858,7 +1858,7 @@ function getSdfFontForUnityVersion(version) {
     return 'arialuni_sdf-u55to2017';
 }
 
-ipcMain.handle('install-auto-translator', async (event, { executablePath, targetLanguage }) => {
+ipcMain.handle('install-auto-translator', async (event, { executablePath, targetLanguage, font }) => {
     try {
         if (!executablePath || !fs.existsSync(executablePath)) {
             return { success: false, error: 'Executable path does not exist' };
@@ -1916,27 +1916,62 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
         console.log(`📂 Extracting TMP Font Asset Bundles to ${exeDir}...`);
         await ExtractorService.extractArchive(fontBundleZip, exeDir);
 
+        // Download custom font assets if provided
+        if (font && font.assets && font.assets.length > 0) {
+            for (const asset of font.assets) {
+                try {
+                    const filename = path.basename(asset.key || asset.url);
+                    const destPath = path.join(exeDir, filename);
+                    console.log(`📥 Downloading custom font asset from ${asset.url} to ${destPath}...`);
+                    await downloadFile(asset.url, destPath);
+                } catch (dlErr) {
+                    console.error('⚠️ Failed to download font asset:', dlErr);
+                }
+            }
+        }
+
         // 7. Configure AutoTranslator
         const configDir = path.join(exeDir, 'BepInEx', 'config');
         if (!fs.existsSync(configDir)) {
             fs.mkdirSync(configDir, { recursive: true });
         }
         const iniPath = path.join(configDir, 'AutoTranslatorConfig.ini');
-        const customThaiFontPath = path.join(exeDir, 'thai_sdf');
-        const hasCustomThaiFont = fs.existsSync(customThaiFontPath);
 
-        let actualTargetLanguage;
-        let overrideFontName;
-        let overrideFontSdf;
+        let actualTargetLanguage = targetLanguage || 'th';
+        let overrideFontName = '';
+        let overrideFontSdf = '';
 
-        if (hasCustomThaiFont) {
-            actualTargetLanguage = targetLanguage || 'th';
-            overrideFontName = 'Noto Sans Thai';
-            overrideFontSdf = 'thai_sdf';
+        if (font) {
+            overrideFontName = font.name;
+
+            // Find SDF asset. TextMeshPro SDF files typically don't have standard extensions (.ttf, .otf, etc.)
+            // or contain "_sdf" in the name.
+            const sdfAsset = font.assets?.find(asset => {
+                const filename = path.basename(asset.key || asset.url).toLowerCase();
+                return filename.includes('_sdf') || (
+                    !filename.endsWith('.ttf') &&
+                    !filename.endsWith('.otf') &&
+                    !filename.endsWith('.woff') &&
+                    !filename.endsWith('.woff2')
+                );
+            });
+
+            if (sdfAsset) {
+                overrideFontSdf = path.basename(sdfAsset.key || sdfAsset.url);
+            } else {
+                overrideFontSdf = getSdfFontForUnityVersion(version);
+            }
         } else {
-            actualTargetLanguage = isModernUnity ? 'en' : (targetLanguage || 'th');
-            overrideFontName = actualTargetLanguage === 'en' ? '' : 'Noto Sans Thai';
-            overrideFontSdf = actualTargetLanguage === 'en' ? '' : getSdfFontForUnityVersion(version);
+            const customThaiFontPath = path.join(exeDir, 'thai_sdf');
+            const hasCustomThaiFont = fs.existsSync(customThaiFontPath);
+            if (hasCustomThaiFont) {
+                overrideFontName = 'Noto Sans Thai';
+                overrideFontSdf = 'thai_sdf';
+            } else {
+                actualTargetLanguage = isModernUnity ? 'en' : (targetLanguage || 'th');
+                overrideFontName = actualTargetLanguage === 'en' ? '' : 'Noto Sans Thai';
+                overrideFontSdf = actualTargetLanguage === 'en' ? '' : getSdfFontForUnityVersion(version);
+            }
         }
 
         const iniContent = `[Service]

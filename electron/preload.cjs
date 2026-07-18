@@ -174,8 +174,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Auto-Translator
     checkAutoTranslator: (executablePath) =>
         ipcRenderer.invoke('check-auto-translator', { executablePath }),
-    installAutoTranslator: (executablePath, targetLanguage) =>
-        ipcRenderer.invoke('install-auto-translator', { executablePath, targetLanguage }),
+    installAutoTranslator: (executablePath, targetLanguage, font) =>
+        ipcRenderer.invoke('install-auto-translator', { executablePath, targetLanguage, font }),
     uninstallAutoTranslator: (executablePath) =>
         ipcRenderer.invoke('uninstall-auto-translator', { executablePath }),
         

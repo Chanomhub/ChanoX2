@@ -211,7 +211,7 @@ export interface ElectronAPI {
 
     // Auto-Translator
     checkAutoTranslator: (executablePath: string) => Promise<{ installed: boolean }>;
-    installAutoTranslator: (executablePath: string, targetLanguage: string) => Promise<{ success: boolean; error?: string }>;
+    installAutoTranslator: (executablePath: string, targetLanguage: string, font?: any) => Promise<{ success: boolean; error?: string }>;
     uninstallAutoTranslator: (executablePath: string) => Promise<{ success: boolean; error?: string }>;
 
     // Deep Links
