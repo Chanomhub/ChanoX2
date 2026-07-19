@@ -170,6 +170,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // NST CLI Integration
     openNstCli: (projectPath, engine) =>
         ipcRenderer.invoke('open-nst-cli', { projectPath, engine }),
+
+    // Auto-Translator
+    checkAutoTranslator: (executablePath) =>
+        ipcRenderer.invoke('check-auto-translator', { executablePath }),
+    installAutoTranslator: (executablePath, targetLanguage, font) =>
+        ipcRenderer.invoke('install-auto-translator', { executablePath, targetLanguage, font }),
+    uninstallAutoTranslator: (executablePath) =>
+        ipcRenderer.invoke('uninstall-auto-translator', { executablePath }),
         
     // Proton detection
     findInstalledProtons: () => ipcRenderer.invoke('find-installed-protons'),
