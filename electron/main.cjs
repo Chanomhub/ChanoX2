@@ -1840,7 +1840,10 @@ ipcMain.handle('check-auto-translator', async (event, { executablePath }) => {
 
 function getSdfFontForUnityVersion(version) {
     if (!version) return 'arialuni_sdf_u2018';
-    if (version.startsWith('6') || version.startsWith('2023') || version.startsWith('2024') || version.startsWith('2025')) {
+    if (version.startsWith('6')) {
+        return 'arialuni_sdf_u6000';
+    }
+    if (version.startsWith('2023') || version.startsWith('2024') || version.startsWith('2025')) {
         return 'arialuni_sdf_u2018';
     }
     if (version.startsWith('2022')) {
@@ -1944,9 +1947,11 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
         if (font) {
             overrideFontName = font.name;
 
-            // Find SDF asset. TextMeshPro SDF files typically don't have standard extensions (.ttf, .otf, etc.)
-            // or contain "_sdf" in the name.
+            // Find SDF asset. First check if asset metadata specifies isSdf, otherwise fallback to filename heuristics.
             const sdfAsset = font.assets?.find(asset => {
+                if (asset.metadata && (asset.metadata.isSdf === true || asset.metadata.assetType === 'TMP_SDF')) {
+                    return true;
+                }
                 const filename = path.basename(asset.key || asset.url).toLowerCase();
                 return filename.includes('_sdf') || (
                     !filename.endsWith('.ttf') &&
@@ -1961,16 +1966,64 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
             } else {
                 overrideFontSdf = getSdfFontForUnityVersion(version);
             }
+
+            // Save font metadata locally in the game directory for persistent tracking
+            const metaPath = path.join(exeDir, '.chanox_font.json');
+            try {
+                fs.writeFileSync(metaPath, JSON.stringify({
+                    fontId: font.id,
+                    fontName: font.name,
+                    sdfFileName: overrideFontSdf,
+                    targetLanguage: actualTargetLanguage,
+                    installedAt: new Date().toISOString()
+                }, null, 2));
+            } catch (metaErr) {
+                console.error('⚠️ Failed to write .chanox_font.json:', metaErr);
+            }
         } else {
-            const customThaiFontPath = path.join(exeDir, 'thai_sdf');
-            const hasCustomThaiFont = fs.existsSync(customThaiFontPath);
-            if (hasCustomThaiFont) {
+            // Check for saved font metadata in game directory first
+            const metaPath = path.join(exeDir, '.chanox_font.json');
+            let savedFontMeta = null;
+            if (fs.existsSync(metaPath)) {
+                try {
+                    savedFontMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                } catch (e) {
+                    console.error('⚠️ Failed to parse .chanox_font.json:', e);
+                }
+            }
+
+            const filesInExeDir = fs.readdirSync(exeDir);
+            const customSdfFile = filesInExeDir.find(f =>
+                f.toLowerCase().includes('_sdf') && !f.toLowerCase().startsWith('arialuni_sdf')
+            );
+
+            const defaultSdf = getSdfFontForUnityVersion(version);
+            const hasDefaultSdf = fs.existsSync(path.join(exeDir, defaultSdf));
+
+            if (savedFontMeta && savedFontMeta.sdfFileName && fs.existsSync(path.join(exeDir, savedFontMeta.sdfFileName))) {
+                overrideFontName = savedFontMeta.fontName || 'Custom Font';
+                overrideFontSdf = savedFontMeta.sdfFileName;
+                actualTargetLanguage = targetLanguage || savedFontMeta.targetLanguage || 'th';
+            } else if (customSdfFile) {
+                overrideFontName = 'Custom Font';
+                overrideFontSdf = customSdfFile;
+                actualTargetLanguage = targetLanguage || 'th';
+            } else if (hasDefaultSdf || fs.existsSync(path.join(exeDir, 'arialuni_sdf_u2018'))) {
                 overrideFontName = 'Noto Sans Thai';
-                overrideFontSdf = 'thai_sdf';
+                overrideFontSdf = hasDefaultSdf ? defaultSdf : 'arialuni_sdf_u2018';
+                actualTargetLanguage = targetLanguage || 'th';
             } else {
-                actualTargetLanguage = isModernUnity ? 'en' : (targetLanguage || 'th');
-                overrideFontName = actualTargetLanguage === 'en' ? '' : 'Noto Sans Thai';
-                overrideFontSdf = actualTargetLanguage === 'en' ? '' : getSdfFontForUnityVersion(version);
+                // Absolute worst case fallback: if no SDF font files exist at all on disk for Modern Unity,
+                // fallback to English to avoid rendering empty square boxes (□□□).
+                if (isModernUnity) {
+                    actualTargetLanguage = 'en';
+                    overrideFontName = '';
+                    overrideFontSdf = '';
+                } else {
+                    overrideFontName = 'Noto Sans Thai';
+                    overrideFontSdf = defaultSdf;
+                    actualTargetLanguage = targetLanguage || 'th';
+                }
             }
         }
 
