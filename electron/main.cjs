@@ -1609,6 +1609,71 @@ ipcMain.handle('cancel-winetricks-install', async () => {
     return { success: true };
 });
 
+// --- NST Add-on Integration ---
+const NST_CONFIG_PATH = path.join(HOME_DIR, '.config', 'NST', 'NST.ini');
+const NST_PLUGIN_SETTINGS_PATH = path.join(HOME_DIR, '.config', 'NST', 'PluginSettings.ini');
+
+// Minimal INI read/write (Qt QSettings IniFormat compatible for flat sections)
+function parseIni(text) {
+    const out = {};
+    let section = null;
+    for (const line of (text || '').split(/\r?\n/)) {
+        const m = line.match(/^\[(.+)\]\s*$/);
+        if (m) { section = m[1]; out[section] = {}; continue; }
+        const kv = line.match(/^([^=]+)=(.*)$/);
+        if (kv && section) out[section][kv[1].trim()] = kv[2];
+    }
+    return out;
+}
+function serializeIni(ini) {
+    return Object.entries(ini).map(([sec, kvs]) =>
+        `[${sec}]\n` + Object.entries(kvs).map(([k, v]) => `${k}=${v}`).join('\n')
+    ).join('\n\n') + '\n';
+}
+
+ipcMain.handle('nst-get-config', async () => {
+    try {
+        const ini = parseIni(fs.readFileSync(NST_CONFIG_PATH, 'utf-8'));
+        return { success: true, general: ini['General'] || {} };
+    } catch {
+        return { success: true, general: {}, exists: false };
+    }
+});
+
+ipcMain.handle('nst-set-llm-settings', async (event, { provider, apiKey, baseUrl, model }) => {
+    try {
+        // Main LLM config used by NST core
+        const raw = fs.existsSync(NST_CONFIG_PATH) ? fs.readFileSync(NST_CONFIG_PATH, 'utf-8') : '[General]\n';
+        const ini = parseIni(raw);
+        ini.General = ini.General || {};
+        if (provider !== undefined) ini.General.llmProvider = provider;
+        if (apiKey !== undefined) ini.General.llmApiKey = apiKey;
+        if (baseUrl !== undefined) ini.General.llmBaseUrl = baseUrl;
+        if (model !== undefined) ini.General.llmModel = model;
+        fs.mkdirSync(path.dirname(NST_CONFIG_PATH), { recursive: true });
+        fs.writeFileSync(NST_CONFIG_PATH, serializeIni(ini), 'utf-8');
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('nst-set-plugin-setting', async (event, { pluginFile, key, value }) => {
+    try {
+        // Per-Lua-plugin settings, e.g. groq_translate.lua\settings\api_key
+        const raw = fs.existsSync(NST_PLUGIN_SETTINGS_PATH)
+            ? fs.readFileSync(NST_PLUGIN_SETTINGS_PATH, 'utf-8') : '[Plugins]\n';
+        const ini = parseIni(raw);
+        ini.Plugins = ini.Plugins || {};
+        ini.Plugins[`${pluginFile}\\settings\\${key}`] = value ?? '';
+        fs.mkdirSync(path.dirname(NST_PLUGIN_SETTINGS_PATH), { recursive: true });
+        fs.writeFileSync(NST_PLUGIN_SETTINGS_PATH, serializeIni(ini), 'utf-8');
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
 // --- NST CLI Integration ---
 ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, nstExecutablePath, title, coverImage }) => {
     try {
