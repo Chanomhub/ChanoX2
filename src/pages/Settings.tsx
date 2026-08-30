@@ -257,6 +257,30 @@ function GeneralSection() {
                 </CardContent>
             </Card>
 
+            {/* Quick Setup Wizard Card */}
+            <Card className="bg-chanox-surface border-chanox-border mb-6">
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                            <p className="text-zinc-100 font-medium">Quick Setup Wizard (FTUE)</p>
+                            <p className="text-zinc-500 text-xs mt-1">
+                                Re-run the initial onboarding wizard to configure language, storage location, and verify system engines.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => {
+                                localStorage.removeItem('chanox2_ftue_wizard_completed');
+                                window.location.reload();
+                            }}
+                            className="bg-rose-600 hover:bg-rose-500 text-white text-xs h-9"
+                            size="sm"
+                        >
+                            Launch Setup Wizard
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
             <SectionHeader title={t('language')} />
 
             {/* Language Grid */}
