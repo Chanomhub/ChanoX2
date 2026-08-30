@@ -257,6 +257,30 @@ function GeneralSection() {
                 </CardContent>
             </Card>
 
+            {/* Guided Tour Card */}
+            <Card className="bg-chanox-surface border-chanox-border mb-6">
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                            <p className="text-zinc-100 font-medium">Interactive Feature Tour (FTUE)</p>
+                            <p className="text-zinc-500 text-xs mt-1">
+                                Launch the guided spotlight walkthrough showcasing key features and navigation shortcuts.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => {
+                                localStorage.removeItem('chanox2_ftue_spotlight_completed');
+                                window.location.reload();
+                            }}
+                            className="bg-purple-600 hover:bg-purple-500 text-white text-xs h-9"
+                            size="sm"
+                        >
+                            Launch Feature Tour
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
             <SectionHeader title={t('language')} />
 
             {/* Language Grid */}

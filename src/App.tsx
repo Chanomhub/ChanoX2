@@ -8,6 +8,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { ChatProvider } from '@/contexts/ChatContext'
 import ChatWindow from '@/components/features/chat/ChatWindow'
+import SpotlightTour from '@/components/common/SpotlightTour'
 import Layout from '@/components/common/Layout'
 import { usePendingGameLaunch } from '@/hooks/usePendingGameLaunch'
 import { useDeepLink } from '@/hooks/useDeepLink'
@@ -85,6 +86,7 @@ export default function App() {
                                         <PendingGameLaunchHandler />
                                         <DeepLinkHandler />
                                         <ChatWindow />
+                                        <SpotlightTour />
                                         <Routes>
                                             <Route path="/" element={<Home />} />
                                             <Route path="/login" element={<Login />} />
