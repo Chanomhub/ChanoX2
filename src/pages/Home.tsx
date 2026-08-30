@@ -13,6 +13,7 @@ import {
 import SearchResultItem from '@/components/common/SearchResultItem';
 import SearchFilters from '@/components/common/SearchFilters';
 import GameCard from '@/components/common/GameCard';
+import WelcomeHeroBanner from '@/components/common/WelcomeHeroBanner';
 import { Pagination } from '@/components/common/Pagination';
 import { useArticleSearch } from '@/hooks/useArticleSearch';
 import { cn } from '@/lib/utils';
@@ -139,6 +140,7 @@ export default function Home() {
             <div className="flex-1 flex overflow-hidden">
                 {/* Results list */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0a0e14]">
+                    <WelcomeHeroBanner />
                     <div className="p-4 max-w-[1400px] mx-auto">
                         {showNotice && (
                             <div className="relative flex gap-3 bg-rose-500/10 border border-rose-500/25 rounded-lg p-3.5 mb-4 text-xs text-rose-200">

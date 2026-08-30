@@ -1,13 +1,19 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLibrary } from '@/contexts/LibraryContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { usePendingGameLaunch } from '@/hooks/usePendingGameLaunch';
 import LibrarySidebar from '@/components/common/LibrarySidebar';
 import LibraryGameDetail from '@/components/common/LibraryGameDetail';
-import { Play, Loader2 } from 'lucide-react';
+import { Play, Loader2, Gamepad2, Compass, Zap, Sparkles, Clock, HardDrive } from 'lucide-react';
 import { SafeImage } from '@/components/common/SafeImage';
+import { Button } from '@/components/ui/Button';
 
 export default function Library() {
     const { libraryItems } = useLibrary();
+    const { language } = useLanguage();
+    const navigate = useNavigate();
+    const isThai = language === 'th';
     const [selectedGameId, setSelectedGameId] = useState<number | undefined>();
     const [searchQuery, setSearchQuery] = useState('');
     const [autoLaunchGameId, setAutoLaunchGameId] = useState<number | undefined>();
@@ -77,9 +83,84 @@ export default function Library() {
                             </div>
 
                             {filteredGames.length === 0 ? (
-                                <div className="text-[#8b929a] text-sm py-8 text-center">
-                                    {searchQuery ? 'No games match your search' : 'Your library is empty. Download some games!'}
-                                </div>
+                                searchQuery ? (
+                                    <div className="text-[#8b929a] text-sm py-12 text-center bg-[#151f2c] rounded-xl border border-[#253247]">
+                                        <p>{isThai ? 'ไม่พบเกมที่ตรงกับการค้นหา' : 'No games match your search'}</p>
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="mt-2 text-xs text-rose-400 hover:underline"
+                                        >
+                                            {isThai ? 'ล้างคำค้นหา' : 'Clear search'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 px-6 rounded-2xl bg-gradient-to-b from-[#16202e]/80 to-[#101722]/80 border border-[#253247] shadow-xl text-center max-w-2xl mx-auto my-6 animate-in fade-in-50 duration-300">
+                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-500/20 via-purple-500/20 to-blue-500/20 border border-white/10 flex items-center justify-center shadow-lg shadow-rose-500/10 mb-4">
+                                            <Gamepad2 className="w-8 h-8 text-rose-400" />
+                                        </div>
+
+                                        <h3 className="text-lg font-bold text-white tracking-wide">
+                                            {isThai ? 'คลังเกมของคุณยังว่างอยู่' : 'Your Library is Empty'}
+                                        </h3>
+                                        <p className="text-xs text-zinc-400 mt-1.5 max-w-md leading-relaxed">
+                                            {isThai
+                                                ? 'เริ่มต้นดาวน์โหลดเกมจาก Store แล้วระบบจะจัดการแตกไฟล์ จัดเก็บลงไดรฟ์ และนำมาแสดงที่นี่ให้คุณกดเล่นได้ทันที!'
+                                                : 'Discover and download titles from the Store. ChanoX2 will automatically unpack and organize them here ready to play!'}
+                                        </p>
+
+                                        <div className="flex items-center gap-3 mt-6">
+                                            <Button
+                                                onClick={() => navigate('/')}
+                                                className="bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white text-xs font-semibold px-5 h-9 shadow-lg shadow-rose-600/20 flex items-center gap-2"
+                                            >
+                                                <Compass className="w-4 h-4" />
+                                                {isThai ? 'ไปสำรวจเกมใน Store' : 'Explore Games'}
+                                            </Button>
+
+                                            <Button
+                                                onClick={() => navigate('/settings')}
+                                                variant="outline"
+                                                className="bg-[#182232] border-[#253247] hover:bg-[#202d42] text-zinc-300 text-xs h-9 flex items-center gap-2"
+                                            >
+                                                <HardDrive className="w-3.5 h-3.5 text-blue-400" />
+                                                {isThai ? 'ตั้งค่าโฟลเดอร์' : 'Storage Path'}
+                                            </Button>
+                                        </div>
+
+                                        {/* Value Props Row */}
+                                        <div className="grid grid-cols-3 gap-3 w-full max-w-lg mt-8 pt-6 border-t border-white/5 text-left">
+                                            <div className="p-2.5 rounded-lg bg-[#111722] border border-white/5">
+                                                <div className="flex items-center gap-1.5 text-amber-400 text-[11px] font-semibold">
+                                                    <Zap className="w-3.5 h-3.5" />
+                                                    <span>{isThai ? 'แตกไฟล์ออโต้' : 'Auto Unpack'}</span>
+                                                </div>
+                                                <p className="text-[10px] text-zinc-400 mt-1">
+                                                    {isThai ? 'ระบบ 7-Zip ทำงานอัตโนมัติ' : 'Fast 7-Zip integration'}
+                                                </p>
+                                            </div>
+
+                                            <div className="p-2.5 rounded-lg bg-[#111722] border border-white/5">
+                                                <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold">
+                                                    <Clock className="w-3.5 h-3.5" />
+                                                    <span>{isThai ? 'นับเวลาเล่น' : 'Playtime Track'}</span>
+                                                </div>
+                                                <p className="text-[10px] text-zinc-400 mt-1">
+                                                    {isThai ? 'บันทึกชั่วโมงเล่นทุกเกม' : 'Track your game hours'}
+                                                </p>
+                                            </div>
+
+                                            <div className="p-2.5 rounded-lg bg-[#111722] border border-white/5">
+                                                <div className="flex items-center gap-1.5 text-purple-400 text-[11px] font-semibold">
+                                                    <Sparkles className="w-3.5 h-3.5" />
+                                                    <span>{isThai ? 'เปิดเล่นง่าย' : 'One-Click Play'}</span>
+                                                </div>
+                                                <p className="text-[10px] text-zinc-400 mt-1">
+                                                    {isThai ? 'รองรับ Wine/Proton ครบ' : 'Wine & Proton support'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
                             ) : (
                                 <div className="flex flex-wrap gap-4">
                                     {filteredGames.map(item => (
