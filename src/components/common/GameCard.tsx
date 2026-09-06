@@ -17,8 +17,9 @@ export default function GameCard({ article }: GameCardProps) {
     const { language } = useLanguage();
     const dateLocale = language === 'th' ? th : enUS;
 
-    const timeAgo = article.createdAt
-        ? formatDistanceToNow(new Date(article.createdAt), { addSuffix: true, locale: dateLocale })
+    const displayDate = article.updatedAt || article.createdAt;
+    const timeAgo = displayDate && !isNaN(new Date(displayDate).getTime())
+        ? formatDistanceToNow(new Date(displayDate), { addSuffix: true, locale: dateLocale })
         : t('store.recently');
 
     // Extract engine/platform/category for the primary badge
