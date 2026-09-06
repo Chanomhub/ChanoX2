@@ -140,6 +140,9 @@ export function useArticleSearch() {
             const offset = multiFilter ? 0 : (page - 1) * ITEMS_PER_PAGE;
 
             const result = await sdk.articles.getAllPaginated({ limit, offset, filter: apiFilter });
+            if (result && result.items) {
+                result.items = result.items.filter((a: any) => a.type !== 'MOD' && !a.parentId);
+            }
             return withImageTransform(result);
         },
         { revalidateOnFocus: false, dedupingInterval: 5000 }

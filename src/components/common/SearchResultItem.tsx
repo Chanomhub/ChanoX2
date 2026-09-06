@@ -55,8 +55,9 @@ const getReviewData = (favoritesCount: number, viewsCount: number) => {
 };
 
 export default function SearchResultItem({ article }: SearchResultItemProps) {
-    const releaseDate = article.createdAt
-        ? new Date(article.createdAt).toLocaleDateString('th-TH', {
+    const displayDate = article.updatedAt || article.createdAt;
+    const releaseDate = displayDate && !isNaN(new Date(displayDate).getTime())
+        ? new Date(displayDate).toLocaleDateString('th-TH', {
             day: 'numeric',
             month: 'short',
             year: 'numeric',

@@ -295,7 +295,9 @@ function createWindow() {
     if (isDev) {
         // Development: Load from Vite dev server
         console.log('📱 Loading from Vite dev server (localhost:5173)...');
-        mainWindow.loadURL('http://localhost:5173');
+        mainWindow.webContents.session.clearCache().then(() => {
+            mainWindow.loadURL('http://localhost:5173');
+        });
         mainWindow.webContents.openDevTools();
     } else {
         // Production: Load from built files

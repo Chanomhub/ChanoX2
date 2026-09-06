@@ -110,7 +110,10 @@ class DiscordService {
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         if (this.client) {
             try {
-                this.client.destroy();
+                const destroyPromise = this.client.destroy();
+                if (destroyPromise && typeof destroyPromise.catch === 'function') {
+                    destroyPromise.catch(e => console.warn('⚠️ [Discord] Error while destroying client:', e?.message));
+                }
             } catch (e) {
                 console.warn('⚠️ [Discord] Error while destroying client:', e.message);
             }

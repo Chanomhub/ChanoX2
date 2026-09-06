@@ -14,6 +14,7 @@ export const GET_ARTICLES = gql`
       sequentialCode
       favoritesCount
       createdAt
+      updatedAt
       categories {
         id
         name

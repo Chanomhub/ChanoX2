@@ -313,7 +313,7 @@ export default function Search() {
 
             const result = await sdk.articles.getAllPaginated(options);
             const transformed = withImageTransform(result);
-            let items = [...transformed.items];
+            let items = [...transformed.items].filter((a: any) => a.type !== 'MOD' && !a.parentId);
 
             // Apply client-side filtering for multiple selections (AND logic - must have ALL selected tags)
             if (debouncedFilters.tags.length > 1) {
