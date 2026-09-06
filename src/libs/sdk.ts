@@ -5,9 +5,9 @@
 import { createChanomhubClient, createAuthenticatedClient, getFallbackUrl, type ChanomhubClient } from '@chanomhub/sdk';
 import { transformDataUrls } from '@/libs/transform';
 
-// Base config for SDK
+// Base config for SDK — override with VITE_API_URL for local backend testing
 const baseConfig = {
-    apiUrl: 'https://api.chanomhub.com',
+    apiUrl: import.meta.env.VITE_API_URL ?? 'https://api.chanomhub.com',
     storageDownloadUrl: 'https://storage.chanomhub.com',
 };
 

@@ -171,6 +171,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openNstCli: (projectPath, engine) =>
         ipcRenderer.invoke('open-nst-cli', { projectPath, engine }),
 
+    // NST Add-on config (LLM keys etc. — written to NST's QSettings INI)
+    nstGetConfig: () => ipcRenderer.invoke('nst-get-config'),
+    nstSetLlmSettings: (settings) => ipcRenderer.invoke('nst-set-llm-settings', settings),
+    nstSetPluginSetting: (args) => ipcRenderer.invoke('nst-set-plugin-setting', args),
+
     // Auto-Translator
     checkAutoTranslator: (executablePath) =>
         ipcRenderer.invoke('check-auto-translator', { executablePath }),

@@ -209,6 +209,11 @@ export interface ElectronAPI {
     // NST CLI Integration
     openNstCli: (projectPath: string, engine: string) => Promise<{ success: boolean; error?: string }>;
 
+    // NST Add-on config
+    nstGetConfig: () => Promise<{ success: boolean; general?: Record<string, string>; exists?: boolean }>;
+    nstSetLlmSettings: (settings: { provider?: string; apiKey?: string; baseUrl?: string; model?: string }) => Promise<{ success: boolean; error?: string }>;
+    nstSetPluginSetting: (args: { pluginFile: string; key: string; value?: string }) => Promise<{ success: boolean; error?: string }>;
+
     // Auto-Translator
     checkAutoTranslator: (executablePath: string) => Promise<{ installed: boolean }>;
     installAutoTranslator: (executablePath: string, targetLanguage: string, font?: any) => Promise<{ success: boolean; error?: string }>;

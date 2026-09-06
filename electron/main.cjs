@@ -1609,6 +1609,71 @@ ipcMain.handle('cancel-winetricks-install', async () => {
     return { success: true };
 });
 
+// --- NST Add-on Integration ---
+const NST_CONFIG_PATH = path.join(HOME_DIR, '.config', 'NST', 'NST.ini');
+const NST_PLUGIN_SETTINGS_PATH = path.join(HOME_DIR, '.config', 'NST', 'PluginSettings.ini');
+
+// Minimal INI read/write (Qt QSettings IniFormat compatible for flat sections)
+function parseIni(text) {
+    const out = {};
+    let section = null;
+    for (const line of (text || '').split(/\r?\n/)) {
+        const m = line.match(/^\[(.+)\]\s*$/);
+        if (m) { section = m[1]; out[section] = {}; continue; }
+        const kv = line.match(/^([^=]+)=(.*)$/);
+        if (kv && section) out[section][kv[1].trim()] = kv[2];
+    }
+    return out;
+}
+function serializeIni(ini) {
+    return Object.entries(ini).map(([sec, kvs]) =>
+        `[${sec}]\n` + Object.entries(kvs).map(([k, v]) => `${k}=${v}`).join('\n')
+    ).join('\n\n') + '\n';
+}
+
+ipcMain.handle('nst-get-config', async () => {
+    try {
+        const ini = parseIni(fs.readFileSync(NST_CONFIG_PATH, 'utf-8'));
+        return { success: true, general: ini['General'] || {} };
+    } catch {
+        return { success: true, general: {}, exists: false };
+    }
+});
+
+ipcMain.handle('nst-set-llm-settings', async (event, { provider, apiKey, baseUrl, model }) => {
+    try {
+        // Main LLM config used by NST core
+        const raw = fs.existsSync(NST_CONFIG_PATH) ? fs.readFileSync(NST_CONFIG_PATH, 'utf-8') : '[General]\n';
+        const ini = parseIni(raw);
+        ini.General = ini.General || {};
+        if (provider !== undefined) ini.General.llmProvider = provider;
+        if (apiKey !== undefined) ini.General.llmApiKey = apiKey;
+        if (baseUrl !== undefined) ini.General.llmBaseUrl = baseUrl;
+        if (model !== undefined) ini.General.llmModel = model;
+        fs.mkdirSync(path.dirname(NST_CONFIG_PATH), { recursive: true });
+        fs.writeFileSync(NST_CONFIG_PATH, serializeIni(ini), 'utf-8');
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('nst-set-plugin-setting', async (event, { pluginFile, key, value }) => {
+    try {
+        // Per-Lua-plugin settings, e.g. groq_translate.lua\settings\api_key
+        const raw = fs.existsSync(NST_PLUGIN_SETTINGS_PATH)
+            ? fs.readFileSync(NST_PLUGIN_SETTINGS_PATH, 'utf-8') : '[Plugins]\n';
+        const ini = parseIni(raw);
+        ini.Plugins = ini.Plugins || {};
+        ini.Plugins[`${pluginFile}\\settings\\${key}`] = value ?? '';
+        fs.mkdirSync(path.dirname(NST_PLUGIN_SETTINGS_PATH), { recursive: true });
+        fs.writeFileSync(NST_PLUGIN_SETTINGS_PATH, serializeIni(ini), 'utf-8');
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
 // --- NST CLI Integration ---
 ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, nstExecutablePath, title, coverImage }) => {
     try {
@@ -1840,7 +1905,10 @@ ipcMain.handle('check-auto-translator', async (event, { executablePath }) => {
 
 function getSdfFontForUnityVersion(version) {
     if (!version) return 'arialuni_sdf_u2018';
-    if (version.startsWith('6') || version.startsWith('2023') || version.startsWith('2024') || version.startsWith('2025')) {
+    if (version.startsWith('6')) {
+        return 'arialuni_sdf_u6000';
+    }
+    if (version.startsWith('2023') || version.startsWith('2024') || version.startsWith('2025')) {
         return 'arialuni_sdf_u2018';
     }
     if (version.startsWith('2022')) {
@@ -1944,9 +2012,11 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
         if (font) {
             overrideFontName = font.name;
 
-            // Find SDF asset. TextMeshPro SDF files typically don't have standard extensions (.ttf, .otf, etc.)
-            // or contain "_sdf" in the name.
+            // Find SDF asset. First check if asset metadata specifies isSdf, otherwise fallback to filename heuristics.
             const sdfAsset = font.assets?.find(asset => {
+                if (asset.metadata && (asset.metadata.isSdf === true || asset.metadata.assetType === 'TMP_SDF')) {
+                    return true;
+                }
                 const filename = path.basename(asset.key || asset.url).toLowerCase();
                 return filename.includes('_sdf') || (
                     !filename.endsWith('.ttf') &&
@@ -1961,16 +2031,64 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
             } else {
                 overrideFontSdf = getSdfFontForUnityVersion(version);
             }
+
+            // Save font metadata locally in the game directory for persistent tracking
+            const metaPath = path.join(exeDir, '.chanox_font.json');
+            try {
+                fs.writeFileSync(metaPath, JSON.stringify({
+                    fontId: font.id,
+                    fontName: font.name,
+                    sdfFileName: overrideFontSdf,
+                    targetLanguage: actualTargetLanguage,
+                    installedAt: new Date().toISOString()
+                }, null, 2));
+            } catch (metaErr) {
+                console.error('⚠️ Failed to write .chanox_font.json:', metaErr);
+            }
         } else {
-            const customThaiFontPath = path.join(exeDir, 'thai_sdf');
-            const hasCustomThaiFont = fs.existsSync(customThaiFontPath);
-            if (hasCustomThaiFont) {
+            // Check for saved font metadata in game directory first
+            const metaPath = path.join(exeDir, '.chanox_font.json');
+            let savedFontMeta = null;
+            if (fs.existsSync(metaPath)) {
+                try {
+                    savedFontMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                } catch (e) {
+                    console.error('⚠️ Failed to parse .chanox_font.json:', e);
+                }
+            }
+
+            const filesInExeDir = fs.readdirSync(exeDir);
+            const customSdfFile = filesInExeDir.find(f =>
+                f.toLowerCase().includes('_sdf') && !f.toLowerCase().startsWith('arialuni_sdf')
+            );
+
+            const defaultSdf = getSdfFontForUnityVersion(version);
+            const hasDefaultSdf = fs.existsSync(path.join(exeDir, defaultSdf));
+
+            if (savedFontMeta && savedFontMeta.sdfFileName && fs.existsSync(path.join(exeDir, savedFontMeta.sdfFileName))) {
+                overrideFontName = savedFontMeta.fontName || 'Custom Font';
+                overrideFontSdf = savedFontMeta.sdfFileName;
+                actualTargetLanguage = targetLanguage || savedFontMeta.targetLanguage || 'th';
+            } else if (customSdfFile) {
+                overrideFontName = 'Custom Font';
+                overrideFontSdf = customSdfFile;
+                actualTargetLanguage = targetLanguage || 'th';
+            } else if (hasDefaultSdf || fs.existsSync(path.join(exeDir, 'arialuni_sdf_u2018'))) {
                 overrideFontName = 'Noto Sans Thai';
-                overrideFontSdf = 'thai_sdf';
+                overrideFontSdf = hasDefaultSdf ? defaultSdf : 'arialuni_sdf_u2018';
+                actualTargetLanguage = targetLanguage || 'th';
             } else {
-                actualTargetLanguage = isModernUnity ? 'en' : (targetLanguage || 'th');
-                overrideFontName = actualTargetLanguage === 'en' ? '' : 'Noto Sans Thai';
-                overrideFontSdf = actualTargetLanguage === 'en' ? '' : getSdfFontForUnityVersion(version);
+                // Absolute worst case fallback: if no SDF font files exist at all on disk for Modern Unity,
+                // fallback to English to avoid rendering empty square boxes (□□□).
+                if (isModernUnity) {
+                    actualTargetLanguage = 'en';
+                    overrideFontName = '';
+                    overrideFontSdf = '';
+                } else {
+                    overrideFontName = 'Noto Sans Thai';
+                    overrideFontSdf = defaultSdf;
+                    actualTargetLanguage = targetLanguage || 'th';
+                }
             }
         }
 
