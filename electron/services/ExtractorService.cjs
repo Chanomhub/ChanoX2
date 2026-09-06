@@ -148,10 +148,15 @@ function checkExtractionTools() {
  */
 function extractWithPowerShell(filePath, destPath) {
     return new Promise((resolve, reject) => {
+        // Prevent PowerShell command injection and handle brackets in game paths
+        const safeFilePath = filePath.replace(/'/g, "''");
+        const safeDestPath = destPath.replace(/'/g, "''");
+
         const ps = spawn('powershell', [
             '-NoProfile',
+            '-NonInteractive',
             '-Command',
-            `Expand-Archive -Path '${filePath}' -DestinationPath '${destPath}' -Force`
+            `Expand-Archive -LiteralPath '${safeFilePath}' -DestinationPath '${safeDestPath}' -Force`
         ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
         let stderr = '';
