@@ -115,6 +115,8 @@ export interface ElectronAPI {
 
     // Mod Management
     installMod: (url: string, installPath: string, filename: string, headers?: Record<string, string>) => Promise<{ success: boolean; path?: string }>;
+    applyPatch: (gamePath: string, patchPath: string, modId: number) => Promise<{ success: boolean; backupId?: string; totalPatchedEntries?: number; filesModified?: number; fontInjected?: boolean; error?: string }>;
+    rollbackPatch: (gamePath: string, backupId: string) => Promise<{ success: boolean; error?: string }>;
     readFileContent: (path: string) => Promise<string | null>;
     writeFileContent: (path: string, content: string) => Promise<boolean>;
 

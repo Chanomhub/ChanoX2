@@ -61,10 +61,19 @@ export function ArticleModDialog({
             }
 
             // 3. Construct Filename
-            // Use a less restrictive regex to allow Thai/Unicode while stripping truly illegal characters
-            // Enforce .lpack extension as requested
+            let ext = '.patch.json.gz';
+            if (downloadLink.includes('.patch.json.gz')) {
+                ext = '.patch.json.gz';
+            } else if (downloadLink.includes('.patch.json')) {
+                ext = '.patch.json';
+            } else if (downloadLink.includes('.zip')) {
+                ext = '.zip';
+            } else if (downloadLink.includes('.lpack')) {
+                ext = '.lpack';
+            }
+
             const cleanName = `${mod.name}_${mod.version}`.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
-            const safeName = `${cleanName}.lpack`;
+            const safeName = `${cleanName}${ext}`;
 
             // 4. Call Electron Install
             const result = await window.electronAPI.installMod(
@@ -75,6 +84,15 @@ export function ArticleModDialog({
             );
 
             if (result.success) {
+                // If it's a patch file (.patch.json or .patch.json.gz), automatically apply it!
+                if (safeName.endsWith('.patch.json.gz') || safeName.endsWith('.patch.json')) {
+                    const patchFilePath = result.path || `${gamePath}/${safeName}`;
+                    const patchResult = await window.electronAPI.applyPatch(gamePath, patchFilePath, mod.id);
+                    if (!patchResult.success) {
+                        throw new Error(`Patch installation failed: ${patchResult.error}`);
+                    }
+                }
+
                 // 5. Update Local Manifest
                 await addInstalledMod({
                     id: mod.id,

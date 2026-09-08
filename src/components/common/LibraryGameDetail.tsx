@@ -1083,10 +1083,19 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
             }
 
             // 3. Construct Filename
-            // Use a less restrictive regex to allow Thai/Unicode while stripping truly illegal characters
-            // Enforce .lpack extension as requested
+            let ext = '.patch.json.gz';
+            if (downloadLink.includes('.patch.json.gz')) {
+                ext = '.patch.json.gz';
+            } else if (downloadLink.includes('.patch.json')) {
+                ext = '.patch.json';
+            } else if (downloadLink.includes('.zip')) {
+                ext = '.zip';
+            } else if (downloadLink.includes('.lpack')) {
+                ext = '.lpack';
+            }
+
             const cleanName = `${mod.name}_${mod.version}`.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
-            const safeName = `${cleanName}.lpack`;
+            const safeName = `${cleanName}${ext}`;
 
             // 4. Call Electron Install
             const result = await window.electronAPI.installMod(
@@ -1097,6 +1106,15 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
             );
 
             if (result.success) {
+                // If it's a patch file (.patch.json or .patch.json.gz), automatically apply it!
+                if (safeName.endsWith('.patch.json.gz') || safeName.endsWith('.patch.json')) {
+                    const patchFilePath = result.path || `${gamePath}/${safeName}`;
+                    const patchResult = await window.electronAPI.applyPatch(gamePath, patchFilePath, mod.id);
+                    if (!patchResult.success) {
+                        throw new Error(`Patch installation failed: ${patchResult.error}`);
+                    }
+                }
+
                 // 5. Update Local Manifest
                 await addInstalledMod({
                     id: mod.id,
@@ -1105,7 +1123,9 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                     installedAt: new Date().toISOString(),
                     filename: safeName
                 });
-                alert(`Installed ${mod.name} successfully!`);
+
+                await fetchBackups(mod.id);
+                alert(`Installed and applied ${mod.name} successfully!`);
             } else {
                 throw new Error('Install failed');
             }
@@ -1133,21 +1153,13 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
             );
 
             if (confirmRollback) {
-                // Perform rollback on the latest backup
-                const latestBackup = backups[0]; // Assuming sorted by date desc, or we need to sort
-                // We should probably trust the order from getModBackups which usually returns chronological or we pick the last one? 
-                // Let's assume the API returns them in a reasonable order or we pick the one with the latest timestamp. 
-                // Actually, typically we want to roll back the *last* change.
-
-                // Let's check how getModBackups returns data. 
-                // If it's not sorted, we might need to sort. 
-                // For now, let's assume index 0 or length-1. Use date to be safe if possible, or just the first one if it's the only one.
-                // Actually, rollbackLpackExtraction takes a backupId.
-
-                setIsExtracting(true); // Re-use extracting state for UI feedback
+                const latestBackup = backups[0];
+                setIsExtracting(true);
                 try {
                     if (window.electronAPI) {
-                        const rollbackResult = await window.electronAPI.rollbackLpackExtraction(gamePath || '', latestBackup.id);
+                        const rollbackResult = await (window.electronAPI.rollbackPatch 
+                            ? window.electronAPI.rollbackPatch(gamePath || '', latestBackup.id)
+                            : window.electronAPI.rollbackLpackExtraction(gamePath || '', latestBackup.id));
                         if (!rollbackResult.success) {
                             alert(`Failed to restore files: ${rollbackResult.error}\nUninstalling anyway...`);
                         } else {
@@ -1283,7 +1295,9 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
         if (!confirm('Are you sure you want to rollback to this backup? This will overwrite current extracted files.')) return;
 
         try {
-            const result = await window.electronAPI.rollbackLpackExtraction(gamePath, backupId);
+            const result = await (window.electronAPI.rollbackPatch 
+                ? window.electronAPI.rollbackPatch(gamePath, backupId) 
+                : window.electronAPI.rollbackLpackExtraction(gamePath, backupId));
             if (result.success) {
                 alert('Rollback successful!');
                 fetchBackups(modId);
@@ -1299,9 +1313,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     useEffect(() => {
         if (installedMods && gamePath) {
             installedMods.forEach(mod => {
-                if (mod.filename && mod.filename.endsWith('.lpack')) {
-                    fetchBackups(mod.id);
-                }
+                fetchBackups(mod.id);
             });
         }
     }, [installedMods, gamePath]);
@@ -1406,7 +1418,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                                     Uninstall
                                                 </Button>
                                             </div>
-                                            {mod.downloadLink.endsWith('.lpack') && modBackups[mod.id]?.length > 0 && (
+                                            {modBackups[mod.id]?.length > 0 && (
                                                 <div className="mt-2 pt-2 border-t border-[#30363d]">
                                                     <div className="text-[10px] text-[#8b949e] mb-1 font-medium uppercase tracking-wider">Backups / History</div>
                                                     <div className="flex flex-col gap-1">

@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Mod Management
     installMod: (url, installPath, filename, headers) => ipcRenderer.invoke('install-mod', { url, installPath, filename, headers }),
+    applyPatch: (gamePath, patchPath, modId) => ipcRenderer.invoke('apply-patch', { gamePath, patchPath, modId }),
+    rollbackPatch: (gamePath, backupId) => ipcRenderer.invoke('rollback-patch', { gamePath, backupId }),
     readFileContent: (path) => ipcRenderer.invoke('read-file-content', path),
     writeFileContent: (path, content) => ipcRenderer.invoke('write-file-content', { filePath: path, content }),
 

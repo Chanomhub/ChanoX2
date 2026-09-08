@@ -30,6 +30,7 @@ const GameCompatibility = require('./services/GameCompatibility.cjs');
 const ExtractorService = require('./services/ExtractorService.cjs');
 const ParallelDownloader = require('./services/ParallelDownloader.cjs');
 const DiscordService = require('./services/DiscordService.cjs');
+const PatcherService = require('./services/PatcherService.cjs');
 
 // Set app name to ensure userData path is correct
 app.name = 'ChanoX2';
@@ -764,75 +765,79 @@ ipcMain.handle('get-lpack-metadata', async (event, { filePath, key }) => {
     return { success: false, error: 'LayerPack integration is currently disabled' };
 });
 
+ipcMain.handle('apply-patch', async (event, { gamePath, patchPath, modId }) => {
+    try {
+        const result = await PatcherService.applyPatch({ gamePath, patchPath, modId });
+        return result;
+    } catch (err) {
+        console.error('[Main] Error applying patch:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('rollback-patch', async (event, { gamePath, backupId }) => {
+    try {
+        const result = await PatcherService.rollbackPatch({ gamePath, backupId });
+        return result;
+    } catch (err) {
+        console.error('[Main] Error rolling back patch:', err);
+        return { success: false, error: err.message };
+    }
+});
+
 ipcMain.handle('extract-lpack', async (event, { filePath, destPath, key, modId, gamePath }) => {
-    return { success: false, error: 'LayerPack integration is currently disabled' };
+    // If user passed a .patch.json or .patch.json.gz file to extract-lpack for compatibility
+    if (filePath && (filePath.endsWith('.patch.json.gz') || filePath.endsWith('.patch.json'))) {
+        return await PatcherService.applyPatch({ gamePath: gamePath || destPath, patchPath: filePath, modId });
+    }
+    return { success: false, error: 'LayerPack integration is deprecated in favor of .patch.json.gz' };
 });
 
 ipcMain.handle('rollback-lpack-extraction', async (event, { gamePath, backupId }) => {
     try {
-        const backupDir = path.join(gamePath, '.chanox2', 'backups', backupId);
-        const manifestPath = path.join(backupDir, 'backup-manifest.json');
+        // Try PatcherService first
+        return await PatcherService.rollbackPatch({ gamePath, backupId });
+    } catch (patchErr) {
+        // Fallback to legacy manifest if any
+        try {
+            const backupDir = path.join(gamePath, '.chanox2', 'backups', backupId);
+            const manifestPath = path.join(backupDir, 'backup-manifest.json');
 
-        if (!fs.existsSync(manifestPath)) {
-            throw new Error('Backup manifest not found');
-        }
-
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-        // If destPath was stored in manifest, use it relative to gamePath
-        const destPath = manifest.destPath ? path.join(gamePath, manifest.destPath) : gamePath;
-
-        // 1. Delete extracted files (that weren't backups)
-        for (const file of manifest.extractedFiles) {
-            const fullPath = path.join(destPath, file);
-            if (fs.existsSync(fullPath) && !manifest.backedUpFiles.includes(file)) {
-                fs.unlinkSync(fullPath);
+            if (!fs.existsSync(manifestPath)) {
+                throw new Error('Backup manifest not found');
             }
-        }
 
-        // 2. Restore backed up files
-        for (const file of manifest.backedUpFiles) {
-            const sourcePath = path.join(backupDir, file);
-            const targetPath = path.join(destPath, file);
-            if (fs.existsSync(sourcePath)) {
-                fs.copyFileSync(sourcePath, targetPath);
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+            const destPath = manifest.destPath ? path.join(gamePath, manifest.destPath) : gamePath;
+
+            for (const file of manifest.extractedFiles || []) {
+                const fullPath = path.join(destPath, file);
+                if (fs.existsSync(fullPath) && !manifest.backedUpFiles?.includes(file)) {
+                    fs.unlinkSync(fullPath);
+                }
             }
+
+            for (const file of manifest.backedUpFiles || []) {
+                const sourcePath = path.join(backupDir, file);
+                const targetPath = path.join(destPath, file);
+                if (fs.existsSync(sourcePath)) {
+                    fs.copyFileSync(sourcePath, targetPath);
+                }
+            }
+
+            fs.renameSync(manifestPath, manifestPath + '.rolledback');
+            return { success: true };
+        } catch (err) {
+            console.error(`[Main] Error rolling back:`, err);
+            return { success: false, error: err.message };
         }
-
-        // Cleanup: remove backup dir if possible
-        // (Optional: keep it but mark as rolled back?)
-        // For now, let's keep it to be safe, but we could delete it.
-        fs.renameSync(manifestPath, manifestPath + '.rolledback');
-
-        return { success: true };
-    } catch (err) {
-        console.error(`[Main] Error rolling back lpack:`, err);
-        return { success: false, error: err.message };
     }
 });
 
 ipcMain.handle('get-mod-backups', async (event, { gamePath, modId }) => {
     try {
-        const rootBackupDir = path.join(gamePath, '.chanox2', 'backups');
-        if (!fs.existsSync(rootBackupDir)) return { success: true, backups: [] };
-
-        const dirs = fs.readdirSync(rootBackupDir);
-        const backups = [];
-
-        for (const dirName of dirs) {
-            if (dirName.startsWith(`mod_${modId}_`)) {
-                const manifestPath = path.join(rootBackupDir, dirName, 'backup-manifest.json');
-                if (fs.existsSync(manifestPath)) {
-                    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-                    backups.push({
-                        id: dirName,
-                        timestamp: manifest.timestamp,
-                        fileCount: manifest.backedUpFiles.length,
-                        files: manifest.backedUpFiles
-                    });
-                }
-            }
-        }
-        return { success: true, backups: backups.sort((a, b) => b.timestamp - a.timestamp) };
+        const backups = PatcherService.getModBackups({ gamePath, modId });
+        return { success: true, backups };
     } catch (err) {
         console.error(`[Main] Error listing mod backups:`, err);
         return { success: false, error: err.message };
@@ -840,7 +845,7 @@ ipcMain.handle('get-mod-backups', async (event, { gamePath, modId }) => {
 });
 
 ipcMain.handle('read-lpack-file', async (event, { filePath, key, innerPath }) => {
-    return { success: false, error: 'LayerPack integration is currently disabled' };
+    return { success: false, error: 'LayerPack integration is deprecated' };
 });
 
 // --- Window Controls ---
@@ -2723,16 +2728,33 @@ function createUpdaterWindow() {
 
     updaterWindow.once('ready-to-show', () => {
         updaterWindow.show();
-        // In dev, don't trigger update check to avoid errors.
-        if (!isDev) {
-            setTimeout(() => autoUpdater.checkForUpdates(), 1000);
+        // Check updates only when packaged in a supported distribution (Windows or Linux AppImage)
+        const canUpdate = app.isPackaged && (process.platform === 'win32' || !!process.env.APPIMAGE);
+        if (canUpdate) {
+            setTimeout(() => {
+                try {
+                    log.info('[Updater] Packaged environment detected. Checking for updates...');
+                    autoUpdater.checkForUpdates();
+                } catch (e) {
+                    log.error('[Updater] Failed to check for updates:', e);
+                    setTimeout(launchMainApp, 1000);
+                }
+            }, 1000);
+
+            // Safety fallback: if updater check hangs or times out without starting download, continue to main app
+            setTimeout(() => {
+                if (!isUpdateInProgress && !mainWindow) {
+                    log.info('[Updater] Update check safety timeout reached. Launching main app.');
+                    launchMainApp();
+                }
+            }, 5000);
         } else {
             setTimeout(() => {
                 if (updaterWindow && !updaterWindow.isDestroyed()) {
-                    updaterWindow.webContents.send('update-status', 'Dev mode: Skipping update check. Starting ChanoX2...');
+                    updaterWindow.webContents.send('update-status', 'Starting ChanoX2...');
                 }
-                setTimeout(launchMainApp, 1500);
-            }, 1000);
+                setTimeout(launchMainApp, 600);
+            }, 400);
         }
     });
 
