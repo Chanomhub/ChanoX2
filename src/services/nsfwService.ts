@@ -21,7 +21,8 @@ async function loadNsfwjsModule(): Promise<NSFWJSModule | null> {
     nsfwjsLoadAttempted = true;
 
     try {
-        // Try to dynamically import nsfwjs
+        // Try to dynamically import nsfwjs (optional dependency)
+        // @ts-ignore - Optional dependency, resolved dynamically at runtime
         const module = await import('nsfwjs');
         nsfwjsModule = module as unknown as NSFWJSModule;
         nsfwjsAvailable = true;
