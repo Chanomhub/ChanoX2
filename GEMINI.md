@@ -24,3 +24,11 @@ On Windows, Electron's `app.setAsDefaultProtocolClient` usually handles registra
 - **Renderer Process:** Use the `useDeepLink` hook in `App.tsx` to listen for incoming links.
 
 Example link: `chanox2://article/some-article-slug`
+
+## UI & Design System Rules (Single Source of Truth)
+
+All pages and UI components in ChanoX2 must follow the unified ChanomHub brand design:
+- **Design Specifications:** Refer to [DESIGN.md](./DESIGN.md)
+- **UI Architecture & Rules:** Refer to [UI_RULES.md](./UI_RULES.md)
+- **Brand Palette:** Warm Amber/Tea (`hsl(38 92% 52%)` / `#f59e0b`) as `--primary` accent over deep velvety warm background (`bg-background`).
+- **No Arbitrary Colors:** Never hardcode Steam blue (`#66c0f4`, `#1b2838`, `#1a2a3a`) or random colors (`rose-500`). Always use semantic Tailwind tokens (`bg-background`, `bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`, `bg-primary`, `text-primary-foreground`).

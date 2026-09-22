@@ -1,0 +1,20 @@
+# ChanoX2 Architecture & UI Rules
+
+## 1. Brand & Design System Consistency (ChanomHub Standard)
+- All pages (Store/Home, Library, Downloads, Settings, ArticleDetail) and global shell components (TitleBar, MenuBar) must share the **same visual language** and **Warm Dark Amber** palette.
+- **NEVER** use old Steam blue hardcoded colors (`#66c0f4`, `#1b2838`, `#1a2a3a`, `#2d3a4f`) or arbitrary hex colors (`#0a0e14`, `#111721`).
+- **NEVER** mix conflicting accent colors across pages (e.g. `rose-500` in Home vs cyan elsewhere).
+- **ALWAYS** use semantic Tailwind tokens:
+  - Page background: `bg-background`
+  - Cards & panels: `bg-card`
+  - Secondary/muted panels: `bg-muted`
+  - Primary text: `text-foreground`
+  - Supporting text: `text-muted-foreground`
+  - Borders & dividers: `border-border`
+  - Primary interactive CTA / Active tabs: `bg-primary`, `text-primary`, `border-primary`
+  - Destructive actions: `text-destructive`, `bg-destructive`
+
+## 2. Component Guidelines
+- Use UI primitives from `@/components/ui` (`Button`, `Card`, `Dialog`, `Input`, `Badge`).
+- Use icons strictly from `lucide-react`.
+- Border radius must remain consistent: `rounded-lg` for controls/inputs, `rounded-xl` for cards/dialogs.

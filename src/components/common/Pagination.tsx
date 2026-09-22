@@ -31,12 +31,12 @@ export function Pagination({ currentPage, totalPages, onPageChange, totalResults
     if (totalPages <= 1) return null;
 
     return (
-        <div className="flex items-center justify-between bg-[#111721] border border-[#2d3a4f]/40 p-2 rounded-md">
+        <div className="flex items-center justify-between bg-card border border-border p-2 rounded-md">
             <div className="flex gap-1">
                 <button
                     disabled={currentPage === 1}
                     onClick={() => onPageChange(currentPage - 1)}
-                    className="px-3 py-1.5 rounded bg-[#161d28] hover:bg-[#202936] text-xs font-semibold text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#161d28] transition-colors"
+                    className="px-3 py-1.5 rounded bg-muted hover:bg-muted/80 text-xs font-semibold text-foreground disabled:opacity-40 disabled:hover:bg-muted transition-colors"
                 >
                     {t('store.prev')}
                 </button>
@@ -48,10 +48,10 @@ export function Pagination({ currentPage, totalPages, onPageChange, totalResults
                         className={cn(
                             "px-3 py-1.5 rounded text-xs font-semibold transition-colors",
                             p === currentPage
-                                ? "bg-rose-600 text-white"
+                                ? "bg-primary text-primary-foreground font-bold"
                                 : p === '...'
-                                    ? "text-zinc-500 cursor-default bg-transparent"
-                                    : "bg-[#161d28] hover:bg-[#202936] text-zinc-300"
+                                    ? "text-muted-foreground cursor-default bg-transparent"
+                                    : "bg-muted hover:bg-muted/80 text-foreground"
                         )}
                     >
                         {p}
@@ -60,13 +60,13 @@ export function Pagination({ currentPage, totalPages, onPageChange, totalResults
                 <button
                     disabled={currentPage === totalPages}
                     onClick={() => onPageChange(currentPage + 1)}
-                    className="px-3 py-1.5 rounded bg-[#161d28] hover:bg-[#202936] text-xs font-semibold text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#161d28] transition-colors"
+                    className="px-3 py-1.5 rounded bg-muted hover:bg-muted/80 text-xs font-semibold text-foreground disabled:opacity-40 disabled:hover:bg-muted transition-colors"
                 >
                     {t('store.next')}
                 </button>
             </div>
 
-            <span className="text-[11px] text-zinc-500 hidden sm:inline">
+            <span className="text-[11px] text-muted-foreground hidden sm:inline">
                 {t('store.pagination_info', { current: currentPage, total: totalPages, count: totalResults })}
             </span>
         </div>

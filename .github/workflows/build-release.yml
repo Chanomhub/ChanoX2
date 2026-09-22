@@ -193,18 +193,10 @@ jobs:
             done
             MAJOR_SUMMARY="${MAJOR_SUMMARY}\n---\n"
           
-          # Check if it's a Minor release (e.g., v1.3.0)
-          elif [[ "$CURRENT_TAG" =~ ^v[0-9]+\.[0-9]+\.0$ ]]; then
-            MAJOR=$(echo $CURRENT_TAG | cut -d. -f1)
-            MINOR=$(echo $CURRENT_TAG | cut -d. -f2)
-            PREV_MINOR=$((MINOR - 1))
-            FROM_TAG="${MAJOR}.${PREV_MINOR}.0"
-            echo "Detected Minor release. Base: $FROM_TAG"
-            
-          # It's a Patch release (e.g., v1.2.1)
+          # Default to previous tag in history
           else
             FROM_TAG=$(git describe --tags --abbrev=0 ${CURRENT_TAG}^ 2>/dev/null || echo "")
-            echo "Detected Patch release. Base: $FROM_TAG"
+            echo "Detected release. Base: $FROM_TAG"
           fi
           
           echo "from_tag=$FROM_TAG" >> $GITHUB_OUTPUT
@@ -213,11 +205,34 @@ jobs:
           echo -e "$MAJOR_SUMMARY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Generate Commit Log
+        id: commit_log
+        shell: bash
+        run: |
+          FROM_TAG="${{ steps.base_tag.outputs.from_tag }}"
+          if [ -n "$FROM_TAG" ] && git rev-parse "$FROM_TAG" >/dev/null 2>&1; then
+            RANGE="$FROM_TAG..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          echo "Gathering commits for range: $RANGE"
+          
+          COMMITS=$(git log "$RANGE" --pretty=format:"* %s (%h by @%an)" --no-merges)
+          
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          if [ -n "$COMMITS" ]; then
+            echo "$COMMITS" >> $GITHUB_OUTPUT
+          else
+            echo "* No additional commits" >> $GITHUB_OUTPUT
+          fi
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Build Changelog
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v5
         with:
           fromTag: ${{ steps.base_tag.outputs.from_tag }}
+          commitMode: true
           configurationJson: |
             {
               "template": "${{ steps.base_tag.outputs.major_summary }}## What's Changed in #{{FROM_TAG}} to #{{TO_TAG}}\n\n#{{CHANGELOG}}",
@@ -228,12 +243,17 @@ jobs:
                   "regex": ".*(!|BREAKING CHANGE).*"
                 },
                 {
-                  "title": "### ✨ New Features (Minor)",
+                  "title": "### ✨ New Features",
                   "labels": ["feature", "enhancement"],
                   "regex": "^(feat|feature|add).*"
                 },
                 {
-                  "title": "### 🐛 Bug Fixes (Patch)",
+                  "title": "### 🎨 UI & Design Improvements",
+                  "labels": ["ui", "style"],
+                  "regex": "^(style|ui|theme).*"
+                },
+                {
+                  "title": "### 🐛 Bug Fixes",
                   "labels": ["bug", "fix"],
                   "regex": "^(fix|patch|hotfix).*"
                 },
@@ -268,7 +288,11 @@ jobs:
             artifacts/**/*.tar.gz
             artifacts/**/*.flatpak
             artifacts/**/latest*.yml
-          body: ${{ steps.build_changelog.outputs.changelog }}
+          body: |
+            ${{ steps.build_changelog.outputs.changelog }}
+
+            ### 🔨 Commits
+            ${{ steps.commit_log.outputs.commits }}
           generate_release_notes: false
           append_body: false
           draft: false

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
     User, Settings as SettingsIcon, HardDrive, MonitorCog, Bell, Shield,
@@ -87,7 +87,7 @@ function AccountSection() {
                         {/* Avatar */}
                         <div className="relative">
                             <Avatar className="w-20 h-20 rounded-lg">
-                                <AvatarFallback className="bg-gradient-to-br from-chanox-accent to-blue-600 text-3xl font-bold text-white rounded-lg">
+                                <AvatarFallback className="bg-gradient-to-br from-chanox-accent to-amber-700 text-3xl font-bold text-white rounded-lg">
                                     {user?.username?.charAt(0).toUpperCase() || '?'}
                                 </AvatarFallback>
                             </Avatar>

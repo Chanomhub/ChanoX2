@@ -16,27 +16,27 @@ const formatFileSize = (bytes: number): string => {
 };
 
 const getFileIcon = (name: string, isDirectory: boolean) => {
-    if (isDirectory) return <Folder className="w-4 h-4 text-[#54aeff]" />;
+    if (isDirectory) return <Folder className="w-4 h-4 text-primary" />;
 
     const ext = name.split('.').pop()?.toLowerCase() || '';
 
     // Images
     if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico'].includes(ext))
-        return <FileImage className="w-4 h-4 text-[#a371f7]" />;
+        return <FileImage className="w-4 h-4 text-amber-400" />;
 
     // Audio
     if (['mp3', 'ogg', 'wav', 'flac', 'aac', 'm4a', 'wma', 'mid', 'midi'].includes(ext))
-        return <FileAudio className="w-4 h-4 text-[#f0883e]" />;
+        return <FileAudio className="w-4 h-4 text-amber-500" />;
 
     // Video
     if (['mp4', 'avi', 'mkv', 'webm', 'mov', 'wmv', 'ogv'].includes(ext))
-        return <FileVideo className="w-4 h-4 text-[#f85149]" />;
+        return <FileVideo className="w-4 h-4 text-rose-400" />;
 
     // Code / config
     if (['js', 'ts', 'json', 'xml', 'yml', 'yaml', 'ini', 'cfg', 'conf', 'toml', 'bat', 'sh', 'py', 'rb', 'lua', 'cs', 'cpp', 'h', 'java', 'html', 'css'].includes(ext))
-        return <FileCode className="w-4 h-4 text-[#3fb950]" />;
+        return <FileCode className="w-4 h-4 text-emerald-400" />;
 
-    return <File className="w-4 h-4 text-[#8b949e]" />;
+    return <File className="w-4 h-4 text-muted-foreground" />;
 };
 
 export default function GameFileBrowser({ rootPath }: GameFileBrowserProps) {
@@ -112,13 +112,13 @@ export default function GameFileBrowser({ rootPath }: GameFileBrowserProps) {
     };
 
     return (
-        <div className="bg-[#0d1117] border border-[#30363d] rounded-md overflow-hidden">
+        <div className="bg-card border border-border/60 rounded-md overflow-hidden">
             {/* Breadcrumb Header */}
-            <div className="flex items-center gap-1 px-4 py-3 bg-[#161b22] border-b border-[#30363d] text-sm overflow-x-auto">
+            <div className="flex items-center gap-1 px-4 py-3 bg-muted/40 border-b border-border/60 text-sm overflow-x-auto">
                 {!isAtRoot && (
                     <button
                         onClick={handleNavigateUp}
-                        className="p-1 rounded hover:bg-[#30363d] text-[#8b949e] hover:text-white transition-colors mr-1 flex-shrink-0"
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors mr-1 flex-shrink-0"
                         title="Go up"
                     >
                         <ArrowUp className="w-4 h-4" />
@@ -126,14 +126,14 @@ export default function GameFileBrowser({ rootPath }: GameFileBrowserProps) {
                 )}
                 {breadcrumbs.map((crumb, index) => (
                     <div key={crumb.path} className="flex items-center gap-1 flex-shrink-0">
-                        {index > 0 && <ChevronRight className="w-3 h-3 text-[#484f58]" />}
+                        {index > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
                         <button
                             onClick={() => loadDirectory(crumb.path)}
                             className={cn(
-                                "px-1 py-0.5 rounded hover:bg-[#30363d] transition-colors",
+                                "px-1 py-0.5 rounded hover:bg-muted transition-colors",
                                 index === breadcrumbs.length - 1
-                                    ? "text-white font-semibold"
-                                    : "text-[#58a6ff] hover:underline"
+                                    ? "text-foreground font-semibold"
+                                    : "text-primary hover:underline font-medium"
                             )}
                         >
                             {crumb.label}
@@ -145,35 +145,35 @@ export default function GameFileBrowser({ rootPath }: GameFileBrowserProps) {
             {/* File List */}
             {loading ? (
                 <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#8b949e]" />
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
                 </div>
             ) : error ? (
-                <div className="flex items-center justify-center py-12 text-[#f85149] text-sm">
+                <div className="flex items-center justify-center py-12 text-destructive text-sm">
                     {error}
                 </div>
             ) : entries.length === 0 ? (
-                <div className="flex items-center justify-center py-12 text-[#8b949e] text-sm">
+                <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
                     Empty directory
                 </div>
             ) : (
-                <div className="divide-y divide-[#21262d]">
+                <div className="divide-y divide-border/40">
                     {entries.map((entry) => (
                         <button
                             key={entry.path}
                             onClick={() => handleEntryClick(entry)}
-                            className="w-full flex items-center gap-3 px-4 py-2 hover:bg-[#161b22] transition-colors text-left group"
+                            className="w-full flex items-center gap-3 px-4 py-2 hover:bg-muted/40 transition-colors text-left group"
                         >
                             {getFileIcon(entry.name, entry.isDirectory)}
                             <span className={cn(
                                 "flex-1 text-sm truncate",
                                 entry.isDirectory
-                                    ? "text-[#58a6ff] group-hover:underline"
-                                    : "text-[#e6edf3]"
+                                    ? "text-primary group-hover:underline font-medium"
+                                    : "text-foreground"
                             )}>
                                 {entry.name}
                             </span>
                             {!entry.isDirectory && entry.size > 0 && (
-                                <span className="text-xs text-[#8b949e] font-mono flex-shrink-0">
+                                <span className="text-xs text-muted-foreground font-mono flex-shrink-0">
                                     {formatFileSize(entry.size)}
                                 </span>
                             )}

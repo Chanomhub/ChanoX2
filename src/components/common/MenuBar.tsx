@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import { Store, Library, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +12,7 @@ export default function MenuBar() {
     const location = useLocation();
 
     return (
-        <nav className="flex items-center gap-1 h-10 px-4 bg-[#1b2838] border-b border-chanox-border">
+        <nav className="flex items-center gap-1 h-10 px-4 bg-card border-b border-border/80">
             {menuItems.map(({ to, label, icon: Icon }) => {
                 const isActive = location.pathname === to ||
                     (to !== '/' && location.pathname.startsWith(to));
@@ -24,8 +24,8 @@ export default function MenuBar() {
                         className={cn(
                             "flex items-center gap-2 px-4 py-1.5 rounded text-sm font-medium transition-colors",
                             isActive
-                                ? "bg-chanox-accent/20 text-chanox-accent"
-                                : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                ? "bg-primary/15 text-primary font-semibold border-b-2 border-primary"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         )}
                     >
                         <Icon size={16} />

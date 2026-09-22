@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { ArticleListItem } from '@chanomhub/sdk';
 import { SafeImage } from '@/components/common/SafeImage';
 import { Monitor, Apple, Gamepad2 } from 'lucide-react';
@@ -67,10 +67,10 @@ export default function SearchResultItem({ article }: SearchResultItemProps) {
     return (
         <Link
             to={`/article/${article.slug}`}
-            className="group flex items-center gap-4 p-2 rounded hover:bg-[#395166] transition-all duration-200 border-b border-[#2a475e]/50"
+            className="group flex items-center gap-4 p-2 rounded hover:bg-muted/60 transition-all duration-200 border-b border-border/40"
         >
             {/* Thumbnail - Steam capsule style */}
-            <div className="flex-shrink-0 w-[120px] h-[45px] rounded overflow-hidden bg-zinc-800">
+            <div className="flex-shrink-0 w-[120px] h-[45px] rounded overflow-hidden bg-muted">
                 {article.coverImage || article.mainImage ? (
                     <SafeImage
                         src={article.coverImage || article.mainImage || ''}
@@ -78,8 +78,8 @@ export default function SearchResultItem({ article }: SearchResultItemProps) {
                         className="w-full h-full object-cover group-hover:brightness-110 transition-all duration-200"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-[#1b2838] to-[#2a475e]">
-                        <span className="text-zinc-600 text-[10px]">No Image</span>
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <span className="text-muted-foreground text-[10px]">No Image</span>
                     </div>
                 )}
             </div>
@@ -87,7 +87,7 @@ export default function SearchResultItem({ article }: SearchResultItemProps) {
             {/* Content */}
             <div className="flex-1 min-w-0">
                 {/* Title */}
-                <h3 className="text-[14px] font-normal text-[#c7d5e0] group-hover:text-white truncate transition-colors">
+                <h3 className="text-[14px] font-medium text-foreground group-hover:text-primary truncate transition-colors">
                     {article.title}
                 </h3>
 
@@ -109,14 +109,14 @@ export default function SearchResultItem({ article }: SearchResultItemProps) {
                         const { score, count } = getReviewData(article.favoritesCount || 0, article.viewsCount || 0);
                         return (
                             <div className="flex items-center gap-1.5 min-w-0">
-                                <div className="w-16 h-1 bg-[#0e1923] rounded-full overflow-hidden shrink-0">
+                                <div className="w-16 h-1 bg-background/80 rounded-full overflow-hidden shrink-0">
                                     <div className="h-full rounded-full"
                                         style={{
                                             width: `${score}%`,
-                                            backgroundColor: score >= 70 ? '#57cbde' : score >= 40 ? '#a0a0a0' : '#c84b4b',
+                                            backgroundColor: score >= 70 ? 'hsl(var(--primary))' : score >= 40 ? '#a0a0a0' : 'hsl(var(--destructive))',
                                         }} />
                                 </div>
-                                <span className="text-[10px] text-zinc-500 whitespace-nowrap">{score}% ({count})</span>
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">{score}% ({count})</span>
                             </div>
                         );
                     })()}

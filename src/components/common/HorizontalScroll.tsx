@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Article } from '@/types/graphql';
 import { ChevronRight } from 'lucide-react';
 import { SafeImage } from '@/components/common/SafeImage';
@@ -15,9 +15,9 @@ export default function HorizontalScroll({ title, articles }: HorizontalScrollPr
     return (
         <div className="mb-8 w-full max-w-[1200px] mx-auto px-4">
             <div className="flex justify-between items-center mb-3">
-                <h2 className="text-[#dcdedf] text-sm font-bold tracking-wider">{title}</h2>
-                <button className="text-[#dcdedf] text-xs font-bold border border-[#dcdedf] px-2 py-1 rounded-sm hover:text-white hover:border-white transition-colors flex items-center">
-                    BROWSE ALL <ChevronRight className="w-3 h-3 ml-1" />
+                <h2 className="text-foreground text-sm font-bold tracking-wider">{title}</h2>
+                <button className="text-muted-foreground text-xs font-semibold border border-border px-2.5 py-1 rounded hover:text-primary hover:border-primary/50 transition-colors flex items-center gap-1">
+                    BROWSE ALL <ChevronRight className="w-3 h-3" />
                 </button>
             </div>
 
@@ -26,7 +26,7 @@ export default function HorizontalScroll({ title, articles }: HorizontalScrollPr
                     <Link
                         key={article.id}
                         to={`/article/${article.slug}`}
-                        className="flex-shrink-0 w-[200px] bg-[#16202d] hover:bg-[#1b2838] transition-colors group cursor-pointer shadow-lg"
+                        className="flex-shrink-0 w-[200px] bg-card hover:bg-muted/80 border border-border/60 hover:border-primary/40 rounded-lg overflow-hidden transition-all duration-200 group cursor-pointer shadow-md"
                     >
                         <div className="w-full h-[120px] relative overflow-hidden">
                             {article.coverImage ? (
@@ -36,14 +36,14 @@ export default function HorizontalScroll({ title, articles }: HorizontalScrollPr
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                             ) : (
-                                <div className="w-full h-full bg-[#2a475e]" />
+                                <div className="w-full h-full bg-muted" />
                             )}
                         </div>
                         <div className="p-3">
-                            <h3 className="text-[#dcdedf] text-sm font-semibold mb-1 line-clamp-1 group-hover:text-white">{article.title}</h3>
+                            <h3 className="text-foreground text-sm font-semibold mb-1 line-clamp-1 group-hover:text-primary transition-colors">{article.title}</h3>
                             <div className="flex flex-wrap gap-1 mb-2">
                                 {(article.platforms ?? []).length > 0 && (
-                                    <span className="text-[#8b929a] text-[10px]">
+                                    <span className="text-muted-foreground text-[10px]">
                                         {article.platforms?.map(p => p.name).join(', ')}
                                     </span>
                                 )}

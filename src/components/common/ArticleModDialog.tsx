@@ -134,13 +134,13 @@ export function ArticleModDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] bg-[#1b2838] border-[#2a475e] text-[#dcdedf] p-0 overflow-hidden">
-                <DialogHeader className="p-6 border-b border-[#2a475e]">
+            <DialogContent className="sm:max-w-[600px] bg-card border-border text-foreground p-0 overflow-hidden">
+                <DialogHeader className="p-6 border-b border-border">
                     <div className="flex items-center justify-between">
-                        <DialogTitle className="text-white text-xl">Cloud Mod Browser</DialogTitle>
+                        <DialogTitle className="text-foreground text-xl font-semibold">Cloud Mod Browser</DialogTitle>
                         <button
                             onClick={handleOpenStore}
-                            className="text-[#66c0f4] hover:text-white text-xs flex items-center gap-1 transition-colors"
+                            className="text-primary hover:text-primary/80 text-xs flex items-center gap-1 transition-colors font-medium"
                         >
                             <ExternalLink className="w-3 h-3" />
                             Open on Web
@@ -148,15 +148,15 @@ export function ArticleModDialog({
                     </div>
                 </DialogHeader>
 
-                <div className="max-h-[70vh] overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-[#2a475e] scrollbar-track-transparent">
+                <div className="max-h-[70vh] overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
                     {isLoading || loadingInstalled ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <Loader2 className="w-8 h-8 animate-spin text-[#66c0f4]" />
-                            <span className="text-sm text-[#8b929a]">Fetching available mods...</span>
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                            <span className="text-sm text-muted-foreground">Fetching available mods...</span>
                         </div>
                     ) : error ? (
-                        <div className="bg-red-900/10 border border-red-500/20 rounded p-4 text-center">
-                            <p className="text-red-400 text-sm">Failed to load mods from server.</p>
+                        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 text-center">
+                            <p className="text-destructive text-sm">Failed to load mods from server.</p>
                         </div>
                     ) : mods && mods.length > 0 ? (
                         <div className="space-y-3">
@@ -167,20 +167,20 @@ export function ArticleModDialog({
                                 return (
                                     <div
                                         key={mod.id}
-                                        className="bg-[#161b22] border border-[#30363d] rounded p-4 flex items-center justify-between group hover:border-[#66c0f4] transition-colors"
+                                        className="bg-background/80 border border-border/60 rounded-md p-4 flex items-center justify-between group hover:border-primary/50 transition-colors"
                                     >
                                         <div className="min-w-0 flex-1 mr-4">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="text-[#dcdedf] font-semibold text-base truncate">
+                                                <h4 className="text-foreground font-semibold text-base truncate">
                                                     {mod.name}
                                                 </h4>
-                                                <span className="bg-[#2a475e] text-[#66c0f4] text-xs px-2 py-0.5 rounded font-mono">
+                                                <span className="bg-primary/15 border border-primary/20 text-primary text-xs px-2 py-0.5 rounded font-mono">
                                                     {mod.version}
                                                 </span>
                                             </div>
-                                            <div className="text-[#8b949e] text-xs flex items-center gap-3">
+                                            <div className="text-muted-foreground text-xs flex items-center gap-3">
                                                 {installed && (
-                                                    <span className="text-green-500 font-medium flex items-center gap-1">
+                                                    <span className="text-emerald-400 font-medium flex items-center gap-1">
                                                         <Check className="w-3 h-3" />
                                                         Installed
                                                     </span>
@@ -194,7 +194,7 @@ export function ArticleModDialog({
                                                     variant="secondary"
                                                     size="sm"
                                                     onClick={() => handleUninstall(mod.id)}
-                                                    className="bg-red-900/10 hover:bg-red-900/30 text-red-500 border border-red-500/20"
+                                                    className="bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20"
                                                 >
                                                     <Trash2 className="w-4 h-4 mr-2" />
                                                     Remove
@@ -205,7 +205,7 @@ export function ArticleModDialog({
                                                     size="sm"
                                                     onClick={() => handleInstall(mod)}
                                                     disabled={isInstalling}
-                                                    className="bg-[#238636] hover:bg-[#2ea043] text-white border-none min-w-[100px]"
+                                                    className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[100px] font-medium"
                                                 >
                                                     {isInstalling ? (
                                                         <>
@@ -226,12 +226,12 @@ export function ArticleModDialog({
                             })}
                         </div>
                     ) : (
-                        <div className="text-center py-12 bg-black/20 rounded border border-dashed border-[#2a475e]">
-                            <p className="text-[#8b929a] text-sm">No mods available for this game yet.</p>
+                        <div className="text-center py-12 bg-background/50 rounded-md border border-dashed border-border/60">
+                            <p className="text-muted-foreground text-sm">No mods available for this game yet.</p>
                             <Button
                                 variant="ghost"
                                 onClick={handleOpenStore}
-                                className="text-[#66c0f4] mt-2 h-auto p-0"
+                                className="text-primary hover:text-primary/80 mt-2 h-auto p-0 font-medium"
                             >
                                 Be the first to upload one!
                             </Button>
@@ -239,11 +239,11 @@ export function ArticleModDialog({
                     )}
                 </div>
 
-                <div className="p-4 bg-[#101214] border-t border-[#2a475e] flex justify-end">
+                <div className="p-4 bg-background/80 border-t border-border flex justify-end">
                     <Button
                         variant="ghost"
                         onClick={() => onOpenChange(false)}
-                        className="text-[#8b929a] hover:text-white hover:bg-transparent"
+                        className="text-muted-foreground hover:text-foreground"
                     >
                         Close
                     </Button>

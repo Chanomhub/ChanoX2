@@ -124,26 +124,26 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] max-h-[80vh] bg-[#1b2838] border-[#2a475e] text-[#dcdedf]">
+            <DialogContent className="sm:max-w-[700px] max-h-[80vh] bg-card border-border text-foreground">
                 <DialogHeader>
-                    <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
-                        <Download className="w-5 h-5" />
+                    <DialogTitle className="text-foreground text-lg font-bold flex items-center gap-2">
+                        <Download className="w-5 h-5 text-primary" />
                         Wine Dependencies (Winetricks)
                     </DialogTitle>
                     {winetricksVersion && (
-                        <p className="text-xs text-[#6e7681]">winetricks {winetricksVersion}</p>
+                        <p className="text-xs text-muted-foreground">winetricks {winetricksVersion}</p>
                     )}
                 </DialogHeader>
 
                 {winetricksInstalled === false ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                         <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
-                        <h3 className="text-lg font-medium text-white mb-2">Winetricks Not Found</h3>
-                        <p className="text-sm text-[#8b929a] mb-4 max-w-md">
+                        <h3 className="text-lg font-medium text-foreground mb-2">Winetricks Not Found</h3>
+                        <p className="text-sm text-muted-foreground mb-4 max-w-md">
                             Winetricks is required to install Windows dependencies.
                             Please install it using your package manager:
                         </p>
-                        <code className="bg-[#101214] px-4 py-2 rounded text-sm text-[#66c0f4]">
+                        <code className="bg-background border border-border px-4 py-2 rounded-md text-sm text-primary font-mono">
                             sudo apt install winetricks
                         </code>
                     </div>
@@ -152,12 +152,12 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
                         {/* Search and Filter */}
                         <div className="flex gap-2 mb-4">
                             <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6e7681]" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <Input
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Search packages..."
-                                    className="pl-10 bg-[#101214] border-[#2a2e36] text-[#dcdedf]"
+                                    className="pl-10 bg-background border-border text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                                 />
                             </div>
                             <div className="flex gap-1">
@@ -169,7 +169,7 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
                                         onClick={() => setCategoryFilter(cat)}
                                         className={cn(
                                             "capitalize",
-                                            categoryFilter === cat && "bg-[#66c0f4] text-black"
+                                            categoryFilter === cat ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
                                         )}
                                     >
                                         {cat}
@@ -180,14 +180,14 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
 
                         {/* Status Messages */}
                         {error && (
-                            <div className="flex items-center gap-2 p-3 rounded bg-red-500/20 border border-red-500/50 text-red-400 mb-4">
+                            <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive mb-4">
                                 <XCircle className="w-4 h-4 shrink-0" />
                                 <span className="text-sm">{error}</span>
                             </div>
                         )}
 
                         {successMessage && (
-                            <div className="flex items-center gap-2 p-3 rounded bg-green-500/20 border border-green-500/50 text-green-400 mb-4">
+                            <div className="flex items-center gap-2 p-3 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mb-4">
                                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                                 <span className="text-sm">{successMessage}</span>
                             </div>
@@ -195,23 +195,23 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
 
                         {/* Installation Progress */}
                         {installingPackage && (
-                            <div className="mb-4 p-3 rounded bg-[#101214] border border-[#2a2e36]">
+                            <div className="mb-4 p-3 rounded-md bg-background border border-border">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Loader2 className="w-4 h-4 animate-spin text-[#66c0f4]" />
-                                    <span className="text-sm text-[#dcdedf]">
+                                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                    <span className="text-sm text-foreground">
                                         Installing {installingPackage}...
                                     </span>
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={handleCancelInstall}
-                                        className="ml-auto text-red-400 hover:text-red-300"
+                                        className="ml-auto text-destructive hover:text-destructive/80"
                                     >
                                         Cancel
                                     </Button>
                                 </div>
                                 {installOutput && (
-                                    <pre className="text-xs text-[#6e7681] max-h-20 overflow-y-auto whitespace-pre-wrap">
+                                    <pre className="text-xs text-muted-foreground max-h-20 overflow-y-auto whitespace-pre-wrap font-mono">
                                         {installOutput.slice(-500)}
                                     </pre>
                                 )}
@@ -219,31 +219,31 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
                         )}
 
                         {/* Package List */}
-                        <ScrollArea className="h-[300px] w-full rounded-md border border-[#2a2e36] bg-[#101214]">
+                        <ScrollArea className="h-[300px] w-full rounded-md border border-border bg-background/50">
                             <div className="p-2 space-y-1">
                                 {filteredPackages.map((pkg) => (
                                     <div
                                         key={pkg.id}
-                                        className="flex items-center gap-3 p-3 rounded hover:bg-[#2a2e36] transition-colors"
+                                        className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors"
                                     >
-                                        <div className="p-2 rounded bg-[#1b2838] text-[#66c0f4]">
+                                        <div className="p-2 rounded-md bg-primary/10 text-primary">
                                             {getCategoryIcon(pkg.category)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-medium text-[#dcdedf]">{pkg.name}</span>
-                                                <span className="text-xs px-2 py-0.5 rounded bg-[#2a475e] text-[#8b929a]">
+                                                <span className="font-medium text-foreground">{pkg.name}</span>
+                                                <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground font-mono">
                                                     {pkg.id}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-[#6e7681] truncate">{pkg.description}</p>
+                                            <p className="text-xs text-muted-foreground truncate">{pkg.description}</p>
                                         </div>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleInstall(pkg.id)}
                                             disabled={installingPackage !== null}
-                                            className="shrink-0 text-[#66c0f4] hover:text-white hover:bg-[#2a475e]"
+                                            className="shrink-0 text-primary hover:text-primary-foreground hover:bg-primary font-medium"
                                         >
                                             {installingPackage === pkg.id ? (
                                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -258,7 +258,7 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
                                 ))}
 
                                 {filteredPackages.length === 0 && (
-                                    <div className="flex flex-col items-center justify-center py-8 text-[#6e7681]">
+                                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                                         <Package className="w-8 h-8 mb-2 opacity-50" />
                                         <span className="text-sm">No packages found</span>
                                     </div>
@@ -269,7 +269,7 @@ export function WinetricksDialog({ open, onOpenChange, winePrefix }: WinetricksD
                 )}
 
                 <DialogFooter className="gap-2 sm:gap-0">
-                    <p className="text-xs text-[#6e7681] mr-auto">
+                    <p className="text-xs text-muted-foreground mr-auto">
                         {winePrefix ? `Prefix: ${winePrefix}` : 'Using default Wine prefix (~/.wine)'}
                     </p>
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>

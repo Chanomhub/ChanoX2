@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check, Bell, Trash2, CheckCheck, Sparkles, Download } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
@@ -88,12 +88,12 @@ export default function TitleBar() {
 
     return (
         <div
-            className="flex items-center justify-between h-8 bg-[#171d25] select-none"
+            className="flex items-center justify-between h-8 bg-background border-b border-border/60 select-none"
             style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
             {/* Logo / App Title */}
             <div className="flex items-center gap-2 px-3">
-                <span className="text-sm font-bold text-chanox-accent tracking-wider">
+                <span className="text-sm font-bold text-primary tracking-wider">
                     CHANOX2
                 </span>
             </div>
@@ -129,11 +129,11 @@ export default function TitleBar() {
                 {activeDownloadCount > 0 && (
                     <button
                         onClick={() => navigate('/downloads')}
-                        className="w-10 h-full flex items-center justify-center hover:bg-white/10 transition-colors relative group"
+                        className="w-10 h-full flex items-center justify-center hover:bg-muted/50 transition-colors relative group"
                         title={`${activeDownloadCount} active download${activeDownloadCount > 1 ? 's' : ''}`}
                     >
-                        <Download size={14} className="text-chanox-accent animate-pulse" />
-                        <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center bg-chanox-accent text-[10px] font-bold text-black rounded-full">
+                        <Download size={14} className="text-primary animate-pulse" />
+                        <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center bg-primary text-[10px] font-bold text-primary-foreground rounded-full">
                             {activeDownloadCount}
                         </span>
                     </button>
@@ -144,26 +144,26 @@ export default function TitleBar() {
                     <div className="relative h-full" ref={notificationRef}>
                         <button
                             onClick={() => setNotificationOpen(!notificationOpen)}
-                            className="w-10 h-full flex items-center justify-center hover:bg-white/10 transition-colors relative"
+                            className="w-10 h-full flex items-center justify-center hover:bg-muted/50 transition-colors relative"
                             title="Notifications"
                         >
-                            <Bell size={14} className={cn("transition-colors", unreadCount > 0 ? "text-white" : "text-zinc-400")} />
+                            <Bell size={14} className={cn("transition-colors", unreadCount > 0 ? "text-foreground" : "text-muted-foreground")} />
                             {unreadCount > 0 && (
-                                <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                <span className="absolute top-1.5 right-2 w-2 h-2 bg-destructive rounded-full animate-pulse" />
                             )}
                         </button>
 
                         {/* Notification Dropdown */}
                         {notificationOpen && (
-                            <div className="absolute right-0 top-full mt-1 w-80 bg-[#1b2838] border border-chanox-border rounded-md shadow-lg z-50 flex flex-col max-h-[80vh]">
+                            <div className="absolute right-0 top-full mt-1 w-80 bg-card border border-border rounded-md shadow-xl z-50 flex flex-col max-h-[80vh]">
                                 {/* Header */}
-                                <div className="flex items-center justify-between px-3 py-2 border-b border-chanox-border bg-[#171d25]">
-                                    <h3 className="text-xs font-semibold text-white">Notifications</h3>
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/40">
+                                    <h3 className="text-xs font-semibold text-foreground">Notifications</h3>
                                     <div className="flex items-center gap-1">
                                         {unreadCount > 0 && (
-                                            <button
+                                             <button
                                                 onClick={markAllAsRead}
-                                                className="p-1 text-zinc-400 hover:text-chanox-accent hover:bg-white/5 rounded transition-colors"
+                                                className="p-1 text-muted-foreground hover:text-primary hover:bg-muted rounded transition-colors"
                                                 title="Mark all as read"
                                             >
                                                 <CheckCheck size={12} />
@@ -172,7 +172,7 @@ export default function TitleBar() {
                                         {notifications?.length > 0 && (
                                             <button
                                                 onClick={deleteAllNotifications}
-                                                className="p-1 text-zinc-400 hover:text-red-400 hover:bg-white/5 rounded transition-colors"
+                                                className="p-1 text-muted-foreground hover:text-destructive hover:bg-muted rounded transition-colors"
                                                 title="Clear all"
                                             >
                                                 <Trash2 size={12} />
@@ -184,7 +184,7 @@ export default function TitleBar() {
                                 {/* List */}
                                 <div className="overflow-y-auto flex-1 p-0">
                                     {notifications.length === 0 ? (
-                                        <div className="p-8 text-center text-zinc-500">
+                                        <div className="p-8 text-center text-muted-foreground">
                                             <p className="text-xs">No notifications</p>
                                         </div>
                                     ) : (
@@ -193,12 +193,12 @@ export default function TitleBar() {
                                                 <div
                                                     key={notif.id}
                                                     className={cn(
-                                                        "relative px-3 py-3 border-b border-chanox-border/50 hover:bg-white/5 transition-colors group flex gap-3",
-                                                        !notif.isRead && "bg-chanox-accent/5"
+                                                        "relative px-3 py-3 border-b border-border/50 hover:bg-muted/40 transition-colors group flex gap-3",
+                                                        !notif.isRead && "bg-primary/5"
                                                     )}
                                                 >
                                                     {/* Status Dot */}
-                                                    <div className={cn("mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0", !notif.isRead ? "bg-chanox-accent" : "bg-transparent")} />
+                                                    <div className={cn("mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0", !notif.isRead ? "bg-primary" : "bg-transparent")} />
 
                                                     {renderNotificationContent(notif)}
 
@@ -207,7 +207,7 @@ export default function TitleBar() {
                                                         {!notif.isRead && (
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
-                                                                className="p-1 text-zinc-400 hover:text-chanox-accent rounded"
+                                                                className="p-1 text-muted-foreground hover:text-primary rounded"
                                                                 title="Mark as read"
                                                             >
                                                                 <Check size={12} />
@@ -215,7 +215,7 @@ export default function TitleBar() {
                                                         )}
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
-                                                            className="p-1 text-zinc-400 hover:text-red-400 rounded"
+                                                            className="p-1 text-muted-foreground hover:text-destructive rounded"
                                                             title="Delete"
                                                         >
                                                             <X size={12} />
@@ -236,36 +236,36 @@ export default function TitleBar() {
                     <div className="relative h-full" ref={dropdownRef}>
                         <button
                             onClick={() => setDropdownOpen(!dropdownOpen)}
-                            className="flex items-center gap-2 h-full px-3 hover:bg-white/10 transition-colors"
+                            className="flex items-center gap-2 h-full px-3 hover:bg-muted/50 transition-colors"
                         >
                             {/* Avatar */}
-                            <div className="w-5 h-5 rounded bg-gradient-to-br from-chanox-accent to-blue-600 flex items-center justify-center">
-                                <span className="text-[10px] font-bold text-white">
+                            <div className="w-5 h-5 rounded bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center">
+                                <span className="text-[10px] font-bold text-primary-foreground">
                                     {user.username?.charAt(0).toUpperCase() || '?'}
                                 </span>
                             </div>
-                            <span className="text-xs text-zinc-300 max-w-[100px] truncate">
+                            <span className="text-xs text-foreground max-w-[100px] truncate">
                                 {user.username}
                             </span>
                             <ChevronDown size={12} className={cn(
-                                "text-zinc-400 transition-transform",
+                                "text-muted-foreground transition-transform",
                                 dropdownOpen && "rotate-180"
                             )} />
                         </button>
 
                         {/* Dropdown Menu */}
                         {dropdownOpen && (
-                            <div className="absolute right-0 top-full mt-1 w-56 bg-[#1b2838] border border-chanox-border rounded-md shadow-lg z-50 overflow-hidden">
+                            <div className="absolute right-0 top-full mt-1 w-56 bg-card border border-border rounded-md shadow-xl z-50 overflow-hidden">
                                 {/* Current User Info */}
-                                <div className="px-3 py-2 border-b border-chanox-border">
-                                    <p className="text-sm font-medium text-white truncate">{user.username}</p>
-                                    <p className="text-xs text-zinc-500 truncate">{user.email}</p>
+                                <div className="px-3 py-2 border-b border-border">
+                                    <p className="text-sm font-medium text-foreground truncate">{user.username}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                                 </div>
 
                                 {/* Accounts Section */}
                                 {accounts.length > 0 && (
-                                    <div className="border-b border-chanox-border">
-                                        <p className="px-3 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wide">
+                                    <div className="border-b border-border">
+                                        <p className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
                                             Accounts
                                         </p>
                                         <div className="max-h-32 overflow-y-auto">
@@ -276,19 +276,19 @@ export default function TitleBar() {
                                                     className={cn(
                                                         "w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors",
                                                         account.id === user.id
-                                                            ? "bg-chanox-accent/10 text-chanox-accent"
-                                                            : "text-zinc-300 hover:bg-white/5"
+                                                            ? "bg-primary/15 text-primary font-medium"
+                                                            : "text-foreground hover:bg-muted"
                                                     )}
                                                 >
                                                     {/* Mini Avatar */}
-                                                    <div className="w-5 h-5 rounded bg-gradient-to-br from-chanox-accent/80 to-blue-600/80 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-[10px] font-bold text-white">
+                                                    <div className="w-5 h-5 rounded bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-[10px] font-bold text-primary-foreground">
                                                             {account.username?.charAt(0).toUpperCase() || '?'}
                                                         </span>
                                                     </div>
                                                     <span className="truncate flex-1 text-left">{account.username}</span>
                                                     {account.id === user.id && (
-                                                        <Check size={14} className="text-chanox-accent flex-shrink-0" />
+                                                        <Check size={14} className="text-primary flex-shrink-0" />
                                                     )}
                                                 </button>
                                             ))}
@@ -296,7 +296,7 @@ export default function TitleBar() {
                                         {/* Add Account Button */}
                                         <button
                                             onClick={handleAddAccount}
-                                            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-300 transition-colors"
+                                            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                                         >
                                             <UserPlus size={14} />
                                             <span>Add Account</span>
@@ -307,14 +307,14 @@ export default function TitleBar() {
                                 {/* Menu Items */}
                                 <button
                                     onClick={handleSettings}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
                                 >
                                     <Settings size={14} />
                                     Settings
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                                 >
                                     <LogOut size={14} />
                                     Logout {user.username}
@@ -325,46 +325,46 @@ export default function TitleBar() {
                 ) : (
                     <button
                         onClick={() => navigate('/login')}
-                        className="flex items-center gap-2 h-full px-3 hover:bg-white/10 transition-colors"
+                        className="flex items-center gap-2 h-full px-3 hover:bg-muted/50 transition-colors"
                     >
-                        <User size={14} className="text-zinc-400" />
-                        <span className="text-xs text-zinc-400">Login</span>
+                        <User size={14} className="text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Login</span>
                     </button>
                 )}
 
                 {/* Settings Button (quick access) */}
                 <button
                     onClick={() => navigate('/settings')}
-                    className="w-8 h-full flex items-center justify-center hover:bg-white/10 transition-colors"
+                    className="w-8 h-full flex items-center justify-center hover:bg-muted/50 transition-colors"
                     title="Settings"
                 >
-                    <Settings size={14} className="text-zinc-400" />
+                    <Settings size={14} className="text-muted-foreground hover:text-foreground" />
                 </button>
 
                 {/* Divider */}
-                <div className="w-px h-4 bg-zinc-700 mx-1" />
+                <div className="w-px h-4 bg-border mx-1" />
 
                 {/* Window Controls */}
                 <button
                     onClick={handleMinimize}
-                    className="w-12 h-full flex items-center justify-center hover:bg-white/10 transition-colors"
+                    className="w-12 h-full flex items-center justify-center hover:bg-muted/50 transition-colors"
                     aria-label="Minimize"
                 >
-                    <Minus size={14} className="text-zinc-400" />
+                    <Minus size={14} className="text-muted-foreground hover:text-foreground" />
                 </button>
                 <button
                     onClick={handleMaximize}
-                    className="w-12 h-full flex items-center justify-center hover:bg-white/10 transition-colors"
+                    className="w-12 h-full flex items-center justify-center hover:bg-muted/50 transition-colors"
                     aria-label="Maximize"
                 >
-                    <Square size={12} className="text-zinc-400" />
+                    <Square size={12} className="text-muted-foreground hover:text-foreground" />
                 </button>
                 <button
                     onClick={handleClose}
-                    className="w-12 h-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    className="w-12 h-full flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
                     aria-label="Close"
                 >
-                    <X size={16} className="text-zinc-400" />
+                    <X size={16} className="text-muted-foreground hover:text-destructive-foreground" />
                 </button>
             </div>
         </div>

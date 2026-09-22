@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, Navigate } from 'react-router'
 import { useCallback } from 'react'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { DownloadProvider } from '@/contexts/DownloadContext'

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChevronLeft } from 'lucide-react';
 
@@ -80,7 +80,7 @@ export default function WebContainer({ url, title, onLoad, showBackButton = true
 
     return (
         <div className="flex flex-col h-full w-full bg-background overflow-hidden">
-            <div className="h-10 flex items-center justify-between px-4 bg-[#1b2838] border-b border-white/5">
+            <div className="h-10 flex items-center justify-between px-4 bg-card border-b border-border/60">
                 <div className="flex items-center gap-4">
                     {showBackButton && (
                         <button 

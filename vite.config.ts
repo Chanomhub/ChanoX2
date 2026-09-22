@@ -27,7 +27,7 @@ export default defineConfig({
                     // React core
                     'vendor-react': ['react', 'react-dom'],
                     // Routing
-                    'vendor-router': ['react-router-dom'],
+                    'vendor-router': ['react-router'],
                     // Data fetching
                     'vendor-query': ['@tanstack/react-query', 'graphql', 'graphql-request'],
 

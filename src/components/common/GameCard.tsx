@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { enUS, th } from 'date-fns/locale';
@@ -84,10 +84,10 @@ export default function GameCard({ article }: GameCardProps) {
     return (
         <Link
             to={`/article/${article.slug}`}
-            className="group flex flex-col bg-[#18202c]/80 backdrop-blur-md rounded-lg overflow-hidden border border-[#2d3a4f]/50 hover:border-chanox-accent/50 hover:shadow-[0_0_15px_rgba(102,192,244,0.15)] transition-all duration-300 h-full"
+            className="group flex flex-col bg-card/90 backdrop-blur-md rounded-lg overflow-hidden border border-border/60 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all duration-300 h-full"
         >
             {/* Card Thumbnail Container */}
-            <div className="relative aspect-[16/10] overflow-hidden bg-[#0e141c]">
+            <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                 {article.coverImage || article.mainImage ? (
                     <SafeImage
                         src={getOptimizedImageUrl(article.coverImage || article.mainImage || '', { width: 380, height: 238, fit: 'cover' })}
@@ -95,8 +95,8 @@ export default function GameCard({ article }: GameCardProps) {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1b2838] to-[#0e141c]">
-                        <span className="text-[#4f6479] text-xs font-semibold uppercase tracking-wider">{t('store.no_preview')}</span>
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-card">
+                        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{t('store.no_preview')}</span>
                     </div>
                 )}
 
@@ -119,7 +119,7 @@ export default function GameCard({ article }: GameCardProps) {
             {/* Card Body */}
             <div className="flex-1 flex flex-col p-3 gap-2">
                 {/* Title */}
-                <h3 className="text-white text-[13px] font-semibold leading-snug group-hover:text-chanox-accent transition-colors duration-200 line-clamp-2">
+                <h3 className="text-foreground text-[13px] font-semibold leading-snug group-hover:text-primary transition-colors duration-200 line-clamp-2">
                     {article.title}
                 </h3>
 
@@ -129,7 +129,7 @@ export default function GameCard({ article }: GameCardProps) {
                         {article.tags.slice(0, 3).map((tag) => (
                             <span
                                 key={tag.id}
-                                className="text-[9px] text-[#8faabb] bg-[#16202d]/50 border border-[#2d3a4f]/30 px-1.5 py-[2px] rounded-sm leading-none"
+                                className="text-[9px] text-muted-foreground bg-muted/60 border border-border/40 px-1.5 py-[2px] rounded-sm leading-none"
                             >
                                 {tag.name}
                             </span>
@@ -139,16 +139,16 @@ export default function GameCard({ article }: GameCardProps) {
 
                 {/* Excerpt / Short Description */}
                 {(article.description) && (
-                    <p className="text-[11px] text-zinc-400/80 leading-normal line-clamp-2 mt-1 min-h-[32px]">
+                    <p className="text-[11px] text-muted-foreground leading-normal line-clamp-2 mt-1 min-h-[32px]">
                         {article.description?.replace(/<[^>]*>?/gm, '')}
                     </p>
                 )}
 
                 {/* Meta details footer */}
-                <div className="mt-auto pt-2 border-t border-[#2d3a4f]/30 flex flex-wrap items-center justify-between gap-y-1.5 text-[11px] text-[#8faabb]">
+                <div className="mt-auto pt-2 border-t border-border/40 flex flex-wrap items-center justify-between gap-y-1.5 text-[11px] text-muted-foreground">
                     {/* Timeago */}
                     <div className="flex items-center gap-1">
-                        <Clock size={11} className="text-[#66c0f4]" />
+                        <Clock size={11} className="text-primary" />
                         <span>{timeAgo}</span>
                     </div>
 
@@ -156,7 +156,7 @@ export default function GameCard({ article }: GameCardProps) {
                     <div className="flex items-center gap-3.5">
                         {/* Views */}
                         <div className="flex items-center gap-1" title={`${viewsCount.toLocaleString()} views`}>
-                            <Eye size={11} className="text-[#66c0f4]" />
+                            <Eye size={11} className="text-primary" />
                             <span>
                                 {viewsCount >= 1000
                                     ? `${(viewsCount / 1000).toFixed(1)}k`
@@ -166,7 +166,7 @@ export default function GameCard({ article }: GameCardProps) {
 
                         {/* Likes */}
                         <div className="flex items-center gap-1" title={`${favoritesCount.toLocaleString()} likes`}>
-                            <Heart size={11} className="text-rose-500 fill-rose-500/25" />
+                            <Heart size={11} className="text-destructive fill-destructive/25" />
                             <span>
                                 {favoritesCount >= 1000
                                     ? `${(favoritesCount / 1000).toFixed(1)}k`

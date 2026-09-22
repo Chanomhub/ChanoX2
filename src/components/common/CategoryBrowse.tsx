@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 
 const categories = [
@@ -13,14 +13,14 @@ const categories = [
 export default function CategoryBrowse() {
     return (
         <div className="w-full max-w-[1200px] mx-auto px-4 mb-12">
-            <h2 className="text-[#dcdedf] text-sm font-bold tracking-wider mb-4 uppercase">Browse by Genre</h2>
+            <h2 className="text-foreground text-sm font-bold tracking-wider mb-4 uppercase">Browse by Genre</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {categories.map((cat) => (
                     <Link
                         key={cat.name}
                         to={`/?tag=${cat.slug}`}
                         className={cn(
-                            "relative h-24 rounded-sm overflow-hidden group transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:-translate-y-1 bg-gradient-to-br",
+                            "relative h-24 rounded-lg overflow-hidden group transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:-translate-y-1 bg-gradient-to-br",
                             cat.color
                         )}
                     >

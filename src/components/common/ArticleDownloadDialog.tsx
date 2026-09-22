@@ -60,17 +60,17 @@ export function ArticleDownloadDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px] bg-[#1b2838] border-[#2a475e] text-[#dcdedf]">
+            <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
                 <DialogHeader>
-                    <DialogTitle className="text-white">
+                    <DialogTitle className="text-foreground font-semibold">
                         {isPurchase ? 'Unlock Required' : 'Download Options'}
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-[#8b929a] uppercase">File</label>
-                        <div className="text-base font-medium text-white break-all">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">File</label>
+                        <div className="text-base font-medium text-foreground break-all">
                             {download.name || 'Unknown filename'}
                         </div>
                     </div>
@@ -81,28 +81,28 @@ export function ArticleDownloadDialog({
                             {isAlreadyInLibrary && (
                                 <Badge
                                     label="In Library"
-                                    className="bg-green-500/10 border border-green-500 text-green-500"
-                                    labelClassName="text-green-500 text-xs font-bold"
+                                    className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+                                    labelClassName="text-emerald-400 text-xs font-bold"
                                 />
                             )}
                             {isAlreadyDownloading && (
                                 <Badge
                                     label="Downloading..."
-                                    className="bg-[#66c0f4]/10 border border-[#66c0f4] text-[#66c0f4]"
-                                    labelClassName="text-[#66c0f4] text-xs font-bold"
+                                    className="bg-primary/15 border border-primary/30 text-primary"
+                                    labelClassName="text-primary text-xs font-bold"
                                 />
                             )}
                         </div>
                     )}
 
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-[#8b929a] uppercase">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                             {isPurchase ? 'Store / Purchase Link' : 
                              (download.url.includes('google.com') ? 'Google Drive' : 
                              download.url.includes('mega.nz') ? 'MEGA' : 
                              download.url.includes('mediafire.com') ? 'MediaFire' : 'Download Link')}
                         </label>
-                        <div className="text-sm text-[#dcdedf] break-all bg-[#101214] p-2 rounded border border-[#2a2e36] font-mono">
+                        <div className="text-sm text-foreground break-all bg-background p-2.5 rounded-md border border-border font-mono">
                             {download.url}
                         </div>
                     </div>
@@ -111,26 +111,26 @@ export function ArticleDownloadDialog({
                         <div className="flex">
                             <Badge
                                 label="VIP Only"
-                                className="bg-yellow-500/10 border border-yellow-500 text-yellow-500"
-                                labelClassName="text-yellow-500 text-xs font-bold"
+                                className="bg-amber-500/15 border border-amber-500/30 text-amber-400"
+                                labelClassName="text-amber-400 text-xs font-bold"
                             />
                         </div>
                     )}
 
                     {isPurchase && (
-                        <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded text-xs text-yellow-500 leading-relaxed">
+                        <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-md text-xs text-amber-400 leading-relaxed">
                             This content is locked. You need to purchase the article on the store to access the files.
                         </div>
                     )}
 
                     {isAlreadyInLibrary && !isPurchase && (
-                        <div className="bg-blue-500/10 border border-blue-500/30 p-3 rounded text-xs text-blue-400 leading-relaxed">
+                        <div className="bg-primary/10 border border-primary/25 p-3 rounded-md text-xs text-primary leading-relaxed">
                             You already have this item in your library. Downloading it again may create a duplicate.
                         </div>
                     )}
 
                     {isAlreadyDownloading && (
-                        <div className="bg-[#66c0f4]/10 border border-[#66c0f4]/30 p-3 rounded text-xs text-[#66c0f4] leading-relaxed">
+                        <div className="bg-primary/15 border border-primary/30 p-3 rounded-md text-xs text-primary leading-relaxed">
                             This file is currently being downloaded. Check the downloads page for progress.
                         </div>
                     )}
@@ -148,8 +148,12 @@ export function ArticleDownloadDialog({
                             onOpenChange(false);
                         }}
                         className={cn(
-                            "text-white shadow-none",
-                            isPurchase ? "bg-yellow-600 hover:bg-yellow-700" : (isAlreadyInLibrary ? "bg-slate-600 hover:bg-slate-700" : "bg-[#66c0f4] hover:bg-[#4192c0]")
+                            "shadow-none",
+                            isPurchase
+                                ? "bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                : (isAlreadyInLibrary
+                                    ? "bg-muted text-foreground hover:bg-muted/80"
+                                    : "bg-primary hover:bg-primary/90 text-primary-foreground font-bold")
                         )}
                     >
                         {isPurchase ? (
