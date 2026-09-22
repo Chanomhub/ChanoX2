@@ -41,13 +41,13 @@ export default {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
-                // Custom ChanoX2 colors (matching current theme)
+                // Custom ChanoX2 colors (matching ChanomHub Warm Amber theme)
                 chanox: {
-                    accent: "#66c0f4",
-                    surface: "#1b2838",
-                    background: "#1e2329",
-                    text: "#c7d5e0",
-                    border: "#3d4a5a",
+                    accent: "hsl(var(--primary))",
+                    surface: "hsl(var(--card))",
+                    background: "hsl(var(--background))",
+                    text: "hsl(var(--foreground))",
+                    border: "hsl(var(--border))",
                 },
             },
             borderRadius: {

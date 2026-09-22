@@ -42,17 +42,17 @@ function ReviewBar({ score, count }: { score?: number; count?: number }) {
                 score >= 70 ? 'Mostly Positive' :
                     score >= 40 ? 'Mixed' : 'Negative';
     const color =
-        score >= 70 ? '#57cbde' :
-            score >= 40 ? '#a0a0a0' : '#c84b4b';
+        score >= 70 ? 'hsl(var(--primary))' :
+            score >= 40 ? '#a0a0a0' : 'hsl(var(--destructive))';
     return (
         <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
-                <span className="text-[10px]" style={{ color }}>{label}</span>
+                <span className="text-[10px] font-medium" style={{ color }}>{label}</span>
                 {count != null && (
-                    <span className="text-[10px] text-[#4f6479]">{count.toLocaleString()} reviews</span>
+                    <span className="text-[10px] text-muted-foreground">{count.toLocaleString()} reviews</span>
                 )}
             </div>
-            <div className="h-1 w-full bg-[#0e1923] rounded-full overflow-hidden">
+            <div className="h-1 w-full bg-background/80 rounded-full overflow-hidden">
                 <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{ width: `${score}%`, backgroundColor: color }}
@@ -66,21 +66,21 @@ function PriceTag({ price, originalPrice, discount, isFree }: {
     price?: number; originalPrice?: number; discount?: number; isFree?: boolean;
 }) {
     if (isFree || price === 0) return (
-        <span className="text-xs font-bold text-[#66c0f4]">FREE</span>
+        <span className="text-xs font-bold text-primary">FREE</span>
     );
     if (price == null) return null;
     if (discount && originalPrice) return (
         <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold bg-[#4c6b22] text-[#a4d007] px-1.5 py-0.5 rounded leading-none">
+            <span className="text-[10px] font-bold bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.5 rounded leading-none">
                 -{discount}%
             </span>
             <div className="flex flex-col items-end leading-none gap-0.5">
-                <span className="text-[10px] text-[#626f7f] line-through">${originalPrice.toFixed(2)}</span>
-                <span className="text-sm font-bold text-[#a4d007]">${price.toFixed(2)}</span>
+                <span className="text-[10px] text-muted-foreground line-through">${originalPrice.toFixed(2)}</span>
+                <span className="text-sm font-bold text-primary">${price.toFixed(2)}</span>
             </div>
         </div>
     );
-    return <span className="text-sm font-bold text-[#dcdedf]">${price.toFixed(2)}</span>;
+    return <span className="text-sm font-bold text-foreground">${price.toFixed(2)}</span>;
 }
 
 function PlatformIcons({ platforms }: { platforms?: { name: string }[] }) {
@@ -88,10 +88,10 @@ function PlatformIcons({ platforms }: { platforms?: { name: string }[] }) {
     const names = platforms.map(p => p.name.toLowerCase());
     return (
         <div className="flex items-center gap-1">
-            {names.some(n => n.includes('win')) && <Monitor className="w-3 h-3 text-[#566168]" />}
-            {names.some(n => n.includes('mac')) && <Apple className="w-3 h-3 text-[#566168]" />}
+            {names.some(n => n.includes('win')) && <Monitor className="w-3 h-3 text-muted-foreground" />}
+            {names.some(n => n.includes('mac')) && <Apple className="w-3 h-3 text-muted-foreground" />}
             {names.some(n => n.includes('linux')) && (
-                <svg width="12" height="12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#566168]">
+                <svg width="12" height="12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted-foreground">
                     <path d="M16.2182,35.9c-3.1368,0-6.8982,1.496-7.2988,5.6766a.916.916,0,0,0,.9061,1.0025h11.97A.9.9,0,0,0,22.7,41.643C22.6175,39.8048,21.7865,35.9,16.2182,35.9Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
                     <path d="M18.0508,20.564c-1.35,1.0368-7.3687,7.51-4.3595,15.6667" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
                     <path d="M31.7818,35.9c3.1368,0,6.8982,1.496,7.2988,5.6766a.916.916,0,0,1-.9061,1.0025h-11.97A.9.9,0,0,1,25.3,41.643C25.3825,39.8048,26.2135,35.9,31.7818,35.9Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
@@ -206,26 +206,26 @@ export default function GameListSection({
         <div className="mb-12 w-full max-w-[1200px] mx-auto px-4 mt-8">
 
             {/* ── Tab bar ── */}
-            <div className="flex flex-col md:flex-row justify-between items-center border-b border-[#2a475e] bg-[#1b2838] px-2 rounded-t-sm">
+            <div className="flex flex-col md:flex-row justify-between items-center border-b border-border bg-card px-2 rounded-t-lg">
                 <div className="flex overflow-x-auto">
                     {tabs.map((tab, i) => (
                         <button key={tab} onClick={() => setActiveTab(i)}
                             className={cn('px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap',
                                 activeTab === i
-                                    ? 'text-[#dcdedf] border-b-2 border-[#1a9fff]'
-                                    : 'text-[#8b929a] hover:text-white')}>
+                                    ? 'text-foreground border-b-2 border-primary font-semibold'
+                                    : 'text-muted-foreground hover:text-foreground')}>
                             {tab}
                         </button>
                     ))}
                 </div>
                 <div className="py-2 pr-2">
                     <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6e7681]" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <input type="text" value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleSearch()}
                             placeholder="Search Store"
-                            className="bg-[#2a475e] border border-[#1b2838] text-white pl-8 pr-2 h-8 text-xs w-[200px] rounded-sm focus:outline-none focus:ring-1 focus:ring-[#66c0f4]" />
+                            className="bg-muted border border-border text-foreground placeholder-muted-foreground pl-8 pr-2 h-8 text-xs w-[200px] rounded focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                 </div>
             </div>
@@ -252,13 +252,13 @@ export default function GameListSection({
                                     setIsListHovered(false);
                                 }}
                                 className={cn(
-                                    'relative flex items-stretch border-b border-[#0d1b27] group transition-colors duration-100',
+                                    'relative flex items-stretch border-b border-border/50 group transition-colors duration-100',
                                     active
-                                        ? 'bg-[#255372]'
-                                        : idx % 2 === 0 ? 'bg-[#1b2838] hover:bg-[#1e3045]' : 'bg-[#172231] hover:bg-[#1e3045]',
+                                        ? 'bg-primary/10'
+                                        : idx % 2 === 0 ? 'bg-card hover:bg-muted/60' : 'bg-card/70 hover:bg-muted/60',
                                 )}>
 
-                                {active && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#1a9fff]" />}
+                                {active && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary" />}
 
                                 {/* Cover */}
                                 <div className="w-[184px] h-[69px] flex-shrink-0 overflow-hidden relative">
@@ -269,8 +269,8 @@ export default function GameListSection({
                                             className="w-full h-full object-cover group-hover:brightness-110 transition-all duration-200"
                                         />
                                     ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-[#2a475e] to-[#0e1923] flex items-center justify-center">
-                                            <Star className="w-6 h-6 text-[#2a475e]" />
+                                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                                            <Star className="w-6 h-6 text-muted-foreground/40" />
                                         </div>
                                     )}
                                 </div>
@@ -279,7 +279,7 @@ export default function GameListSection({
                                 <div className="flex-1 min-w-0 flex flex-col justify-center px-3 py-2 gap-1">
                                     <h3 className={cn(
                                         'text-[13px] font-semibold leading-none truncate',
-                                        active ? 'text-white' : 'text-[#c7d5e0] group-hover:text-white',
+                                        active ? 'text-primary' : 'text-foreground group-hover:text-primary',
                                     )}>
                                         {article.title}
                                     </h3>
@@ -288,7 +288,7 @@ export default function GameListSection({
                                     <div className="flex items-center gap-1 flex-wrap">
                                         {(article.tags ?? []).slice(0, 5).map(tag => (
                                             <span key={tag.id}
-                                                className="text-[9px] text-[#8faabb] bg-[#16202d] border border-[#1e3347] px-1.5 py-[2px] rounded-sm leading-none">
+                                                className="text-[9px] text-muted-foreground bg-muted border border-border/60 px-1.5 py-[2px] rounded-sm leading-none">
                                                 {tag.name}
                                             </span>
                                         ))}
@@ -298,30 +298,31 @@ export default function GameListSection({
                                     <div className="flex items-center gap-3">
                                         <PlatformIcons platforms={article.platforms ?? []} />
                                         {article.ver && (
-                                            <span className="text-[10px] text-[#4f6479] font-mono">v{article.ver}</span>
+                                            <span className="text-[10px] text-muted-foreground font-mono">v{article.ver}</span>
                                         )}
                                         {(() => {
                                             const { score, count } = getReviewData(article.favoritesCount, article.reviewCount || 0);
+                                            const reviewScore = article.reviewScore ?? score;
                                             return (
                                                 <div className="flex items-center gap-1.5">
-                                                    <div className="w-16 h-1 bg-[#0e1923] rounded-full overflow-hidden">
+                                                    <div className="w-16 h-1 bg-background/80 rounded-full overflow-hidden">
                                                         <div className="h-full rounded-full"
                                                             style={{
-                                                                width: `${article.reviewScore ?? score}%`,
-                                                                backgroundColor: (article.reviewScore ?? score) >= 70 ? '#57cbde' : (article.reviewScore ?? score) >= 40 ? '#a0a0a0' : '#c84b4b',
+                                                                width: `${reviewScore}%`,
+                                                                backgroundColor: reviewScore >= 70 ? 'hsl(var(--primary))' : reviewScore >= 40 ? '#a0a0a0' : 'hsl(var(--destructive))',
                                                             }} />
                                                     </div>
-                                                    <span className="text-[9px] text-[#566168]">{article.reviewScore ?? score}% ({count})</span>
+                                                    <span className="text-[9px] text-muted-foreground">{reviewScore}% ({count})</span>
                                                 </div>
                                             );
                                         })()}
                                         {article.discount ? (
-                                            <span className="text-[9px] font-bold bg-[#4c6b22] text-[#a4d007] px-1.5 py-0.5 rounded leading-none">
+                                            <span className="text-[9px] font-bold bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.5 rounded leading-none">
                                                 -{article.discount}%
                                             </span>
                                         ) : null}
                                         {article.releaseDate && (
-                                            <span className="text-[10px] text-[#4f6479]">{article.releaseDate}</span>
+                                            <span className="text-[10px] text-muted-foreground">{article.releaseDate}</span>
                                         )}
                                     </div>
                                 </div>
@@ -338,8 +339,8 @@ export default function GameListSection({
                                         className={cn(
                                             'flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-all',
                                             liked
-                                                ? 'text-[#e05c5c] border-[#e05c5c]/30 bg-[#e05c5c]/10'
-                                                : 'text-[#566168] border-[#2a3f55] hover:text-[#66c0f4] hover:border-[#66c0f4]/40',
+                                                ? 'text-destructive border-destructive/30 bg-destructive/10'
+                                                : 'text-muted-foreground border-border hover:text-primary hover:border-primary/40',
                                         )}>
                                         <Heart className={cn('w-2.5 h-2.5 shrink-0', liked && 'fill-current')} />
                                         {liked ? 'Wishlisted' : 'Wishlist'}
@@ -348,7 +349,7 @@ export default function GameListSection({
                             </Link>
                         );
                     }) : (
-                        <div className="py-16 text-center text-[#566168] bg-[#16202d] italic">
+                        <div className="py-16 text-center text-muted-foreground bg-card italic">
                             No games found matching "{searchQuery}"
                         </div>
                     )}
@@ -356,7 +357,7 @@ export default function GameListSection({
 
                 {/* ── Preview Panel ── */}
                 {hoveredArticle && (
-                    <div className="w-[340px] flex-shrink-0 hidden lg:flex flex-col bg-[#1b2838] border-l border-[#0d1b27]">
+                    <div className="w-[340px] flex-shrink-0 hidden lg:flex flex-col bg-card border-l border-border/60">
 
                         {/* Hero image */}
                         <div className="relative w-full h-[158px] overflow-hidden flex-shrink-0">
@@ -376,9 +377,11 @@ export default function GameListSection({
                                     className="w-full h-full object-cover"
                                 />
                             ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-[#2a475e] to-[#0e1923]" />
+                                <div className="w-full h-full bg-muted flex items-center justify-center">
+                                    <Star className="w-8 h-8 text-muted-foreground/30" />
+                                </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#1b2838] to-transparent opacity-60" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent opacity-60" />
 
                             {(hoveredArticle.images?.length ?? 0) > 1 && (
                                 <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
@@ -386,7 +389,7 @@ export default function GameListSection({
                                         <button key={i}
                                             onClick={e => { e.preventDefault(); setPreviewImageIndex(i); }}
                                             className={cn('w-1.5 h-1.5 rounded-full transition-all',
-                                                previewImageIndex === i ? 'bg-[#66c0f4] scale-110' : 'bg-white/30 hover:bg-white/60')} />
+                                                previewImageIndex === i ? 'bg-primary scale-125' : 'bg-foreground/30 hover:bg-foreground/60')} />
                                     ))}
                                 </div>
                             )}
@@ -397,11 +400,11 @@ export default function GameListSection({
 
                             {/* Title + version */}
                             <div className="flex items-start gap-2">
-                                <h3 className="text-white text-[15px] font-semibold leading-snug flex-1">
+                                <h3 className="text-foreground text-[15px] font-semibold leading-snug flex-1">
                                     {hoveredArticle.title}
                                 </h3>
                                 {hoveredArticle.ver && (
-                                    <span className="shrink-0 text-[#67c1f5] text-[9px] bg-[#67c1f5]/10 px-2 py-0.5 rounded border border-[#67c1f5]/20 mt-0.5">
+                                    <span className="shrink-0 text-primary text-[9px] bg-primary/10 px-2 py-0.5 rounded-full border border-primary/25 mt-0.5 font-medium">
                                         v{hoveredArticle.ver}
                                     </span>
                                 )}
@@ -409,14 +412,14 @@ export default function GameListSection({
 
                             {/* Excerpt */}
                             {(hoveredArticle.excerpt || hoveredArticle.description) && (
-                                <p className="text-[11px] text-[#8b929a] leading-relaxed line-clamp-3">
+                                <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-3">
                                     {hoveredArticle.excerpt || (hoveredArticle.description && hoveredArticle.description.replace(/<[^>]*>?/gm, ''))}
                                 </p>
                             )}
 
                             {/* Review bar */}
-                            <div className="bg-[#16202d] border border-[#1a2e42] rounded px-3 py-2.5">
-                                <div className="text-[10px] text-[#566168] mb-1.5 uppercase tracking-wider font-medium">
+                            <div className="bg-muted/50 border border-border/60 rounded px-3 py-2.5">
+                                <div className="text-[10px] text-muted-foreground mb-1.5 uppercase tracking-wider font-medium">
                                     User Reviews
                                 </div>
                                 {(() => {
@@ -428,21 +431,21 @@ export default function GameListSection({
                             {/* Info grid */}
                             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[11px]">
                                 {(hoveredArticle.creators ?? []).length > 0 && <>
-                                    <span className="text-[#566168]">Developer</span>
-                                    <span className="text-[#c6d4df] text-right truncate">
+                                    <span className="text-muted-foreground">Developer</span>
+                                    <span className="text-foreground/90 text-right truncate">
                                         {hoveredArticle.creators.map(c => c.name).join(', ')}
                                     </span>
                                 </>}
                                 {hoveredArticle.engine && <>
-                                    <span className="text-[#566168]">Engine</span>
-                                    <span className="text-[#c6d4df] text-right">{hoveredArticle.engine.name}</span>
+                                    <span className="text-muted-foreground">Engine</span>
+                                    <span className="text-foreground/90 text-right">{hoveredArticle.engine.name}</span>
                                 </>}
                                 {hoveredArticle.releaseDate && <>
-                                    <span className="text-[#566168]">Release</span>
-                                    <span className="text-[#c6d4df] text-right">{hoveredArticle.releaseDate}</span>
+                                    <span className="text-muted-foreground">Release</span>
+                                    <span className="text-foreground/90 text-right">{hoveredArticle.releaseDate}</span>
                                 </>}
                                 {(hoveredArticle.platforms ?? []).length > 0 && <>
-                                    <span className="text-[#566168]">Platforms</span>
+                                    <span className="text-muted-foreground">Platforms</span>
                                     <div className="flex justify-end">
                                         <PlatformIcons platforms={hoveredArticle.platforms ?? []} />
                                     </div>
@@ -454,7 +457,7 @@ export default function GameListSection({
                                 <div className="flex flex-wrap gap-1.5">
                                     {(hoveredArticle.tags ?? []).slice(0, 8).map(tag => (
                                         <span key={tag.id}
-                                            className="text-[#67c1f5] text-[9px] bg-[#67c1f5]/10 px-2 py-0.5 rounded border border-[#67c1f5]/15 leading-none">
+                                            className="text-primary text-[9px] bg-primary/10 px-2 py-0.5 rounded border border-primary/20 leading-none">
                                             {tag.name}
                                         </span>
                                     ))}
@@ -475,7 +478,7 @@ export default function GameListSection({
                                         className={cn(
                                             'flex-shrink-0 w-[66px] h-[44px] rounded-sm overflow-hidden border-2 transition-all',
                                             previewImageIndex === i
-                                                ? 'border-[#67c1f5]'
+                                                ? 'border-primary'
                                                 : 'border-transparent opacity-50 hover:opacity-80',
                                         )}>
                                         <SafeImage
@@ -490,7 +493,7 @@ export default function GameListSection({
                         )}
 
                         {/* Price + CTA — pinned to bottom */}
-                        <div className="px-4 py-3 border-t border-[#0d1b27] flex items-center justify-between gap-3 flex-shrink-0 bg-[#16202d]">
+                        <div className="px-4 py-3 border-t border-border/60 flex items-center justify-between gap-3 flex-shrink-0 bg-muted/40">
                             <PriceTag
                                 price={hoveredArticle.price}
                                 originalPrice={hoveredArticle.originalPrice}
@@ -498,7 +501,7 @@ export default function GameListSection({
                                 isFree={hoveredArticle.isFree}
                             />
                             <Link to={`/article/${hoveredArticle.slug}`}
-                                className="flex items-center gap-1.5 bg-[#4c6b22] hover:bg-[#5c7e28] text-[#a4d007] text-xs font-semibold px-4 py-2 rounded transition-colors">
+                                className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
                                 <ShoppingCart className="w-3.5 h-3.5" />
                                 View Game
                             </Link>
@@ -509,14 +512,14 @@ export default function GameListSection({
 
             {/* ── Pagination ── */}
             {(articles.length > ITEMS_PER_PAGE || hasMore) && (
-                <div className="flex justify-between items-center px-3 py-2 bg-[#16202d] border border-t-0 border-[#0d1b27] rounded-b-sm">
-                    <span className="text-[#4f6479] text-xs">
+                <div className="flex justify-between items-center px-3 py-2 bg-card border border-t-0 border-border/60 rounded-b-lg">
+                    <span className="text-muted-foreground text-xs">
                         {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, articles.length)} of {hasMore ? `${articles.length}+` : articles.length} results
                     </span>
                     <div className="flex gap-1.5">
                         <button disabled={currentPage === 1 || loadingMore}
                             onClick={() => currentPage > 1 && setCurrentPage(p => p - 1)}
-                            className="px-3 py-1 bg-[#1b2838] text-[#66c0f4] text-xs rounded border border-[#2a475e] hover:bg-[#2a475e] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1">
+                            className="px-3 py-1 bg-muted text-foreground text-xs rounded border border-border hover:bg-muted/80 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors">
                             <ChevronLeft className="w-3.5 h-3.5" /> Prev
                         </button>
                         <button
@@ -525,7 +528,7 @@ export default function GameListSection({
                                 if (currentPage < totalPages) setCurrentPage(p => p + 1);
                                 else if (hasMore && onLoadMore) onLoadMore();
                             }}
-                            className="px-3 py-1 bg-[#1b2838] text-[#66c0f4] text-xs rounded border border-[#2a475e] hover:bg-[#2a475e] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1">
+                            className="px-3 py-1 bg-muted text-foreground text-xs rounded border border-border hover:bg-muted/80 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors">
                             {loadingMore ? 'Loading…' : 'Next'} <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                     </div>

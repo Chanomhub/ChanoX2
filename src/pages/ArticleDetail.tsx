@@ -159,7 +159,7 @@ export default function ArticleDetail() {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-full min-h-[500px]">
-                <Loader2 className="w-8 h-8 animate-spin text-[#66c0f4]" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -167,9 +167,9 @@ export default function ArticleDetail() {
     if (!article) {
         return (
             <div className="flex flex-col items-center justify-center h-full min-h-[500px] gap-4">
-                <Gamepad2 className="w-16 h-16 text-[#8b929a]" />
-                <h2 className="text-xl text-[#dcdedf]">{error || 'Article not found'}</h2>
-                <Link to="/" className="text-[#66c0f4] hover:underline flex items-center gap-2">
+                <Gamepad2 className="w-16 h-16 text-muted-foreground" />
+                <h2 className="text-xl text-foreground font-semibold">{error || 'Article not found'}</h2>
+                <Link to="/" className="text-primary hover:underline flex items-center gap-2 font-medium">
                     <ArrowLeft className="w-4 h-4" /> Go Back Home
                 </Link>
             </div>
@@ -181,35 +181,35 @@ export default function ArticleDetail() {
     return (
         <div className="pb-12 max-w-[1200px] mx-auto px-4">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-xs text-[#8b929a] mb-4 mt-6">
-                <Link to="/" className="hover:text-white">All Games</Link>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4 mt-6">
+                <Link to="/" className="hover:text-foreground transition-colors">All Games</Link>
                 <ChevronRight className="w-3 h-3" />
                 {article.categories[0] && (
                     <>
-                        <span className="hover:text-white cursor-pointer">{article.categories[0].name}</span>
+                        <span className="hover:text-foreground cursor-pointer transition-colors">{article.categories[0].name}</span>
                         <ChevronRight className="w-3 h-3" />
                     </>
                 )}
-                <span className="text-[#dcdedf] font-bold">{article.title}</span>
+                <span className="text-foreground font-bold">{article.title}</span>
             </div>
 
             {/* Title */}
-            <h1 className="text-3xl font-bold text-[#dcdedf] mb-6 tracking-wide">{article.title}</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-6 tracking-wide">{article.title}</h1>
 
             {/* Main Content Area */}
             <div className="flex flex-col lg:flex-row gap-6 mb-8">
                 {/* Left Side - Gallery */}
                 <div className="lg:flex-[1.8] min-w-0 flex flex-col">
-                    <div className="relative flex-1 bg-black rounded-sm overflow-hidden mb-2 group min-h-[300px]">
+                    <div className="relative flex-1 bg-card border border-border/60 rounded-md overflow-hidden mb-2 group min-h-[300px]">
                         {currentImage ? (
                             <SafeImage
                                 src={currentImage}
                                 alt={article.title}
-                                className="w-full h-full object-contain bg-[#0f1922]"
+                                className="w-full h-full object-contain bg-background"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-[#2a475e]">
-                                <ImageIcon className="w-16 h-16 text-[#8b929a]" />
+                            <div className="w-full h-full flex items-center justify-center bg-card">
+                                <ImageIcon className="w-16 h-16 text-muted-foreground" />
                             </div>
                         )}
 
@@ -218,15 +218,15 @@ export default function ArticleDetail() {
                             <>
                                 <button
                                     onClick={() => setSelectedImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)}
-                                    className="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center bg-black/30 hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-all"
+                                    className="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center bg-background/50 hover:bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-all"
                                 >
-                                    <ChevronLeft className="w-8 h-8 text-white" />
+                                    <ChevronLeft className="w-8 h-8" />
                                 </button>
                                 <button
                                     onClick={() => setSelectedImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0)}
-                                    className="absolute right-0 top-0 bottom-0 w-12 flex items-center justify-center bg-black/30 hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-all"
+                                    className="absolute right-0 top-0 bottom-0 w-12 flex items-center justify-center bg-background/50 hover:bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-all"
                                 >
-                                    <ChevronRight className="w-8 h-8 text-white" />
+                                    <ChevronRight className="w-8 h-8" />
                                 </button>
                             </>
                         )}
@@ -234,15 +234,15 @@ export default function ArticleDetail() {
 
                     {/* Thumbnail Strip */}
                     {allImages.length > 1 && (
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#2a475e] scrollbar-track-[#1b2838]">
+                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-background">
                             {allImages.map((img, index) => (
                                 <button
                                     key={img.id}
                                     onClick={() => setSelectedImageIndex(index)}
                                     className={cn(
-                                        "flex-shrink-0 w-[160px] h-[90px] border-2 transition-all",
+                                        "flex-shrink-0 w-[160px] h-[90px] rounded border-2 transition-all overflow-hidden",
                                         selectedImageIndex === index
-                                            ? "border-[#dcdedf] opacity-100"
+                                            ? "border-primary opacity-100"
                                             : "border-transparent opacity-60 hover:opacity-100"
                                     )}
                                 >
@@ -254,61 +254,61 @@ export default function ArticleDetail() {
                 </div>
 
                 {/* Right Side - Info Panel */}
-                <div className="lg:flex-1 bg-[#1b2838] p-4 rounded-sm border border-black/20">
-                    <div className="w-full aspect-[16/9] mb-4 bg-black/20 rounded overflow-hidden">
+                <div className="lg:flex-1 bg-card p-4 rounded-md border border-border/60">
+                    <div className="w-full aspect-[16/9] mb-4 bg-muted/40 rounded overflow-hidden">
                         {article.coverImage ? (
                             <SafeImage src={article.coverImage} className="w-full h-full object-cover" alt="Cover" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                                <Gamepad2 className="w-10 h-10 text-[#8b929a]" />
+                                <Gamepad2 className="w-10 h-10 text-muted-foreground" />
                             </div>
                         )}
                     </div>
 
-                    <p className="text-[#c6d4df] text-sm leading-relaxed mb-3 line-clamp-3">
+                    <p className="text-muted-foreground text-sm leading-relaxed mb-3 line-clamp-3">
                         {article.description}
                     </p>
 
-                    <div className="space-y-1 text-xs text-[#556772] mb-4">
+                    <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
                         {article.updatedAt && (
-                            <div className="flex">
-                                <span className="w-24 flex-shrink-0 uppercase">Last Updated:</span>
-                                <span className="text-[#8f98a0]">
+                            <div className="flex justify-between">
+                                <span className="uppercase font-semibold">Last Updated:</span>
+                                <span className="text-foreground">
                                     {new Date(article.updatedAt).toLocaleDateString()}
                                 </span>
                             </div>
                         )}
                         {article.author && (
-                            <div className="flex">
-                                <span className="w-24 flex-shrink-0 uppercase">Developer:</span>
-                                <Link to={`/profile/${article.author.username || article.author.name}`} className="text-[#66c0f4] hover:text-white truncate">{article.author.name}</Link>
+                            <div className="flex justify-between">
+                                <span className="uppercase font-semibold">Developer:</span>
+                                <Link to={`/profile/${article.author.username || article.author.name}`} className="text-primary hover:underline truncate max-w-[200px]">{article.author.name}</Link>
                             </div>
                         )}
                         {article.creators.length > 0 && (
-                            <div className="flex">
-                                <span className="w-24 flex-shrink-0 uppercase">Creators:</span>
-                                <span className="text-[#66c0f4] truncate">
+                            <div className="flex justify-between">
+                                <span className="uppercase font-semibold">Creators:</span>
+                                <span className="text-foreground truncate max-w-[200px]">
                                     {article.creators.map(c => c.name).join(', ')}
                                 </span>
                             </div>
                         )}
                         {article.ver && (
-                            <div className="flex">
-                                <span className="w-24 flex-shrink-0 uppercase">Version:</span>
-                                <span className="text-[#8f98a0]">{article.ver}</span>
+                            <div className="flex justify-between">
+                                <span className="uppercase font-semibold">Version:</span>
+                                <span className="text-foreground font-mono">{article.ver}</span>
                             </div>
                         )}
                         {article.engine && (
-                            <div className="flex">
-                                <span className="w-24 flex-shrink-0 uppercase">Engine:</span>
-                                <span className="text-[#8f98a0]">{article.engine.name}</span>
+                            <div className="flex justify-between">
+                                <span className="uppercase font-semibold">Engine:</span>
+                                <span className="text-foreground">{article.engine.name}</span>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex flex-wrap gap-1 mb-4">
+                    <div className="flex flex-wrap gap-1.5 mb-4">
                         {article.categories.map(cat => (
-                            <span key={cat.id} className="bg-[#2a475e] text-[#67c1f5] text-xs px-2 py-1 rounded hover:bg-[#3d5a73] cursor-pointer">
+                            <span key={cat.id} className="bg-primary/10 text-primary border border-primary/20 text-xs px-2.5 py-1 rounded-md font-medium hover:bg-primary/20 cursor-pointer transition-colors">
                                 {cat.name}
                             </span>
                         ))}
@@ -319,16 +319,16 @@ export default function ArticleDetail() {
                             onClick={toggleFavorite}
                             disabled={favoriteLoading}
                             className={cn(
-                                "flex-1 py-2 rounded flex items-center justify-center gap-2 transition-colors text-sm font-medium",
+                                "flex-1 py-2 rounded-md flex items-center justify-center gap-2 transition-colors text-sm font-medium border",
                                 isFavorited
-                                    ? "bg-pink-600 hover:bg-pink-700 text-white"
-                                    : "bg-[#2a475e] hover:bg-[#31536f] text-[#67c1f5]"
+                                    ? "bg-primary/15 text-primary border-primary/30"
+                                    : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/60"
                             )}
                         >
                             {favoriteLoading ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
                             ) : (
-                                <Heart className={cn("w-4 h-4", isFavorited && "fill-current")} />
+                                <Heart className={cn("w-4 h-4", isFavorited && "fill-current text-primary")} />
                             )}
                             {isFavorited ? 'Favorited' : 'Favorite'}
                             {favoritesCount > 0 && (
@@ -338,7 +338,7 @@ export default function ArticleDetail() {
                         {downloads.length > 0 && (
                             <button
                                 onClick={scrollToDownloads}
-                                className="flex-[1.5] bg-gradient-to-r from-[#75b022] to-[#588a1b] hover:from-[#8ed629] hover:to-[#6aa621] text-white py-2 rounded flex items-center justify-center gap-2 transition-all shadow-lg text-sm font-bold"
+                                className="flex-[1.5] bg-primary hover:bg-primary/90 text-primary-foreground py-2 rounded-md flex items-center justify-center gap-2 transition-all shadow-md text-sm font-bold"
                             >
                                 <DownloadIcon className="w-4 h-4" /> Download
                             </button>
@@ -351,8 +351,8 @@ export default function ArticleDetail() {
             <div className="flex flex-col lg:flex-row gap-8 mt-12">
                 {/* About Section */}
                 <div className="flex-[2]">
-                    <h2 className="text-[#dcdedf] text-lg font-normal mb-1 pb-1 border-b border-[#2a475e] uppercase tracking-wider">About This Game</h2>
-                    <div className="mt-4 text-[#acb2b8] text-sm leading-6">
+                    <h2 className="text-foreground text-lg font-semibold mb-2 pb-2 border-b border-border/60 uppercase tracking-wider">About This Game</h2>
+                    <div className="mt-4 text-muted-foreground text-sm leading-6">
                         {article.body ? (
                             <HtmlRenderer html={article.body} />
                         ) : (
@@ -362,20 +362,19 @@ export default function ArticleDetail() {
                 </div>
 
                 {/* Downloads Section (Right Sidebar) */}
-
                 <div className="flex-1" ref={downloadsRef}>
-                    <div className="bg-[#1b2838] p-4 rounded-sm border border-[#2a475e] sticky top-6">
+                    <div className="bg-card p-5 rounded-md border border-border/60 sticky top-6">
 
                         {(downloads.length > 0 || officialSources.length > 0 || purchaseLinks.length > 0) ? (
                             <>
                                 {/* Purchase / Unlock Section */}
                                 {purchaseLinks.length > 0 && (
-                                    <div className="mb-6 pb-6 border-b border-[#2a475e]">
-                                        <h2 className="text-yellow-500 text-lg font-bold mb-4 flex items-center gap-2">
-                                            <Lock className="w-5 h-5" />
+                                    <div className="mb-6 pb-6 border-b border-border/60">
+                                        <h2 className="text-primary text-base font-bold mb-3 flex items-center gap-2">
+                                            <Lock className="w-4 h-4" />
                                             {language === 'th' ? 'ปลดล็อกเนื้อหา' : 'Unlock Content'}
                                         </h2>
-                                        <p className="text-[#8b929a] text-xs mb-4 leading-relaxed">
+                                        <p className="text-muted-foreground text-xs mb-4 leading-relaxed">
                                             {language === 'th' ? 'ต้องซื้อบทความเพื่อเข้าถึงไฟล์ดาวน์โหลดทั้งหมด' : 'Purchase the article to access all download files.'}
                                         </p>
                                         <div className="space-y-3">
@@ -389,7 +388,7 @@ export default function ArticleDetail() {
                                                         e.preventDefault();
                                                         ElectronDownloader.openDownloadLink(link.url, null);
                                                     }}
-                                                    className="block bg-gradient-to-r from-[#e39c28] to-[#b37617] hover:from-[#f5a623] hover:to-[#d48912] p-3 rounded border border-yellow-600/30 text-white transition-all shadow-lg group"
+                                                    className="block bg-primary hover:bg-primary/90 p-3 rounded-md border border-primary/30 text-primary-foreground transition-all shadow-md group"
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
@@ -398,7 +397,7 @@ export default function ArticleDetail() {
                                                                 {link.name && link.name !== 'Source' ? link.name : (language === 'th' ? 'ไปที่หน้าร้านค้า' : 'Go to Store')}
                                                             </span>
                                                         </div>
-                                                        <ExternalLink className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+                                                        <ExternalLink className="w-4 h-4 opacity-80 group-hover:opacity-100" />
                                                     </div>
                                                 </a>
                                             ))}
@@ -409,10 +408,10 @@ export default function ArticleDetail() {
                                 {/* Official Sources */}
                                 {officialSources.length > 0 && (
                                     <div className="mb-6">
-                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">
+                                        <h2 className="text-foreground text-base font-semibold mb-3 border-b border-border/60 pb-2">
                                             {language === 'th' ? 'ลิงก์อย่างเป็นทางการ' : 'Official Links'}
                                         </h2>
-                                        <div className="space-y-3">
+                                        <div className="space-y-2.5">
                                             {officialSources.map((source) => (
                                                 <a
                                                     key={source.id}
@@ -423,16 +422,16 @@ export default function ArticleDetail() {
                                                         e.preventDefault();
                                                         ElectronDownloader.openDownloadLink(source.url, null);
                                                     }}
-                                                    className="block bg-[#101822] p-3 rounded border border-[#2a475e] hover:border-[#66c0f4] hover:bg-[#1a2634] transition-all group"
+                                                    className="block bg-background/70 p-3 rounded-md border border-border/60 hover:border-primary/50 hover:bg-muted/50 transition-colors group"
                                                 >
                                                     <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <ExternalLink className="w-4 h-4 text-[#66c0f4]" />
-                                                            <span className="text-[#dcdedf] text-sm font-medium group-hover:text-white">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <ExternalLink className="w-4 h-4 text-primary" />
+                                                            <span className="text-foreground text-sm font-medium group-hover:text-primary transition-colors">
                                                                 {source.name}
                                                             </span>
                                                         </div>
-                                                        <ChevronRight className="w-4 h-4 text-[#4b5563] group-hover:text-white" />
+                                                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                                                     </div>
                                                 </a>
                                             ))}
@@ -443,7 +442,7 @@ export default function ArticleDetail() {
                                 {/* Downloads */}
                                 {downloads.length > 0 && (
                                     <>
-                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2">
+                                        <h2 className="text-foreground text-base font-semibold mb-3 border-b border-border/60 pb-2">
                                             {language === 'th' ? 'ไฟล์เกมที่มีให้โหลด' : 'Available Game Files'}
                                         </h2>
 
@@ -452,26 +451,26 @@ export default function ArticleDetail() {
                                                 <div
                                                     key={download.id}
                                                     className={cn(
-                                                        "bg-[#101822] p-3 rounded border transition-colors group relative overflow-hidden",
-                                                        !isUnlocked ? "opacity-60 grayscale-[0.5]" : (download.vipOnly ? "border-yellow-500/30 bg-yellow-900/10" : "border-[#2a475e] hover:border-[#66c0f4]")
+                                                        "bg-background/80 p-3 rounded-md border transition-colors group relative overflow-hidden",
+                                                        !isUnlocked ? "opacity-60 grayscale-[0.5]" : (download.vipOnly ? "border-amber-500/40 bg-amber-500/5" : "border-border/60 hover:border-primary/50")
                                                     )}
                                                 >
-                                                    <div className="flex items-start justify-between gap-3 mb-2">
+                                                    <div className="flex items-start justify-between gap-3 mb-2.5">
                                                         <div className="min-w-0">
                                                             <div className="flex items-center gap-2">
                                                                 {!isUnlocked ? (
-                                                                    <Lock className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                                                                    <Lock className="w-4 h-4 text-amber-500 flex-shrink-0" />
                                                                 ) : download.vipOnly ? (
-                                                                    <Gem className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                                                                    <Gem className="w-4 h-4 text-amber-500 flex-shrink-0" />
                                                                 ) : (
-                                                                    <CloudDownload className="w-4 h-4 text-[#66c0f4] flex-shrink-0" />
+                                                                    <CloudDownload className="w-4 h-4 text-primary flex-shrink-0" />
                                                                 )}
-                                                                <h3 className="text-[#dcdedf] font-medium text-sm truncate group-hover:text-white">
+                                                                <h3 className="text-foreground font-medium text-sm truncate group-hover:text-primary transition-colors">
                                                                     {(!download.name || download.name === 'Source') ? (language === 'th' ? 'ไฟล์หลัก' : 'Game Files') : download.name}
                                                                 </h3>
                                                             </div>
                                                             {download.vipOnly && (
-                                                                <span className="text-[10px] text-yellow-500 font-bold ml-6 uppercase">VIP Only</span>
+                                                                <span className="text-[10px] text-amber-400 font-bold ml-6 uppercase tracking-wider">VIP Only</span>
                                                             )}
                                                         </div>
                                                     </div>
@@ -479,12 +478,12 @@ export default function ArticleDetail() {
                                                     {isUnlocked ? (
                                                         <button
                                                             onClick={() => setSelectedDownload(download)}
-                                                            className="w-full bg-[#2a475e] hover:bg-[#66c0f4] hover:text-white text-[#66c0f4] text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
+                                                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold py-2 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm"
                                                         >
-                                                            <DownloadIcon className="w-3 h-3" /> DOWNLOAD
+                                                            <DownloadIcon className="w-3.5 h-3.5" /> DOWNLOAD
                                                         </button>
                                                     ) : (
-                                                        <div className="w-full bg-black/40 text-[#8b929a] text-[10px] font-bold py-2 rounded flex items-center justify-center gap-2 uppercase tracking-tighter">
+                                                        <div className="w-full bg-muted/40 text-muted-foreground text-[10px] font-bold py-2 rounded-md flex items-center justify-center gap-2 uppercase tracking-wider border border-border/40">
                                                             Purchase Required to Access
                                                         </div>
                                                     )}
@@ -495,26 +494,26 @@ export default function ArticleDetail() {
                                 )}
                             </>
                         ) : (
-                            <div className="text-center py-6 text-[#8b929a] text-sm italic">
+                            <div className="text-center py-6 text-muted-foreground text-sm italic">
                                 {language === 'th' ? 'ยังไม่มีไฟล์ให้ดาวน์โหลด' : 'No downloads available yet.'}
                             </div>
                         )}
 
                         {/* System Requirements Placeholder */}
-                        <div className="mt-6 pt-6 border-t border-[#2a475e]">
-                            <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-3">System Requirements</h3>
-                            <div className="space-y-1 text-xs">
+                        <div className="mt-6 pt-6 border-t border-border/60">
+                            <h3 className="text-muted-foreground text-xs font-bold uppercase mb-3 tracking-wider">System Requirements</h3>
+                            <div className="space-y-1.5 text-xs">
                                 <div className="flex justify-between">
-                                    <span className="text-[#61686d]">OS:</span>
-                                    <span className="text-[#b8b6b4]">{article.platforms.map(p => p.name).join(' / ') || 'Windows 10'}</span>
+                                    <span className="text-muted-foreground">OS:</span>
+                                    <span className="text-foreground">{article.platforms.map(p => p.name).join(' / ') || 'Windows 10'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-[#61686d]">Memory:</span>
-                                    <span className="text-[#b8b6b4]">4 GB RAM</span>
+                                    <span className="text-muted-foreground">Memory:</span>
+                                    <span className="text-foreground">4 GB RAM</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-[#61686d]">Storage:</span>
-                                    <span className="text-[#b8b6b4]">Varies</span>
+                                    <span className="text-muted-foreground">Storage:</span>
+                                    <span className="text-foreground">Varies</span>
                                 </div>
                             </div>
                         </div>

@@ -39,13 +39,13 @@ function CollapsibleSection({ title, children, defaultOpen = false }: Collapsibl
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
-        <div className="border-b border-[#2d3a4f]/40">
+        <div className="border-b border-border/60">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between py-2.5 px-3 text-[11px] font-bold tracking-wider text-zinc-400 hover:text-white uppercase transition-colors"
+                className="w-full flex items-center justify-between py-2.5 px-3 text-[11px] font-bold tracking-wider text-muted-foreground hover:text-foreground uppercase transition-colors"
             >
                 <span>{title}</span>
-                {isOpen ? <ChevronUp size={12} className="text-[#66c0f4]" /> : <ChevronDown size={12} className="text-zinc-500" />}
+                {isOpen ? <ChevronUp size={12} className="text-primary" /> : <ChevronDown size={12} className="text-muted-foreground" />}
             </button>
             {isOpen && <div className="pb-3.5 px-3">{children}</div>}
         </div>
@@ -65,11 +65,11 @@ function CheckboxItem({ label, checked, onChange }: CheckboxItemProps) {
                 type="checkbox"
                 checked={checked}
                 onChange={(e) => onChange(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-[#2d3a4f] bg-[#0e141c] text-[#66c0f4] focus:ring-[#66c0f4] focus:ring-offset-0 transition-colors"
+                className="w-3.5 h-3.5 rounded border-border bg-muted/60 text-primary focus:ring-primary focus:ring-offset-0 transition-colors"
             />
             <span className={cn(
                 "text-[12px] transition-colors truncate flex-1",
-                checked ? "text-[#66c0f4] font-medium" : "text-zinc-400 group-hover:text-zinc-200"
+                checked ? "text-primary font-medium" : "text-muted-foreground group-hover:text-foreground"
             )}>
                 {label}
             </span>
@@ -140,17 +140,17 @@ export default function SearchFilters({
     };
 
     return (
-        <div className="w-[280px] h-full flex flex-col bg-[#111721] border-l border-[#2d3a4f]/50">
+        <div className="w-[280px] h-full flex flex-col bg-card border-l border-border/60">
             {/* Filter Panel Header */}
-            <div className="p-3 border-b border-[#2d3a4f]/50 bg-[#161d28] flex items-center justify-between">
+            <div className="p-3 border-b border-border/60 bg-muted/40 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <SlidersHorizontal size={14} className="text-[#66c0f4]" />
-                    <span className="text-xs font-bold text-white tracking-wider uppercase">{t('store.filters')}</span>
+                    <SlidersHorizontal size={14} className="text-primary" />
+                    <span className="text-xs font-bold text-foreground tracking-wider uppercase">{t('store.filters')}</span>
                 </div>
                 {hasActiveFilters && (
                     <button
                         onClick={clearAllFilters}
-                        className="flex items-center gap-1 text-[10px] text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-2 py-1 rounded transition-colors"
+                        className="flex items-center gap-1 text-[10px] text-destructive hover:text-destructive/80 bg-destructive/10 hover:bg-destructive/20 px-2 py-1 rounded transition-colors"
                     >
                         <RefreshCw size={10} className="animate-spin-slow" />
                         <span>{t('store.reset')}</span>
@@ -159,11 +159,11 @@ export default function SearchFilters({
             </div>
 
             {/* Results count indicator */}
-            <div className="px-3.5 py-2.5 bg-[#0e141c]/50 border-b border-[#2d3a4f]/30">
-                <p className="text-[11px] text-zinc-500">
+            <div className="px-3.5 py-2.5 bg-muted/20 border-b border-border/40">
+                <p className="text-[11px] text-muted-foreground">
                     {t('store.showing_results', { count: resultsCount })}
                     {excludedCount > 0 && (
-                        <span className="text-rose-400/80 font-medium"> ({excludedCount} {t('store.excluded', { defaultValue: 'excluded' })})</span>
+                        <span className="text-destructive font-medium"> ({excludedCount} {t('store.excluded', { defaultValue: 'excluded' })})</span>
                     )}
                 </p>
             </div>
@@ -171,8 +171,8 @@ export default function SearchFilters({
             <div className="flex-1 overflow-y-auto custom-scrollbar">
 
                 {availableCategories.length > 0 && (
-                    <div className="p-3 border-b border-[#2d3a4f]/40">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-2">
+                    <div className="p-3 border-b border-border/60">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">
                             {t('store.category')}
                         </label>
                         <div className="grid grid-cols-5 gap-1.5">
@@ -186,8 +186,8 @@ export default function SearchFilters({
                                         className={cn(
                                             "flex flex-col items-center justify-center p-2 rounded border aspect-square transition-all",
                                             active
-                                                ? "bg-rose-500/15 border-rose-500/50 text-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.15)]"
-                                                : "bg-[#161d28] border-[#2d3a4f]/40 text-zinc-400 hover:border-[#66c0f4]/40 hover:text-white"
+                                                ? "bg-primary/15 border-primary/50 text-primary shadow-sm"
+                                                : "bg-muted/50 border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
                                         )}
                                     >
                                         {getCategoryIcon(category.name)}
@@ -198,9 +198,9 @@ export default function SearchFilters({
                     </div>
                 )}
 
-                {/* SORTING ICON ROW (F95Zone sorting panel style) */}
-                <div className="p-3 border-b border-[#2d3a4f]/40">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-2">
+                {/* SORTING ICON ROW */}
+                <div className="p-3 border-b border-border/60">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">
                         {t('store.sorting')}
                     </label>
                     <div className="grid grid-cols-3 gap-1.5">
@@ -211,8 +211,8 @@ export default function SearchFilters({
                             className={cn(
                                 "flex flex-col items-center justify-center p-2 rounded border transition-all text-xs gap-1",
                                 filters.sortBy === 'date'
-                                    ? "bg-[#66c0f4]/15 border-[#66c0f4]/50 text-[#66c0f4] shadow-[0_0_8px_rgba(102,192,244,0.15)]"
-                                    : "bg-[#161d28] border-[#2d3a4f]/40 text-zinc-400 hover:border-[#66c0f4]/40 hover:text-white"
+                                    ? "bg-primary/15 border-primary/50 text-primary shadow-sm"
+                                    : "bg-muted/50 border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
                             )}
                         >
                             <Clock size={15} />
@@ -225,8 +225,8 @@ export default function SearchFilters({
                             className={cn(
                                 "flex flex-col items-center justify-center p-2 rounded border transition-all text-xs gap-1",
                                 filters.sortBy === 'popularity'
-                                    ? "bg-[#66c0f4]/15 border-[#66c0f4]/50 text-[#66c0f4] shadow-[0_0_8px_rgba(102,192,244,0.15)]"
-                                    : "bg-[#161d28] border-[#2d3a4f]/40 text-zinc-400 hover:border-[#66c0f4]/40 hover:text-white"
+                                    ? "bg-primary/15 border-primary/50 text-primary shadow-sm"
+                                    : "bg-muted/50 border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
                             )}
                         >
                             <ThumbsUp size={14} />
@@ -239,8 +239,8 @@ export default function SearchFilters({
                             className={cn(
                                 "flex flex-col items-center justify-center p-2 rounded border transition-all text-xs gap-1",
                                 filters.sortBy === 'title'
-                                    ? "bg-[#66c0f4]/15 border-[#66c0f4]/50 text-[#66c0f4] shadow-[0_0_8px_rgba(102,192,244,0.15)]"
-                                    : "bg-[#161d28] border-[#2d3a4f]/40 text-zinc-400 hover:border-[#66c0f4]/40 hover:text-white"
+                                    ? "bg-primary/15 border-primary/50 text-primary shadow-sm"
+                                    : "bg-muted/50 border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
                             )}
                         >
                             <ArrowUpDown size={14} />
@@ -257,7 +257,7 @@ export default function SearchFilters({
                                 placeholder={t('store.search_tags')}
                                 value={tagSearchQuery}
                                 onChange={(e) => setTagSearchQuery(e.target.value)}
-                                className="w-full bg-[#0e141c] border border-[#2d3a4f]/60 rounded-md px-2.5 py-1.5 text-[11px] text-zinc-200 focus:outline-none focus:border-[#66c0f4] placeholder:text-zinc-600 transition-colors"
+                                className="w-full bg-muted/60 border border-border rounded-md px-2.5 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
                             />
                         </div>
                         <div className="space-y-0.5 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
@@ -285,11 +285,11 @@ export default function SearchFilters({
                                         type="checkbox"
                                         checked={filters.platforms.includes(platform.id)}
                                         onChange={() => togglePlatform(platform.id)}
-                                        className="w-3.5 h-3.5 rounded border-[#2d3a4f] bg-[#0e141c] text-[#66c0f4] focus:ring-[#66c0f4] focus:ring-offset-0 transition-colors"
+                                        className="w-3.5 h-3.5 rounded border-border bg-muted/60 text-primary focus:ring-primary focus:ring-offset-0 transition-colors"
                                     />
                                     <span className={cn(
                                         "flex items-center gap-1.5 text-[12px] transition-colors truncate flex-1",
-                                        filters.platforms.includes(platform.id) ? "text-[#66c0f4] font-medium" : "text-zinc-400 group-hover:text-zinc-200"
+                                        filters.platforms.includes(platform.id) ? "text-primary font-medium" : "text-muted-foreground group-hover:text-foreground"
                                     )}>
                                         {getPlatformIcon(platform.name)}
                                         {platform.name}

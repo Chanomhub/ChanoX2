@@ -476,12 +476,12 @@ export default function Search() {
         };
 
         return (
-            <div className="flex items-center justify-between bg-[#111721] border border-[#2d3a4f]/40 p-2 rounded-md mb-4 mt-2">
+            <div className="flex items-center justify-between bg-card border border-border p-2 rounded-md mb-4 mt-2">
                 <div className="flex gap-1">
                     <button
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(currentPage - 1)}
-                        className="px-3 py-1.5 rounded bg-[#161d28] hover:bg-[#202936] text-xs font-semibold text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#161d28] transition-colors"
+                        className="px-3 py-1.5 rounded bg-muted hover:bg-muted/80 text-xs font-semibold text-foreground disabled:opacity-40 disabled:hover:bg-muted transition-colors"
                     >
                         &lt; Prev
                     </button>
@@ -493,10 +493,10 @@ export default function Search() {
                             className={cn(
                                 "px-3 py-1.5 rounded text-xs font-semibold transition-colors",
                                 p === currentPage
-                                    ? "bg-rose-600 text-white"
+                                    ? "bg-primary text-primary-foreground font-bold"
                                     : p === '...'
-                                        ? "text-zinc-500 cursor-default bg-transparent"
-                                        : "bg-[#161d28] hover:bg-[#202936] text-zinc-300"
+                                        ? "text-muted-foreground cursor-default bg-transparent"
+                                        : "bg-muted hover:bg-muted/80 text-foreground"
                             )}
                         >
                             {p}
@@ -505,13 +505,13 @@ export default function Search() {
                     <button
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage(currentPage + 1)}
-                        className="px-3 py-1.5 rounded bg-[#161d28] hover:bg-[#202936] text-xs font-semibold text-zinc-300 disabled:opacity-40 disabled:hover:bg-[#161d28] transition-colors"
+                        className="px-3 py-1.5 rounded bg-muted hover:bg-muted/80 text-xs font-semibold text-foreground disabled:opacity-40 disabled:hover:bg-muted transition-colors"
                     >
                         Next &gt;
                     </button>
                 </div>
 
-                <span className="text-[11px] text-zinc-500 hidden sm:inline">
+                <span className="text-[11px] text-muted-foreground hidden sm:inline">
                     Page {currentPage} of {totalPages} ({articles.length} titles)
                 </span>
             </div>
@@ -519,24 +519,24 @@ export default function Search() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#0a0e14]">
+        <div className="flex flex-col h-full bg-background">
             {/* Header */}
-            <div className="bg-gradient-to-b from-[#111721] to-[#0a0e14] border-b border-[#2d3a4f]/30 py-4 px-6">
+            <div className="bg-card/40 border-b border-border/60 py-4 px-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-[15px] font-bold text-white tracking-wider uppercase">
-                        Downloads Catalog
+                    <h1 className="text-[15px] font-bold text-foreground tracking-wider uppercase">
+                        Store / Downloads Catalog
                     </h1>
 
                     <div className="flex items-center gap-3">
                         {/* Layout Toggle Buttons */}
-                        <div className="flex items-center gap-1.5 bg-[#161d28] border border-[#2d3a4f]/40 p-1 rounded-md">
+                        <div className="flex items-center gap-1.5 bg-muted/50 border border-border p-1 rounded-md">
                             <button
                                 onClick={() => handleSetViewMode('grid')}
                                 className={cn(
                                     "p-1.5 rounded transition-all",
                                     viewMode === 'grid'
-                                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                                        : "text-zinc-500 hover:text-zinc-300"
+                                        ? "bg-primary/20 text-primary border border-primary/40 font-semibold"
+                                        : "text-muted-foreground hover:text-foreground"
                                 )}
                                 title="Grid View (F95Zone)"
                             >
@@ -547,8 +547,8 @@ export default function Search() {
                                 className={cn(
                                     "p-1.5 rounded transition-all",
                                     viewMode === 'list'
-                                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                                        : "text-zinc-500 hover:text-zinc-300"
+                                        ? "bg-primary/20 text-primary border border-primary/40 font-semibold"
+                                        : "text-muted-foreground hover:text-foreground"
                                 )}
                                 title="List View (Steam)"
                             >
@@ -559,28 +559,28 @@ export default function Search() {
                         {/* Mobile filter toggle */}
                         <button
                             onClick={() => setShowMobileFilters(!showMobileFilters)}
-                            className="lg:hidden flex items-center gap-2 text-[#66c0f4] hover:text-white transition-colors"
+                            className="lg:hidden flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
                         >
                             <Settings2 size={18} />
-                            <span className="text-sm">Filters</span>
+                            <span className="text-sm font-medium">Filters</span>
                         </button>
                     </div>
                 </div>
 
-                {/* Search Input - Sleek F95 style */}
+                {/* Search Input */}
                 <div className="flex items-center gap-3">
                     <div className="relative flex-1 max-w-md">
                         <input
                             type="text"
-                            placeholder="Enter keywords or tag..."
+                            placeholder="Search games, engines, platforms, or tags..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-3.5 pr-10 py-2 bg-[#111721] border border-[#2d3a4f]/50 rounded-md text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-rose-500/50 focus:border-rose-500/50 text-[13px] transition-all"
+                            className="w-full pl-3.5 pr-10 py-2 bg-muted/60 border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-[13px] transition-all"
                         />
                         {searchQuery && (
                             <button
                                 onClick={clearSearch}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             >
                                 <X size={14} />
                             </button>
@@ -588,7 +588,7 @@ export default function Search() {
                     </div>
                     <button
                         onClick={() => searchArticles()}
-                        className="px-4 py-2 bg-[#161d28] hover:bg-rose-600 hover:text-white text-zinc-300 border border-[#2d3a4f]/50 hover:border-rose-500 text-[13px] rounded-md transition-all flex items-center gap-2"
+                        className="px-4 py-2 bg-muted hover:bg-primary hover:text-primary-foreground text-foreground border border-border hover:border-primary text-[13px] font-medium rounded-md transition-all flex items-center gap-2"
                     >
                         <SearchIcon size={14} />
                         Search
@@ -599,19 +599,19 @@ export default function Search() {
             {/* Main content area */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Results list */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0a0e14]">
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-background">
                     <div className="p-4 max-w-[1400px] mx-auto">
                         {/* Notice Alert Banner */}
                         {showNotice && (
-                            <div className="relative flex gap-3 bg-rose-500/10 border border-rose-500/25 rounded-lg p-3.5 mb-4 text-xs text-rose-200">
-                                <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
+                            <div className="relative flex gap-3 bg-primary/10 border border-primary/25 rounded-lg p-3.5 mb-4 text-xs text-foreground">
+                                <AlertCircle size={15} className="text-primary shrink-0 mt-0.5" />
                                 <div className="flex-1 pr-6 leading-relaxed">
-                                    <p className="font-bold text-white mb-0.5 uppercase tracking-wider text-[10px]">Community Notice</p>
-                                    Welcome to ChanoX2 downloads index. Only official and verified game files are listed here. We have optimized database queries for faster caching. If you encounter any rendering issues, please report them in Settings.
+                                    <p className="font-bold text-foreground mb-0.5 uppercase tracking-wider text-[10px]">Community Notice</p>
+                                    <span className="text-muted-foreground">Welcome to ChanoX2 downloads index. Only official and verified game files are listed here. We have optimized database queries for faster caching. If you encounter any rendering issues, please report them in Settings.</span>
                                 </div>
                                 <button
                                     onClick={() => setShowNotice(false)}
-                                    className="absolute top-3 right-3 text-rose-400 hover:text-white transition-colors"
+                                    className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
                                     title="Dismiss notice"
                                 >
                                     <X size={14} />
@@ -621,13 +621,13 @@ export default function Search() {
 
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-80">
-                                <Loader2 className="w-9 h-9 animate-spin text-[#66c0f4] mb-4" />
-                                <p className="text-zinc-500 text-sm font-semibold tracking-wider uppercase">Loading database...</p>
+                                <Loader2 className="w-9 h-9 animate-spin text-primary mb-4" />
+                                <p className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">Loading database...</p>
                             </div>
                         ) : articles.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-80 text-center">
-                                <p className="text-zinc-400 text-base font-semibold">No titles found</p>
-                                <p className="text-zinc-600 text-sm mt-1">
+                                <p className="text-muted-foreground text-base font-semibold">No titles found</p>
+                                <p className="text-muted-foreground/70 text-sm mt-1">
                                     Try adjusting your search queries or filter categories
                                 </p>
                             </div>
@@ -644,7 +644,7 @@ export default function Search() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="space-y-0.5 bg-[#111721] rounded-lg border border-[#2d3a4f]/25 divide-y divide-[#2d3a4f]/15 overflow-hidden">
+                                    <div className="space-y-0.5 bg-card rounded-lg border border-border/60 divide-y divide-border/40 overflow-hidden">
                                         {paginatedArticles.map((article) => (
                                             <SearchResultItem key={article.id} article={article} />
                                         ))}
@@ -675,12 +675,12 @@ export default function Search() {
                 {/* Filter sidebar - Mobile overlay */}
                 {showMobileFilters && (
                     <div className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
-                        <div className="absolute right-0 top-0 bottom-0 w-[300px] bg-[#111721] shadow-2xl flex flex-col">
-                            <div className="flex items-center justify-between p-3.5 border-b border-[#2d3a4f]/50 bg-[#161d28]">
-                                <span className="text-white font-bold tracking-wider uppercase text-xs">Filters</span>
+                        <div className="absolute right-0 top-0 bottom-0 w-[300px] bg-card border-l border-border shadow-2xl flex flex-col">
+                            <div className="flex items-center justify-between p-3.5 border-b border-border bg-muted/40">
+                                <span className="text-foreground font-bold tracking-wider uppercase text-xs">Filters</span>
                                 <button
                                     onClick={() => setShowMobileFilters(false)}
-                                    className="text-zinc-400 hover:text-white"
+                                    className="text-muted-foreground hover:text-foreground"
                                 >
                                     <X size={18} />
                                 </button>
@@ -702,11 +702,11 @@ export default function Search() {
 
             {/* Sequential Code Confirmation Dialog */}
             <Dialog open={showCodeDialog} onOpenChange={setShowCodeDialog}>
-                <DialogContent className="sm:max-w-md bg-[#111721] border-[#2d3a4f]/50 text-zinc-300">
+                <DialogContent className="sm:max-w-md bg-card border border-border text-foreground">
                     <DialogHeader>
-                        <DialogTitle className="text-white">Advanced Search Detected</DialogTitle>
-                        <DialogDescription className="text-zinc-500">
-                            We detected a sequential code: <span className="text-[#66c0f4] font-mono font-bold">{detectedCode}</span>.
+                        <DialogTitle className="text-foreground">Advanced Search Detected</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                            We detected a sequential code: <span className="text-primary font-mono font-bold">{detectedCode}</span>.
                             <br />
                             Do you want to use the Advanced Search for this specific code?
                         </DialogDescription>
@@ -715,21 +715,21 @@ export default function Search() {
                         <Button
                             variant="primary"
                             onClick={confirmCodeSearch}
-                            className="w-full sm:w-auto bg-[#66c0f4] hover:bg-[#5ab0e4] text-[#0a0e14]"
+                            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                         >
                             Use Advanced Search
                         </Button>
                         <Button
                             variant="secondary"
                             onClick={ignoreCodeSearch}
-                            className="w-full sm:w-auto bg-zinc-800 text-zinc-200 border-zinc-700 hover:bg-zinc-700"
+                            className="w-full sm:w-auto bg-muted text-foreground border border-border hover:bg-muted/80"
                         >
                             Search Normally
                         </Button>
                         <Button
                             variant="ghost"
                             onClick={() => setShowCodeDialog(false)}
-                            className="w-full sm:w-auto text-zinc-500 hover:text-zinc-300"
+                            className="w-full sm:w-auto text-muted-foreground hover:text-foreground"
                         >
                             Cancel
                         </Button>

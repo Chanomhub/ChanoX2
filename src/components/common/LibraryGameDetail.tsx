@@ -428,13 +428,13 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#1b2838] overflow-y-auto scrollbar-thin scrollbar-thumb-[#2a475e] scrollbar-track-[#1b2838]">
+        <div className="flex flex-col h-full bg-background overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-background">
             {/* Back Button */}
             <button
                 onClick={onBack}
-                className="absolute top-4 left-4 z-10 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                className="absolute top-4 left-4 z-10 p-2 bg-background/80 border border-border/60 rounded-full hover:bg-muted text-foreground transition-colors"
             >
-                <ArrowLeft className="w-5 h-5 text-white" />
+                <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
 
             {/* Hero Section */}
@@ -446,34 +446,35 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         alt={libraryItem.title}
                     />
                 ) : (
-                    <div className="w-full h-full bg-[#1b2838]" />
+                    <div className="w-full h-full bg-card" />
                 )}
-                <div className="absolute inset-x-0 bottom-0 h-[150px] bg-gradient-to-t from-[#1b2838] to-transparent pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-0 h-[150px] bg-gradient-to-t from-background to-transparent pointer-events-none" />
 
                 <div className="absolute bottom-5 left-8 space-y-2">
-                    <h1 className="text-white text-4xl font-bold drop-shadow-md">
+                    <h1 className="text-foreground text-4xl font-bold drop-shadow-md">
                         {libraryItem.title}
                     </h1>
                 </div>
             </div>
 
             {/* Action Bar */}
-            <div className="flex items-center px-8 pb-6 bg-[#1b2838] gap-8">
+            <div className="flex items-center px-8 pb-6 bg-background gap-8">
                 {isRunning ? (
                     <Button
-                        className="px-8 py-6 text-base font-bold tracking-wider rounded-sm transition-colors bg-[#f85149] hover:bg-[#da3633] text-white"
+                        variant="destructive"
+                        className="px-8 py-6 text-base font-bold tracking-wider rounded-md transition-colors"
                         onClick={handleStopGame}
                     >
-                        <Square className="w-5 h-5 mr-2 fill-white" />
+                        <Square className="w-5 h-5 mr-2 fill-current" />
                         STOP
                     </Button>
                 ) : (
                     <Button
                         className={cn(
-                            "px-8 py-6 text-base font-bold tracking-wider rounded-sm transition-colors",
+                            "px-8 py-6 text-base font-bold tracking-wider rounded-md transition-colors",
                             libraryItem.isReExtracting
-                                ? "bg-[#3d4450] text-[#8b929a] cursor-not-allowed hover:bg-[#3d4450]"
-                                : "bg-[#4cff00] hover:bg-[#3de000] text-black"
+                                ? "bg-muted text-muted-foreground cursor-not-allowed hover:bg-muted"
+                                : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
                         )}
                         onClick={handlePlayPress}
                         disabled={libraryItem.isReExtracting}
@@ -485,7 +486,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                             </>
                         ) : (
                             <>
-                                <Play className="w-5 h-5 mr-2 fill-black" />
+                                <Play className="w-5 h-5 mr-2 fill-current" />
                                 PLAY
                             </>
                         )}
@@ -494,34 +495,42 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
 
                 <div className="flex gap-8 mr-auto">
                     <div className="flex flex-col">
-                        <span className="text-[#6e7681] text-[10px] font-bold mb-0.5">LAST PLAYED</span>
-                        <span className="text-[#dcdedf] text-xs font-medium">{formatLastPlayed(libraryItem.lastPlayedAt)}</span>
+                        <span className="text-muted-foreground text-[10px] font-bold mb-0.5 tracking-wider">LAST PLAYED</span>
+                        <span className="text-foreground text-xs font-medium">{formatLastPlayed(libraryItem.lastPlayedAt)}</span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[#6e7681] text-[10px] font-bold mb-0.5">PLAY TIME</span>
-                        <span className="text-[#dcdedf] text-xs font-medium">{formatPlayTime(config?.playTime)}</span>
+                        <span className="text-muted-foreground text-[10px] font-bold mb-0.5 tracking-wider">PLAY TIME</span>
+                        <span className="text-foreground text-xs font-medium">{formatPlayTime(config?.playTime)}</span>
                     </div>
                     {isRunning && gamePid && (
                         <div className="flex flex-col">
-                            <span className="text-[#6e7681] text-[10px] font-bold mb-0.5">PID</span>
-                            <span className="text-[#4cff00] text-xs font-mono font-medium">{gamePid}</span>
+                            <span className="text-muted-foreground text-[10px] font-bold mb-0.5 tracking-wider">PID</span>
+                            <span className="text-primary text-xs font-mono font-medium">{gamePid}</span>
                         </div>
                     )}
                 </div>
 
                 <div className="flex gap-2">
-                    <button onClick={() => handleOpenLaunchOptions()} className="p-2 bg-[#2a3f55] rounded hover:bg-[#3d5a73] text-[#66c0f4]">
+                    <button
+                        onClick={() => handleOpenLaunchOptions()}
+                        className="p-2 bg-card border border-border/70 rounded-md hover:bg-muted text-foreground transition-colors"
+                        title="Game Settings"
+                    >
                         <Settings className="w-5 h-5" />
                     </button>
-                    <button className="p-2 bg-[#2a3f55] rounded hover:bg-[#3d5a73] text-[#66c0f4]">
+                    <button
+                        className="p-2 bg-card border border-border/70 rounded-md hover:bg-muted text-foreground transition-colors"
+                        title="Info"
+                    >
                         <Info className="w-5 h-5" />
                     </button>
                     <button
                         onClick={() => toggleFavorite(libraryItem.id)}
                         className={cn(
-                            "p-2 bg-[#2a3f55] rounded hover:bg-[#3d5a73] transition-colors",
-                            libraryItem.isFavorite ? "text-yellow-400" : "text-[#66c0f4]"
+                            "p-2 bg-card border border-border/70 rounded-md hover:bg-muted transition-colors",
+                            libraryItem.isFavorite ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         )}
+                        title="Favorite"
                     >
                         <Star className={cn("w-5 h-5", libraryItem.isFavorite && "fill-current")} />
                     </button>
@@ -529,42 +538,42 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
             </div>
 
             {/* Navbar */}
-            <div className="flex px-8 py-3 bg-[#181d26] gap-8 border-b border-[#2a2e36] mb-6">
+            <div className="flex px-8 py-3 bg-card/60 backdrop-blur-sm gap-8 border-y border-border/60 mb-6">
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={cn(
-                        "text-sm font-medium pb-1 -mb-4 z-10 transition-colors",
+                        "text-sm font-medium pb-2 -mb-3 z-10 transition-colors",
                         activeTab === 'overview'
-                            ? "text-white font-bold border-b-2 border-[#66c0f4]"
-                            : "text-[#8b929a] hover:text-white"
+                            ? "text-primary font-bold border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground"
                     )}
                 >Overview</button>
                 <button
                     onClick={() => setActiveTab('files')}
                     className={cn(
-                        "text-sm font-medium pb-1 -mb-4 z-10 transition-colors",
+                        "text-sm font-medium pb-2 -mb-3 z-10 transition-colors",
                         activeTab === 'files'
-                            ? "text-white font-bold border-b-2 border-[#66c0f4]"
-                            : "text-[#8b929a] hover:text-white"
+                            ? "text-primary font-bold border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground"
                     )}
                 >Files</button>
                 <button
                     onClick={() => setActiveTab('mods')}
                     className={cn(
-                        "text-sm font-medium pb-1 -mb-4 z-10 transition-colors",
+                        "text-sm font-medium pb-2 -mb-3 z-10 transition-colors",
                         activeTab === 'mods'
-                            ? "text-white font-bold border-b-2 border-[#66c0f4]"
-                            : "text-[#8b929a] hover:text-white"
+                            ? "text-primary font-bold border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground"
                     )}
                 >Mods</button>
                 <button
                     onClick={() => setDevMode(!devMode)}
                     className={cn(
-                        "ml-auto flex items-center gap-1 text-xs font-medium transition-colors",
-                        devMode ? "text-[#4cff00]" : "text-[#6e7681] hover:text-[#8b929a]"
+                        "ml-auto flex items-center gap-1.5 text-xs font-medium transition-colors px-2 py-1 rounded",
+                        devMode ? "text-primary bg-primary/10 border border-primary/20" : "text-muted-foreground hover:text-foreground"
                     )}
                 >
-                    <Code className="w-3 h-3" />
+                    <Code className="w-3.5 h-3.5" />
                     Dev
                 </button>
             </div>
@@ -579,7 +588,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         libraryItem.extractedPath ? (
                             <GameFileBrowser rootPath={libraryItem.extractedPath} />
                         ) : (
-                            <div className="bg-[#0d1117] border border-[#30363d] rounded-md p-8 text-center text-[#8b949e] text-sm">
+                            <div className="bg-card border border-border/60 rounded-md p-8 text-center text-muted-foreground text-sm">
                                 Game folder not found
                             </div>
                         )
@@ -596,15 +605,15 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         <>
                             {/* Dev Mode Panel OR Article Content */}
                             {devMode ? (
-                                <div className="bg-[#0d1117] border border-[#30363d] p-4 rounded-sm" key={refreshKey}>
+                                <div className="bg-card border border-border/60 p-4 rounded-md" key={refreshKey}>
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-[#4cff00] text-xs font-bold uppercase flex items-center gap-2">
+                                        <h3 className="text-primary text-xs font-bold uppercase flex items-center gap-2">
                                             <Code className="w-3 h-3" />
                                             Developer Info
                                         </h3>
                                         <button
                                             onClick={handleRefreshConfig}
-                                            className="flex items-center gap-1 text-xs text-[#8b929a] hover:text-[#4cff00] transition-colors"
+                                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                                         >
                                             <RefreshCw className="w-3 h-3" />
                                             Refresh
@@ -614,97 +623,97 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                     <div className="space-y-4 font-mono text-xs">
                                         {/* Playtime Tracking */}
                                         <div className="space-y-2">
-                                            <h4 className="text-[#58a6ff] font-bold">⏱️ Playtime Tracking</h4>
-                                            <div className="bg-black/40 p-2 rounded space-y-1">
+                                            <h4 className="text-primary font-bold">⏱️ Playtime Tracking</h4>
+                                            <div className="bg-background/80 border border-border/40 p-2.5 rounded-md space-y-1">
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">isRunning:</span>
+                                                    <span className="text-muted-foreground">isRunning:</span>
                                                     <span className={cn(
                                                         "font-bold",
-                                                        isRunning ? "text-[#4cff00]" : "text-[#6e7681]"
+                                                        isRunning ? "text-primary" : "text-muted-foreground"
                                                     )}>
                                                         {isRunning ? '🟢 RUNNING' : '⚫ STOPPED'}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">gamePid:</span>
+                                                    <span className="text-muted-foreground">gamePid:</span>
                                                     <span className={cn(
                                                         "font-mono",
-                                                        gamePid ? "text-[#4cff00]" : "text-[#6e7681]"
+                                                        gamePid ? "text-primary" : "text-muted-foreground"
                                                     )}>
                                                         {gamePid ?? 'null'}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">playTime (raw):</span>
-                                                    <span className="text-[#f0883e]">{config?.playTime ?? 'null'} seconds</span>
+                                                    <span className="text-muted-foreground">playTime (raw):</span>
+                                                    <span className="text-primary">{config?.playTime ?? 'null'} seconds</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">playTime (formatted):</span>
-                                                    <span className="text-[#dcdedf]">{formatPlayTime(config?.playTime)}</span>
+                                                    <span className="text-muted-foreground">playTime (formatted):</span>
+                                                    <span className="text-foreground">{formatPlayTime(config?.playTime)}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">lastPlayed:</span>
-                                                    <span className="text-[#dcdedf]">{config?.lastPlayed ?? 'Never'}</span>
+                                                    <span className="text-muted-foreground">lastPlayed:</span>
+                                                    <span className="text-foreground">{config?.lastPlayed ?? 'Never'}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Game Config */}
                                         <div className="space-y-2">
-                                            <h4 className="text-[#58a6ff] font-bold">⚙️ Game Config</h4>
-                                            <div className="bg-black/40 p-2 rounded space-y-1">
+                                            <h4 className="text-primary font-bold">⚙️ Game Config</h4>
+                                            <div className="bg-background/80 border border-border/40 p-2.5 rounded-md space-y-1">
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">gameId:</span>
-                                                    <span className="text-[#dcdedf]">{libraryItem.id}</span>
+                                                    <span className="text-muted-foreground">gameId:</span>
+                                                    <span className="text-foreground">{libraryItem.id}</span>
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-[#6e7681]">executablePath:</span>
-                                                    <span className="text-[#dcdedf] break-all text-[10px] mt-1">{config?.executablePath ?? 'Not set'}</span>
+                                                    <span className="text-muted-foreground">executablePath:</span>
+                                                    <span className="text-foreground break-all text-[10px] mt-1">{config?.executablePath ?? 'Not set'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">useWine:</span>
-                                                    <span className={cn(config?.useWine ? "text-[#4cff00]" : "text-[#f85149]")}>
+                                                    <span className="text-muted-foreground">useWine:</span>
+                                                    <span className={cn(config?.useWine ? "text-emerald-400" : "text-destructive")}>
                                                         {config?.useWine ? 'true' : 'false'}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">args:</span>
-                                                    <span className="text-[#dcdedf]">{config?.args?.length ? config.args.join(' ') : '[]'}</span>
+                                                    <span className="text-muted-foreground">args:</span>
+                                                    <span className="text-foreground">{config?.args?.length ? config.args.join(' ') : '[]'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">locale:</span>
-                                                    <span className="text-[#dcdedf]">{config?.locale ?? 'default'}</span>
+                                                    <span className="text-muted-foreground">locale:</span>
+                                                    <span className="text-foreground">{config?.locale ?? 'default'}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Library Item */}
                                         <div className="space-y-2">
-                                            <h4 className="text-[#58a6ff] font-bold">📚 Library Item</h4>
-                                            <div className="bg-black/40 p-2 rounded space-y-1">
+                                            <h4 className="text-primary font-bold">📚 Library Item</h4>
+                                            <div className="bg-background/80 border border-border/40 p-2.5 rounded-md space-y-1">
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">id:</span>
-                                                    <span className="text-[#dcdedf]">{libraryItem.id}</span>
+                                                    <span className="text-muted-foreground">id:</span>
+                                                    <span className="text-foreground">{libraryItem.id}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">articleId:</span>
-                                                    <span className="text-[#dcdedf]">{libraryItem.articleId ?? 'null'}</span>
+                                                    <span className="text-muted-foreground">articleId:</span>
+                                                    <span className="text-foreground">{libraryItem.articleId ?? 'null'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">lastPlayedAt:</span>
-                                                    <span className="text-[#dcdedf]">{libraryItem.lastPlayedAt?.toISOString() ?? 'null'}</span>
+                                                    <span className="text-muted-foreground">lastPlayedAt:</span>
+                                                    <span className="text-foreground">{libraryItem.lastPlayedAt?.toISOString() ?? 'null'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-[#6e7681]">addedAt:</span>
-                                                    <span className="text-[#dcdedf]">{libraryItem.addedAt?.toISOString() ?? 'null'}</span>
+                                                    <span className="text-muted-foreground">addedAt:</span>
+                                                    <span className="text-foreground">{libraryItem.addedAt?.toISOString() ?? 'null'}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Raw Config JSON */}
                                         <div className="space-y-2">
-                                            <h4 className="text-[#58a6ff] font-bold">📄 Raw Config JSON</h4>
-                                            <pre className="bg-black/40 p-2 rounded text-[10px] text-[#8b949e] overflow-x-auto max-h-[150px]">
+                                            <h4 className="text-primary font-bold">📄 Raw Config JSON</h4>
+                                            <pre className="bg-background/80 border border-border/40 p-2.5 rounded-md text-[10px] text-muted-foreground overflow-x-auto max-h-[150px]">
                                                 {JSON.stringify(config, null, 2) || 'null'}
                                             </pre>
                                         </div>
@@ -712,9 +721,9 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                 </div>
                             ) : (
                                 (libraryItem.description || libraryItem.body) && (
-                                    <div className="bg-black/20 p-6 rounded-sm">
-                                        <h2 className="text-[#dcdedf] text-lg font-normal mb-4 border-b border-[#2a475e] pb-2 uppercase tracking-wider">About This Game</h2>
-                                        <div className="text-[#acb2b8] text-sm leading-6 space-y-4">
+                                    <div className="bg-card border border-border/60 p-6 rounded-md">
+                                        <h2 className="text-foreground text-lg font-semibold mb-4 border-b border-border/60 pb-2 uppercase tracking-wider">About This Game</h2>
+                                        <div className="text-muted-foreground text-sm leading-6 space-y-4">
                                             {libraryItem.body ? (
                                                 <HtmlRenderer html={libraryItem.body} />
                                             ) : (
@@ -734,8 +743,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
 
                     {/* Game Info */}
                     {(libraryItem.engine || libraryItem.gameVersion) && (
-                        <div className="bg-black/20 p-4 rounded-sm space-y-3">
-                            <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-2">Game Info</h3>
+                        <div className="bg-card border border-border/60 p-4 rounded-md space-y-3">
+                            <h3 className="text-muted-foreground text-xs font-bold uppercase mb-2 tracking-wider">Game Info</h3>
                             {libraryItem.engine && (
                                 <Badge
                                     label="ENGINE"
@@ -755,30 +764,30 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
 
                     {/* Translation Section */}
                     {showTranslationCard && (
-                        <div className="bg-black/20 p-4 rounded-sm space-y-3">
-                            <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-2">Translation</h3>
+                        <div className="bg-card border border-border/60 p-4 rounded-md space-y-3">
+                            <h3 className="text-muted-foreground text-xs font-bold uppercase mb-2 tracking-wider">Translation</h3>
                             
                             {/* Unity Real-time Auto-Translator */}
                             {isUnityGame && config?.executablePath && (
-                                <div className="space-y-2 border-b border-zinc-800/40 pb-3 last:border-0 last:pb-0">
-                                    <div className="text-xs font-bold text-zinc-300">Auto-Translator (Unity)</div>
-                                    <p className="text-[10px] text-[#acb2b8] leading-relaxed">
+                                <div className="space-y-2 border-b border-border/50 pb-3 last:border-0 last:pb-0">
+                                    <div className="text-xs font-bold text-foreground">Auto-Translator (Unity)</div>
+                                    <p className="text-[10px] text-muted-foreground leading-relaxed">
                                         แปลข้อความในเกมแบบเรียลไทม์ (ใช้ BepInEx)
                                     </p>
                                     
                                     {translatorStatus === 'checking' ? (
-                                        <div className="flex items-center gap-2 text-[10px] text-[#8b929a] py-1">
-                                            <Loader2 className="w-3 h-3 animate-spin text-[#66c0f4]" />
+                                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground py-1">
+                                            <Loader2 className="w-3 h-3 animate-spin text-primary" />
                                             กำลังตรวจสอบสถานะ...
                                         </div>
                                     ) : translatorStatus === 'not_installed' ? (
                                         <div className="space-y-2 pt-1">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">แปลเป็นภาษา (Target)</span>
+                                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">แปลเป็นภาษา (Target)</span>
                                                 <select
                                                     value={translatorLang}
                                                     onChange={(e) => setTranslatorLang(e.target.value)}
-                                                    className="flex w-full rounded border border-[#2a475e] bg-[#101822] px-2 py-1 text-[11px] text-zinc-200 focus:outline-none focus:border-[#66c0f4] h-7"
+                                                    className="flex w-full rounded-md border border-border bg-background px-2 py-1 text-[11px] text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-7"
                                                 >
                                                     <option value="th">ภาษาไทย (Thai)</option>
                                                     <option value="en">English</option>
@@ -787,22 +796,22 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                                 </select>
                                             </div>
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">ฟอนต์สำหรับแสดงผล (Font)</span>
+                                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">ฟอนต์สำหรับแสดงผล (Font)</span>
                                                 <button
                                                     onClick={() => setFontDialogOpen(true)}
-                                                    className="flex items-center justify-between w-full rounded border border-[#2a475e] bg-[#101822] px-2.5 py-1.5 text-[11px] text-zinc-200 hover:border-[#66c0f4] hover:bg-[#15202d] transition-colors h-8 text-left group"
+                                                    className="flex items-center justify-between w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-[11px] text-foreground hover:border-primary/50 hover:bg-muted/50 transition-colors h-8 text-left group"
                                                     disabled={loadingFonts}
                                                 >
                                                     <span className="truncate flex-1 mr-2">
                                                         {fonts.find(f => String(f.id) === selectedFontId)?.name || 'Default Font (ระบบเลือกให้อัตโนมัติ)'}
                                                     </span>
-                                                    <span className="text-[9px] text-[#66c0f4] group-hover:text-[#47a8e5] shrink-0 font-bold uppercase transition-colors">แก้ไข</span>
+                                                    <span className="text-[9px] text-primary group-hover:text-primary/80 shrink-0 font-bold uppercase transition-colors">แก้ไข</span>
                                                 </button>
                                             </div>
                                             <button
                                                 onClick={handleInstallTranslator}
                                                 disabled={isInstallingTranslator}
-                                                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] font-bold bg-[#66c0f4] hover:bg-[#47a8e5] text-black transition-colors disabled:opacity-50"
+                                                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground transition-colors disabled:opacity-50"
                                             >
                                                 {isInstallingTranslator ? (
                                                     <>
@@ -825,7 +834,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                             </div>
                                             <button
                                                 onClick={handleUninstallTranslator}
-                                                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] font-medium bg-[#2a2e36] hover:bg-[#3d2e2e] text-[#f38181] transition-colors"
+                                                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 transition-colors"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                                 ถอนการติดตั้ง
@@ -841,8 +850,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                               (libraryItem.engine || '').toLowerCase().includes('rpg') ||
                               isUnityGame) && (
                                 <div className="space-y-2 pt-1">
-                                    <div className="text-xs font-bold text-zinc-300">Translate Yourself (NST)</div>
-                                    <p className="text-[10px] text-[#acb2b8] leading-relaxed">
+                                    <div className="text-xs font-bold text-foreground">Translate Yourself (NST)</div>
+                                    <p className="text-[10px] text-muted-foreground leading-relaxed">
                                         สกัดและแปลข้อความด้วยตนเองโดยใช้ NST CLI
                                     </p>
                                     <button
@@ -859,7 +868,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                                 alert('ไม่พบ NST CLI');
                                             }
                                         }}
-                                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors"
+                                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/60 transition-colors"
                                     >
                                         <Languages className="w-3.5 h-3.5" />
                                         เปิดเครื่องมือ NST
@@ -871,14 +880,14 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
 
                     {/* Official Sources */}
                     {loadingOfficialSources ? (
-                        <div className="bg-black/20 p-4 rounded-sm">
+                        <div className="bg-card border border-border/60 p-4 rounded-md">
                             <div className="flex items-center justify-center py-4">
-                                <Loader2 className="w-5 h-5 animate-spin text-[#66c0f4]" />
+                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
                             </div>
                         </div>
                     ) : officialSources.length > 0 && (
-                        <div className="bg-black/20 p-4 rounded-sm space-y-3">
-                            <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-2">Official Links</h3>
+                        <div className="bg-card border border-border/60 p-4 rounded-md space-y-3">
+                            <h3 className="text-muted-foreground text-xs font-bold uppercase mb-2 tracking-wider">Official Links</h3>
                             {officialSources.map((source) => (
                                 <a
                                     key={source.id}
@@ -893,33 +902,31 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                             window.open(source.url, '_blank');
                                         }
                                     }}
-                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded text-sm font-medium bg-[#101822] hover:bg-[#1a2634] border border-[#2a475e] hover:border-[#66c0f4] transition-colors group"
+                                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium bg-background/70 hover:bg-muted/60 border border-border/60 hover:border-primary/50 transition-colors group"
                                 >
                                     <div className="flex items-center gap-2">
-                                        <ExternalLink className="w-4 h-4 text-[#66c0f4]" />
-                                        <span className="text-[#dcdedf] group-hover:text-white">{source.name}</span>
+                                        <ExternalLink className="w-4 h-4 text-primary" />
+                                        <span className="text-foreground group-hover:text-primary transition-colors">{source.name}</span>
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-[#4b5563] group-hover:text-white" />
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                                 </a>
                             ))}
                         </div>
                     )}
 
                     {/* Actions */}
-                    <div className="bg-black/20 p-4 rounded-sm space-y-3">
-                        <h3 className="text-[#8b929a] text-xs font-bold uppercase mb-2">Actions</h3>
-
-
+                    <div className="bg-card border border-border/60 p-4 rounded-md space-y-3">
+                        <h3 className="text-muted-foreground text-xs font-bold uppercase mb-2 tracking-wider">Actions</h3>
 
                         {/* Re-extract Button */}
                         <button
                             onClick={handleReExtract}
                             disabled={!hasArchive || libraryItem.isReExtracting}
                             className={cn(
-                                "w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors",
+                                "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                                 hasArchive && !libraryItem.isReExtracting
-                                    ? "bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4]"
-                                    : "bg-[#2a2e36] text-[#6e7681] cursor-not-allowed"
+                                    ? "bg-muted hover:bg-muted/80 text-foreground border border-border/50"
+                                    : "bg-muted/40 text-muted-foreground/60 border border-transparent cursor-not-allowed"
                             )}
                         >
                             <RotateCcw className="w-4 h-4" />
@@ -930,7 +937,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         {hasArchive && (
                             <button
                                 onClick={handleDeleteArchive}
-                                className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium bg-[#2a2e36] hover:bg-[#3d2e2e] text-[#f38181] transition-colors"
+                                className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 transition-colors"
                             >
                                 <Archive className="w-4 h-4" />
                                 Delete Archive (Free Space)
@@ -940,7 +947,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         {/* Remove from Library */}
                         <button
                             onClick={handleRemoveFromLibrary}
-                            className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium bg-[#2a2e36] hover:bg-[#3d2e2e] text-[#f38181] transition-colors"
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 transition-colors"
                         >
                             <Trash2 className="w-4 h-4" />
                             Remove from Library
@@ -951,12 +958,12 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                             onClick={hasShortcut ? handleDeleteShortcut : handleCreateShortcut}
                             disabled={shortcutLoading}
                             className={cn(
-                                "w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors",
+                                "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors border",
                                 shortcutLoading
-                                    ? "bg-[#2a2e36] text-[#6e7681] cursor-not-allowed"
+                                    ? "bg-muted/40 text-muted-foreground/60 border-transparent cursor-not-allowed"
                                     : hasShortcut
-                                        ? "bg-[#2a3f55] hover:bg-[#3d2e2e] text-[#f38181]"
-                                        : "bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4]"
+                                        ? "bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/20"
+                                        : "bg-muted hover:bg-muted/80 text-foreground border-border/50"
                             )}
                         >
                             {shortcutLoading ? (
@@ -978,7 +985,7 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         {isLinuxOrMac && isWindowsGame && (
                             <button
                                 onClick={() => setWinetricksDialogOpen(true)}
-                                className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-medium bg-[#2a3f55] hover:bg-[#3d5a73] text-[#66c0f4] transition-colors"
+                                className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/50 transition-colors"
                             >
                                 <Wine className="w-4 h-4" />
                                 Wine Dependencies
@@ -1320,7 +1327,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
 
     if (!articleId) {
         return (
-            <div className="bg-[#0d1117] border border-[#30363d] rounded-md p-8 text-center text-[#8b949e] text-sm">
+            <div className="bg-card border border-border/60 rounded-md p-8 text-center text-muted-foreground text-sm">
                 No article associated with this game. Cannot fetch mods.
             </div>
         );
@@ -1329,14 +1336,14 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
     if (isLoading || loadingInstalled) {
         return (
             <div className="flex justify-center p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-[#66c0f4]" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="bg-[#0d1117] border border-red-900/50 rounded-md p-8 text-center text-red-400 text-sm">
+            <div className="bg-card border border-destructive/30 rounded-md p-8 text-center text-destructive text-sm">
                 Failed to load mods.
             </div>
         );
@@ -1346,7 +1353,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
         <div className="space-y-4">
             {/* Header: Available Mods vs Installed */}
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[#dcdedf] font-medium">Available Mods</h3>
+                <h3 className="text-foreground font-semibold">Available Mods</h3>
                 <div className="flex gap-2">
                     <button
                         onClick={() => {
@@ -1359,7 +1366,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                 window.electronAPI.openExternal(url);
                             }
                         }}
-                        className="text-xs text-[#66c0f4] hover:text-white flex items-center gap-1"
+                        className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 font-medium transition-colors"
                     >
                         <ExternalLink className="w-3 h-3" />
                         Open Mod Store
@@ -1369,25 +1376,25 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
 
             {isLoading ? (
                 <div className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#66c0f4] mb-2" />
-                    <span className="text-xs text-[#8b949e]">Loading mods...</span>
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary mb-2" />
+                    <span className="text-xs text-muted-foreground">Loading mods...</span>
                 </div>
             ) : availableMods && availableMods.length > 0 ? (
                 <div className="space-y-2">
                     {availableMods.map((mod) => {
                         const installed = isInstalled(mod.id);
                         return (
-                            <div key={mod.id} className="bg-[#161b22] border border-[#30363d] rounded p-3 flex items-center justify-between group hover:border-[#8b949e] transition-colors">
+                            <div key={mod.id} className="bg-card border border-border/60 rounded-md p-3.5 flex items-center justify-between group hover:border-primary/40 transition-colors">
                                 <div className="min-w-0 flex-1 mr-4">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="text-[#dcdedf] font-medium text-sm truncate">{mod.name}</h4>
-                                        <span className="bg-[#2a475e] text-[#66c0f4] text-[10px] px-1.5 py-0.5 rounded">
+                                        <h4 className="text-foreground font-medium text-sm truncate">{mod.name}</h4>
+                                        <span className="bg-primary/15 border border-primary/20 text-primary text-[10px] px-1.5 py-0.5 rounded font-mono">
                                             v{mod.version}
                                         </span>
                                     </div>
-                                    <div className="text-[#8b949e] text-xs flex items-center gap-3">
+                                    <div className="text-muted-foreground text-xs flex items-center gap-3">
                                         {installed && (
-                                            <span className="text-green-500 font-medium flex items-center gap-1">
+                                            <span className="text-emerald-400 font-medium flex items-center gap-1">
                                                 <Check className="w-3 h-3" />
                                                 Installed
                                             </span>
@@ -1404,7 +1411,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                                         variant="secondary"
                                                         size="sm"
                                                         onClick={() => handleExtract(mod.id)}
-                                                        className="bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 border border-blue-900/50 h-8"
+                                                        className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 h-8"
                                                     >
                                                         Extract
                                                     </Button>
@@ -1413,30 +1420,30 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                                     variant="secondary"
                                                     size="sm"
                                                     onClick={() => handleUninstall(mod.id)}
-                                                    className="bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 h-8"
+                                                    className="bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 h-8"
                                                 >
                                                     Uninstall
                                                 </Button>
                                             </div>
                                             {modBackups[mod.id]?.length > 0 && (
-                                                <div className="mt-2 pt-2 border-t border-[#30363d]">
-                                                    <div className="text-[10px] text-[#8b949e] mb-1 font-medium uppercase tracking-wider">Backups / History</div>
+                                                <div className="mt-2 pt-2 border-t border-border/50">
+                                                    <div className="text-[10px] text-muted-foreground mb-1 font-medium uppercase tracking-wider">Backups / History</div>
                                                     <div className="flex flex-col gap-1">
                                                         {modBackups[mod.id].slice(0, 3).map(backup => (
-                                                            <div key={backup.id} className="flex flex-col bg-[#0d1117] p-2 rounded gap-1 border border-[#30363d] hover:border-[#8b949e] transition-colors">
+                                                            <div key={backup.id} className="flex flex-col bg-background/80 p-2 rounded-md gap-1 border border-border/50 hover:border-primary/40 transition-colors">
                                                                 <div className="flex items-center justify-between text-[11px]">
-                                                                    <span className="text-[#dcdedf] font-medium">
+                                                                    <span className="text-foreground font-medium">
                                                                         {new Date(backup.timestamp).toLocaleString()}
                                                                     </span>
                                                                     <button
                                                                         onClick={() => handleRollback(mod.id, backup.id)}
-                                                                        className="text-[#66c0f4] hover:underline"
+                                                                        className="text-primary hover:underline font-medium"
                                                                     >
                                                                         Rollback
                                                                     </button>
                                                                 </div>
                                                                 {backup.files && backup.files.length > 0 && (
-                                                                    <div className="text-[10px] text-[#8b949e] mt-1 space-y-0.5">
+                                                                    <div className="text-[10px] text-muted-foreground mt-1 space-y-0.5">
                                                                         <div className="font-medium">Files replaced:</div>
                                                                         <ul className="list-disc list-inside pl-1 opacity-80">
                                                                             {backup.files.slice(0, 5).map((f: string, i: number) => (
@@ -1460,7 +1467,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                             size="sm"
                                             onClick={() => handleInstall(mod)}
                                             disabled={installingModId === mod.id}
-                                            className="bg-[#238636] hover:bg-[#2ea043] text-white border-none h-8"
+                                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium h-8"
                                         >
                                             {installingModId === mod.id ? (
                                                 <Loader2 className="w-3 h-3 animate-spin mr-1" />
@@ -1476,7 +1483,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                     })}
                 </div>
             ) : (
-                <div className="bg-[#0d1117] border border-[#30363d] rounded-md p-8 text-center text-[#8b949e] text-sm flex flex-col items-center gap-3">
+                <div className="bg-card border border-border/60 rounded-md p-8 text-center text-muted-foreground text-sm flex flex-col items-center gap-3">
                     <p>No mods available for this game yet.</p>
                     <button
                         onClick={() => {
@@ -1489,7 +1496,7 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                 window.electronAPI.openExternal(url);
                             }
                         }}
-                        className="text-[#66c0f4] hover:underline text-xs flex items-center gap-1"
+                        className="text-primary hover:underline text-xs flex items-center gap-1 font-medium"
                     >
                         Visit Mod Store Page <ExternalLink className="w-3 h-3" />
                     </button>

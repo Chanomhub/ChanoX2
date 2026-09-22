@@ -1,12 +1,12 @@
 import { createContext, useContext, ReactNode } from 'react';
 
-// Theme colors matching ChanoX2 dark theme
+// Theme colors matching ChanoX2 Warm Dark Amber theme
 const defaultTheme = {
-    background: '#1e2329',
-    surface: '#1b2838',
-    text: '#c7d5e0',
-    accent: '#66c0f4',
-    border: '#3d4a5a',
+    background: '#151311',
+    surface: '#211d1a',
+    text: '#f5f0eb',
+    accent: '#f59e0b',
+    border: '#38332e',
 };
 
 interface FestivalContextType {

@@ -32,38 +32,38 @@ export default function ChatWindow() {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 z-50 p-4 bg-[#66c0f4] rounded-full shadow-lg hover:bg-[#4a90e2] transition-transform hover:scale-110 active:scale-95 group"
+                className="fixed bottom-6 right-6 z-50 p-4 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-transform hover:scale-110 active:scale-95 group"
             >
-                <MessageCircle className="w-6 h-6 text-[#1b2838]" />
+                <MessageCircle className="w-6 h-6 text-primary-foreground" />
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                     {isConnected && (
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     )}
-                    <span className={cn("relative inline-flex rounded-full h-3 w-3", isConnected ? "bg-green-500" : "bg-red-500")}></span>
+                    <span className={cn("relative inline-flex rounded-full h-3 w-3", isConnected ? "bg-emerald-500" : "bg-destructive")}></span>
                 </span>
             </button>
         );
     }
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 w-[350px] h-[500px] bg-[#1b2838] border border-[#2a475e] rounded-lg shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-200">
+        <div className="fixed bottom-6 right-6 z-50 w-[350px] h-[500px] bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-200">
             {/* Header */}
-            <div className="flex items-center justify-between p-3 bg-[#171a21] border-b border-[#2a475e]">
+            <div className="flex items-center justify-between p-3 bg-muted/40 border-b border-border">
                 <div className="flex items-center gap-2">
-                    <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-[#4cff00]" : "bg-red-500")} />
-                    <h3 className="font-bold text-[#dcdedf] text-sm">Global Chat</h3>
-                    <div className="flex items-center gap-1 ml-2 text-xs text-[#6e7681]">
+                    <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-emerald-500" : "bg-destructive")} />
+                    <h3 className="font-bold text-foreground text-sm">Global Chat</h3>
+                    <div className="flex items-center gap-1 ml-2 text-xs text-muted-foreground">
                         <Users className="w-3 h-3" />
                         <span>{onlineCount}</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
-                    <button className="p-1 hover:bg-[#2a475e] rounded text-[#6e7681] hover:text-[#dcdedf]">
+                    <button className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground">
                         <Minimize2 className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => setIsOpen(false)}
-                        className="p-1 hover:bg-[#c92a2a] rounded text-[#6e7681] hover:text-white transition-colors"
+                        className="p-1 hover:bg-destructive/20 rounded text-muted-foreground hover:text-destructive transition-colors"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -71,9 +71,9 @@ export default function ChatWindow() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-[#2a475e] scrollbar-track-[#171a21] bg-[#171a21]/50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-background/50">
                 {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-[#6e7681] text-xs gap-2">
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-xs gap-2">
                         <MessageCircle className="w-8 h-8 opacity-20" />
                         <p>No messages yet. Say hello!</p>
                     </div>
@@ -88,16 +88,16 @@ export default function ChatWindow() {
                                     isMe ? "ml-auto items-end" : "items-start"
                                 )}
                             >
-                                {!isMe && <span className="text-[10px] text-[#8b929a] mb-0.5 ml-1">{msg.sender}</span>}
+                                {!isMe && <span className="text-[10px] text-muted-foreground mb-0.5 ml-1">{msg.sender}</span>}
                                 <div className={cn(
                                     "px-3 py-2 rounded-lg text-sm break-words shadow-sm",
                                     isMe
-                                        ? "bg-[#66c0f4] text-[#1b2838] rounded-tr-none"
-                                        : "bg-[#2a475e] text-[#dcdedf] rounded-tl-none"
+                                        ? "bg-primary text-primary-foreground rounded-tr-none font-medium"
+                                        : "bg-muted text-foreground border border-border/50 rounded-tl-none"
                                 )}>
                                     {msg.text}
                                 </div>
-                                <span className="text-[9px] text-[#6e7681] mt-0.5 mx-1">
+                                <span className="text-[9px] text-muted-foreground mt-0.5 mx-1">
                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
@@ -108,25 +108,25 @@ export default function ChatWindow() {
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSend} className="p-3 bg-[#171a21] border-t border-[#2a475e]">
+            <form onSubmit={handleSend} className="p-3 bg-muted/40 border-t border-border">
                 <div className="flex gap-2">
                     <input
                         type="text"
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder="Type a message..."
-                        className="flex-1 bg-[#1b2838] border border-[#2a475e] rounded px-3 py-2 text-sm text-[#dcdedf] placeholder-[#6e7681] focus:outline-none focus:border-[#66c0f4] transition-colors"
+                        className="flex-1 bg-background border border-border rounded px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
                     />
                     <Button
                         type="submit"
                         disabled={!isConnected || !inputValue.trim()}
-                        className="bg-[#66c0f4] hover:bg-[#4a90e2] text-[#1b2838] p-2 h-auto"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground p-2 h-auto"
                     >
                         <Send className="w-4 h-4" />
                     </Button>
                 </div>
                 {!isConnected && (
-                    <p className="text-[10px] text-red-400 mt-1 text-center">Connecting to chat server...</p>
+                    <p className="text-[10px] text-destructive mt-1 text-center">Connecting to chat server...</p>
                 )}
             </form>
         </div>

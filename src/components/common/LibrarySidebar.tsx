@@ -88,18 +88,18 @@ export default function LibrarySidebar({
 
     if (collapsed) {
         return (
-            <div className="w-[60px] bg-[#161920] border-r border-[#1a1d26] flex flex-col items-center pt-2 h-full">
+            <div className="w-[60px] bg-card border-r border-border/60 flex flex-col items-center pt-2 h-full">
                 <button
-                    className="p-3 text-[#b8b6b4] hover:text-white hover:bg-[#1f242e] rounded w-full flex justify-center"
+                    className="p-3 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded w-full flex justify-center"
                     onClick={() => onSelectGame(-1)}
                 >
                     <Home className="w-5 h-5" />
                 </button>
-                <button className="p-3 text-[#b8b6b4] hover:text-white hover:bg-[#1f242e] rounded w-full flex justify-center">
+                <button className="p-3 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded w-full flex justify-center">
                     <Clock className="w-5 h-5" />
                 </button>
 
-                <div className="h-px w-4/5 bg-[#2b2f38] my-2" />
+                <div className="h-px w-4/5 bg-border my-2" />
 
                 <ScrollArea className="flex-1 w-full">
                     <div className="flex flex-col items-center gap-1 pb-2">
@@ -108,7 +108,7 @@ export default function LibrarySidebar({
                                 key={game.id}
                                 className={cn(
                                     "w-10 h-10 rounded flex items-center justify-center transition-colors",
-                                    selectedGameId === game.id ? "bg-[#3d4450]" : "bg-[#2a2e36] hover:bg-[#32363e]"
+                                    selectedGameId === game.id ? "bg-primary/20 text-primary border border-primary/40" : "bg-muted hover:bg-muted/80 text-foreground"
                                 )}
                                 onClick={() => onSelectGame(game.id)}
                                 title={game.title}
@@ -120,7 +120,7 @@ export default function LibrarySidebar({
                                         className="w-full h-full object-cover rounded"
                                     />
                                 ) : (
-                                    <span className="text-white font-bold text-xs">
+                                    <span className="text-foreground font-bold text-xs">
                                         {(game.title).substring(0, 1).toUpperCase()}
                                     </span>
                                 )}
@@ -129,20 +129,20 @@ export default function LibrarySidebar({
                     </div>
                 </ScrollArea>
 
-                {/* Collapsed Footer - still allows adding games via context menu potentially, or simplified */}
-                <div className="p-3 border-t border-[#2b2f38] bg-[#161920] flex justify-center">
+                {/* Collapsed Footer */}
+                <div className="p-3 border-t border-border/60 bg-card flex justify-center">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="flex items-center justify-center text-[#6e7681] hover:text-white transition-colors">
+                            <button className="flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
                                 <Plus className="w-5 h-5" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" side="right" className="bg-[#1f2126] border-[#2b2f38] text-[#dcdedf]">
-                            <DropdownMenuItem onClick={handleAddGameFolder} className="hover:bg-[#2b2f38] cursor-pointer gap-2">
+                        <DropdownMenuContent align="end" side="right" className="bg-card border-border text-foreground">
+                            <DropdownMenuItem onClick={handleAddGameFolder} className="hover:bg-muted cursor-pointer gap-2">
                                 <Folder className="w-4 h-4" />
                                 <span>Add from Folder</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleAddGameArchive} className="hover:bg-[#2b2f38] cursor-pointer gap-2">
+                            <DropdownMenuItem onClick={handleAddGameArchive} className="hover:bg-muted cursor-pointer gap-2">
                                 <File className="w-4 h-4" />
                                 <span>Add from Archive</span>
                             </DropdownMenuItem>
@@ -154,71 +154,71 @@ export default function LibrarySidebar({
     }
 
     return (
-        <div className="w-[280px] bg-[#161920] border-r border-[#1a1d26] flex flex-col h-full">
+        <div className="w-[280px] bg-card border-r border-border/60 flex flex-col h-full">
             {/* Nav Items */}
             <div className="flex flex-col">
                 <button
                     className={cn(
-                        "flex items-center px-4 py-2.5 gap-3 text-sm font-medium transition-colors hover:bg-[#1f242e]",
-                        selectedGameId === -1 && "bg-[#1f242e]"
+                        "flex items-center px-4 py-2.5 gap-3 text-sm font-medium transition-colors hover:bg-muted/50",
+                        selectedGameId === -1 && "bg-primary/15 text-primary"
                     )}
                     onClick={() => onSelectGame(-1)}
                 >
-                    <Home className="w-4 h-4 text-[#b8b6b4]" />
-                    <span className="text-[#b8b6b4]">Home</span>
+                    <Home className={cn("w-4 h-4", selectedGameId === -1 ? "text-primary" : "text-muted-foreground")} />
+                    <span className={cn(selectedGameId === -1 ? "text-primary font-semibold" : "text-muted-foreground")}>Home</span>
                 </button>
 
                 <button
-                    className="flex items-center px-4 py-2.5 gap-3 text-sm font-medium hover:bg-[#1f242e] transition-colors"
+                    className="flex items-center px-4 py-2.5 gap-3 text-sm font-medium hover:bg-muted/50 transition-colors"
                     onClick={() => setIsChatVisible(true)}
                 >
-                    <MessageSquare className="w-4 h-4 text-[#b8b6b4]" />
-                    <span className="text-[#b8b6b4]">Global Chat</span>
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Global Chat</span>
                 </button>
             </div>
 
             {/* Header */}
             <div className="p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-[#fff] text-lg font-bold tracking-wide">LIBRARY</h2>
+                    <h2 className="text-foreground text-lg font-bold tracking-wide">LIBRARY</h2>
                 </div>
 
                 <div className="flex items-center gap-2">
                     <div className="relative flex-1">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#565b64]" />
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
                         <Input
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
                             placeholder="Search"
-                            className="h-8 pl-7 bg-[#1f2126] border-[#2b2f38] text-[13px] text-[#dcdedf] placeholder:text-[#565b64] focus-visible:ring-0 focus-visible:border-[#66c0f4]"
+                            className="h-8 pl-7 bg-muted/60 border-border text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:border-primary"
                         />
                     </div>
                     <button
-                        className="p-1.5 bg-[#1f2126] border border-[#2b2f38] rounded hover:border-[#66c0f4] transition-colors"
+                        className="p-1.5 bg-muted/60 border border-border rounded hover:border-primary transition-colors"
                         onClick={() => setFilterExpanded(!filterExpanded)}
                     >
-                        <Filter className="w-4 h-4 text-[#565b64]" />
+                        <Filter className="w-4 h-4 text-muted-foreground" />
                     </button>
                 </div>
             </div>
 
             {filterExpanded && (
                 <div className="px-4 pb-2">
-                    <div className="bg-[#1f2126] p-3 rounded text-xs text-[#dcdedf]">
+                    <div className="bg-muted p-3 rounded text-xs text-foreground">
                         Sort by: Name (A-Z)
                     </div>
                 </div>
             )}
 
             {/* Section Header */}
-            <div className="flex items-center justify-between px-4 py-2 group cursor-pointer hover:bg-[#1f242e]">
-                <span className="text-[#6e7681] text-[11px] font-bold group-hover:text-[#dcdedf]">GAMES AND SOFTWARE</span>
+            <div className="flex items-center justify-between px-4 py-2 group cursor-pointer hover:bg-muted/40">
+                <span className="text-muted-foreground text-[11px] font-bold group-hover:text-foreground">GAMES AND SOFTWARE</span>
             </div>
 
             <ScrollArea className="flex-1">
                 <div className="flex flex-col pb-2">
                     {filteredGames.length === 0 && (
-                        <div className="px-4 py-2 text-[#6e7681] text-xs italic">
+                        <div className="px-4 py-2 text-muted-foreground text-xs italic">
                             No games found
                         </div>
                     )}
@@ -227,23 +227,23 @@ export default function LibrarySidebar({
                         <button
                             key={game.id}
                             className={cn(
-                                "flex items-center px-4 py-1.5 gap-2 w-full text-left transition-colors hover:bg-[#1f242e] min-w-0 overflow-hidden",
-                                selectedGameId === game.id && "bg-[#3d4450] hover:bg-[#3d4450]"
+                                "flex items-center px-4 py-1.5 gap-2 w-full text-left transition-colors hover:bg-muted/40 min-w-0 overflow-hidden",
+                                selectedGameId === game.id && "bg-primary/15 hover:bg-primary/20 border-l-2 border-primary"
                             )}
                             onClick={() => onSelectGame(game.id)}
                         >
-                            <div className="w-4 h-4 bg-[#2a2e36] flex-shrink-0">
+                            <div className="w-4 h-4 bg-muted rounded-sm flex-shrink-0 overflow-hidden">
                                 {getCoverImageSrc(game.localCoverImage, game.coverImage) && (
                                     <img src={getCoverImageSrc(game.localCoverImage, game.coverImage)} className="w-full h-full object-cover" alt="" />
                                 )}
                             </div>
                             <div className={cn(
                                 "text-[13px] text-left truncate flex-1 min-w-0 w-0 flex items-center gap-1.5",
-                                selectedGameId === game.id ? "text-white" : "text-[#969696]"
+                                selectedGameId === game.id ? "text-primary font-semibold" : "text-muted-foreground group-hover:text-foreground"
                             )}>
                                 <span className="truncate">{game.title}</span>
                                 {game.isFavorite && (
-                                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                    <Star className="w-3 h-3 text-amber-400 fill-amber-400 flex-shrink-0" />
                                 )}
                             </div>
                         </button>
@@ -252,31 +252,31 @@ export default function LibrarySidebar({
                     {/* MODS Section */}
                     {filteredMods.length > 0 && (
                         <>
-                            <div className="flex items-center gap-2 px-4 py-2 mt-2 border-t border-[#2b2f38]">
-                                <Puzzle className="w-3 h-3 text-[#6e7681]" />
-                                <span className="text-[#6e7681] text-[11px] font-bold">MODS</span>
+                            <div className="flex items-center gap-2 px-4 py-2 mt-2 border-t border-border">
+                                <Puzzle className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-muted-foreground text-[11px] font-bold">MODS</span>
                             </div>
                             {filteredMods.map(mod => (
                                 <button
                                     key={mod.id}
                                     className={cn(
-                                        "flex items-center px-4 py-1.5 gap-2 w-full text-left transition-colors hover:bg-[#1f242e] min-w-0 overflow-hidden",
-                                        selectedGameId === mod.id && "bg-[#3d4450] hover:bg-[#3d4450]"
+                                        "flex items-center px-4 py-1.5 gap-2 w-full text-left transition-colors hover:bg-muted/40 min-w-0 overflow-hidden",
+                                        selectedGameId === mod.id && "bg-primary/15 hover:bg-primary/20 border-l-2 border-primary"
                                     )}
                                     onClick={() => onSelectGame(mod.id)}
                                 >
-                                    <div className="w-4 h-4 bg-[#2a2e36] flex-shrink-0">
+                                    <div className="w-4 h-4 bg-muted rounded-sm flex-shrink-0 overflow-hidden">
                                         {getCoverImageSrc(mod.localCoverImage, mod.coverImage) && (
                                             <img src={getCoverImageSrc(mod.localCoverImage, mod.coverImage)} className="w-full h-full object-cover" alt="" />
                                         )}
                                     </div>
                                     <div className={cn(
                                         "text-[13px] text-left truncate flex-1 min-w-0 w-0 flex items-center gap-1.5",
-                                        selectedGameId === mod.id ? "text-white" : "text-[#969696]"
+                                        selectedGameId === mod.id ? "text-primary font-semibold" : "text-muted-foreground group-hover:text-foreground"
                                     )}>
                                         <span className="truncate">{mod.title}</span>
                                         {mod.isFavorite && (
-                                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                            <Star className="w-3 h-3 text-amber-400 fill-amber-400 flex-shrink-0" />
                                         )}
                                     </div>
                                 </button>
@@ -287,20 +287,20 @@ export default function LibrarySidebar({
             </ScrollArea>
 
             {/* Footer */}
-            <div className="p-3 border-t border-[#2b2f38] bg-[#161920]">
+            <div className="p-3 border-t border-border/60 bg-card">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <button className="flex items-center text-[#6e7681] hover:text-white transition-colors gap-2 w-full">
+                        <button className="flex items-center text-muted-foreground hover:text-foreground transition-colors gap-2 w-full">
                             <Plus className="w-4 h-4" />
                             <span className="text-xs font-bold">Add a Game</span>
                         </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" side="top" className="w-[200px] bg-[#1f2126] border-[#2b2f38] text-[#dcdedf]">
-                        <DropdownMenuItem onClick={handleAddGameFolder} className="hover:bg-[#2b2f38] cursor-pointer gap-2">
+                    <DropdownMenuContent align="start" side="top" className="w-[200px] bg-card border-border text-foreground">
+                        <DropdownMenuItem onClick={handleAddGameFolder} className="hover:bg-muted cursor-pointer gap-2">
                             <Folder className="w-4 h-4" />
                             <span>Add from Folder</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleAddGameArchive} className="hover:bg-[#2b2f38] cursor-pointer gap-2">
+                        <DropdownMenuItem onClick={handleAddGameArchive} className="hover:bg-muted cursor-pointer gap-2">
                             <File className="w-4 h-4" />
                             <span>Add from Archive</span>
                         </DropdownMenuItem>
