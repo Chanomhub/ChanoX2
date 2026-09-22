@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useDownloadStore } from '@/stores/downloadStore';
 import { Download } from '@/types/download';
 import { useSettingsStore } from '@/stores/settingsStore';

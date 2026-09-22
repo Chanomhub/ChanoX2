@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { ArticleListItem } from '@chanomhub/sdk';
 import { SafeImage } from '@/components/common/SafeImage';
 import { Monitor, Apple, Gamepad2 } from 'lucide-react';

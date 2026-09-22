@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import useSWR from 'swr';
 import { sdk, withImageTransform } from '@/libs/sdk';
 import type { ArticleListItem } from '@chanomhub/sdk';

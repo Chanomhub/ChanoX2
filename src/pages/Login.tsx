@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 export default function Login() {
     const { login, loginWithGoogle, loading, loginVersion, oauthUrl, clearOAuthUrl } = useAuth();

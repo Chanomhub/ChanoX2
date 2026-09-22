@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { Article, ArticleImage } from '@/types/graphql';
 import {
     Search, ChevronLeft, ChevronRight,

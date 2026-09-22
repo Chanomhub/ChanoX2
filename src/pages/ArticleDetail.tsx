@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import useSWR from 'swr';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { sdk, withDataTransform } from '@/libs/sdk';
 import { client } from '@/libs/api/client';
 import { GET_OFFICIAL_DOWNLOAD_SOURCES, GET_DOWNLOADS } from '@/libs/api/queries';
