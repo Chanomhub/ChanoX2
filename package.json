@@ -45,6 +45,8 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
     "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^22.20.4",
     "@types/react": "^19.3.0",

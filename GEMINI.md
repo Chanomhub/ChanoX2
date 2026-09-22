@@ -32,3 +32,10 @@ All pages and UI components in ChanoX2 must follow the unified ChanomHub brand d
 - **UI Architecture & Rules:** Refer to [UI_RULES.md](./UI_RULES.md)
 - **Brand Palette:** Warm Amber/Tea (`hsl(38 92% 52%)` / `#f59e0b`) as `--primary` accent over deep velvety warm background (`bg-background`).
 - **No Arbitrary Colors:** Never hardcode Steam blue (`#66c0f4`, `#1b2838`, `#1a2a3a`) or random colors (`rose-500`). Always use semantic Tailwind tokens (`bg-background`, `bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`, `bg-primary`, `text-primary-foreground`).
+
+## Git Commit Convention
+
+All commits must follow the **Conventional Commits** standard to ensure automated GitHub Release changelog categorization:
+- **Specification & Guidelines:** Refer to [COMMIT_RULES.md](./COMMIT_RULES.md)
+- **Format:** `<type>(<scope>): <subject>` (e.g. `feat(library): ...`, `fix(download): ...`, `style(ui): ...`)
+- **Automated Validation:** Enforced by Commitlint via Husky hook (`.husky/commit-msg`).
