@@ -20,7 +20,7 @@ const rules = [
                 const dir = path.dirname(gamePath);
 
                 // Debug logging
-                console.log(`🔍 [GameCompatibility] Checking dir: ${dir}`);
+                console.log(`[GameCompatibility] Checking dir: ${dir}`);
 
                 // Helper to check a directory
                 const checkDir = (directory) => {
@@ -28,11 +28,11 @@ const rules = [
                         const files = fs.readdirSync(directory);
                         // Check for strong indicators
                         if (files.some(f => f.endsWith('.runtimeconfig.json'))) {
-                            console.log(`✅ Found .runtimeconfig.json in ${directory}`);
+                            console.log(`Found .runtimeconfig.json in ${directory}`);
                             return true;
                         }
                         if (files.some(f => f === 'System.Private.CoreLib.dll')) {
-                            console.log(`✅ Found System.Private.CoreLib.dll in ${directory}`);
+                            console.log(`Found System.Private.CoreLib.dll in ${directory}`);
                             return true;
                         }
                         return false;
@@ -57,7 +57,7 @@ const rules = [
                     } catch (e) { }
                 }
 
-                console.log('❌ No .NET indicators found in directory or subdirectories');
+                console.log('No .NET indicators found in directory or subdirectories');
 
             } catch (e) {
                 console.error('Error checking compatibility rule dotnet-globalization:', e);
@@ -91,7 +91,7 @@ class GameCompatibility {
         }
 
         if (appliedRules.length > 0) {
-            console.log(`🛠️ [GameCompatibility] Applied fixes for ${path.basename(gamePath)}:`, appliedRules.join(', '));
+            console.log(`[GameCompatibility] Applied fixes for ${path.basename(gamePath)}:`, appliedRules.join(', '));
         }
 
         return env;

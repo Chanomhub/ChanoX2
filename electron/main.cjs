@@ -7,7 +7,7 @@ const { spawn } = require('child_process');
 // Load .env manually
 const envPath = path.join(__dirname, '../.env');
 if (fs.existsSync(envPath)) {
-    console.log('📝 [Main] Loading .env file...');
+    console.log('[Main] Loading .env file...');
     try {
         const envContent = fs.readFileSync(envPath, 'utf-8');
         envContent.split(/\r?\n/).forEach(line => {
@@ -21,7 +21,7 @@ if (fs.existsSync(envPath)) {
             }
         });
     } catch (err) {
-        console.error('❌ [Main] Error loading .env:', err);
+        console.error('[Main] Error loading .env:', err);
     }
 }
 
@@ -46,11 +46,11 @@ if (process.defaultApp) {
 
 // Error handling
 process.on('uncaughtException', (error) => {
-    console.error('🔥 Uncaught Exception:', error);
+    console.error('Uncaught Exception:', error);
 });
 
 process.on('unhandledRejection', (reason) => {
-    console.error('🔥 Unhandled Rejection:', reason);
+    console.error('Unhandled Rejection:', reason);
 });
 
 // Constants
@@ -88,7 +88,7 @@ function parseLaunchGameArg(args) {
 
 // Parse command line arguments for protocol URL
 function parseProtocolUrl(args) {
-    console.log('🔍 [Main] Parsing command line args:', args);
+    console.log('[Main] Parsing command line args:', args);
     // Find any argument that contains chanox2://
     const protocolArg = args.find(arg => arg.includes('chanox2://'));
     if (protocolArg) {
@@ -163,10 +163,10 @@ async function downloadGameIcon(gameId, coverImageUrl) {
         const buffer = Buffer.from(await response.arrayBuffer());
         fs.writeFileSync(iconPath, buffer);
 
-        console.log('✅ Downloaded game icon:', iconPath);
+        console.log('Downloaded game icon:', iconPath);
         return iconPath;
     } catch (err) {
-        console.error('⚠️ Failed to download icon:', err.message);
+        console.error('Failed to download icon:', err.message);
         return null;
     }
 }
@@ -190,7 +190,7 @@ async function downloadCoverImage(gameId, coverImageUrl) {
 
         // Skip if already cached
         if (fs.existsSync(coverPath)) {
-            console.log('📦 Cover already cached:', coverPath);
+            console.log('Cover already cached:', coverPath);
             return coverPath;
         }
 
@@ -201,10 +201,10 @@ async function downloadCoverImage(gameId, coverImageUrl) {
         const buffer = Buffer.from(await response.arrayBuffer());
         fs.writeFileSync(coverPath, buffer);
 
-        console.log('✅ Downloaded cover image:', coverPath);
+        console.log('Downloaded cover image:', coverPath);
         return coverPath;
     } catch (err) {
-        console.error('⚠️ Failed to download cover:', err.message);
+        console.error('Failed to download cover:', err.message);
         return null;
     }
 }
@@ -295,7 +295,7 @@ function createWindow() {
 
     if (isDev) {
         // Development: Load from Vite dev server
-        console.log('📱 Loading from Vite dev server (localhost:5173)...');
+        console.log('Loading from Vite dev server (localhost:5173)...');
         mainWindow.webContents.session.clearCache().then(() => {
             mainWindow.loadURL('http://localhost:5173');
         });
@@ -553,7 +553,7 @@ ipcMain.on('cancel-download', (event, id) => {
 });
 
 ipcMain.on('download-file', (event, { url, headers }) => {
-    console.log('📥 [Main] Received download-file request:', url);
+    console.log('[Main] Received download-file request:', url);
     console.log('   Headers:', headers ? 'Present' : 'None');
 
     // Use parallel downloader for storage.chanomhub.com
@@ -574,7 +574,7 @@ ipcMain.on('download-file', (event, { url, headers }) => {
         }
         win.webContents.downloadURL(url, options);
     } else {
-        console.error('❌ [Main] Could not find sender window for download');
+        console.error('[Main] Could not find sender window for download');
     }
 });
 
@@ -652,7 +652,7 @@ ipcMain.on('open-new-window', (event, url) => {
 
 // --- Mod Management ---
 ipcMain.handle('install-mod', async (event, { url, installPath, filename, headers }) => {
-    console.log(`📥 [Main] Mod Install Request: ${url}`);
+    console.log(`[Main] Mod Install Request: ${url}`);
     if (headers && headers.Authorization) {
         console.log(`   Auth: Bearer ${headers.Authorization.substring(7, 15)}...`);
     }
@@ -711,7 +711,7 @@ ipcMain.handle('install-mod', async (event, { url, installPath, filename, header
 
             file.on('finish', () => {
                 file.close();
-                console.log(`✅ [Main] Mod installed successfully: ${filePath}`);
+                console.log(`[Main] Mod installed successfully: ${filePath}`);
                 resolve({ success: true, path: filePath });
             });
 
@@ -884,7 +884,7 @@ ipcMain.handle('start-oauth-server', (event, options) => {
           </head>
           <body>
             <div class="container">
-              <h1 id="status">✅ Login Successful!</h1>
+              <h1 id="status">Login Successful!</h1>
               <p>You can close this tab and return to ChanoX2.</p>
             </div>
             <script>
@@ -931,10 +931,10 @@ ipcMain.handle('start-oauth-server', (event, options) => {
                   .then(() => setTimeout(() => window.close(), 1500))
                   .catch(localErr => {
                     console.error('Local callback post failed:', localErr);
-                    document.getElementById('status').innerText = '❌ Authentication failed: ' + localErr.message;
+                    document.getElementById('status').innerText = 'Authentication failed: ' + localErr.message;
                   });
                 } else {
-                  document.getElementById('status').innerText = '❌ Authentication failed: ' + err.message;
+                  document.getElementById('status').innerText = 'Authentication failed: ' + err.message;
                 }
               });
             </script>
@@ -1001,10 +1001,10 @@ ipcMain.handle('save-global-settings', (event, settings) => {
 
     // Handle Discord RPC toggle
     if (settings.discordRPCEnabled === true && oldSettings.discordRPCEnabled !== true) {
-        console.log('🎮 [Main] Discord RPC enabled by user');
+        console.log('[Main] Discord RPC enabled by user');
         DiscordService.init();
     } else if (settings.discordRPCEnabled === false && oldSettings.discordRPCEnabled !== false) {
-        console.log('🎮 [Main] Discord RPC disabled by user');
+        console.log('[Main] Discord RPC disabled by user');
         DiscordService.shutdown();
     }
 
@@ -1547,7 +1547,7 @@ ipcMain.handle('install-winetricks-package', async (event, { packageId, winePref
             // Run winetricks in unattended mode
             const args = ['-q', packageId];
 
-            console.log('🍷 [winetricks] Installing:', packageId, winePrefix ? `(prefix: ${winePrefix})` : '(default prefix)');
+            console.log('[winetricks] Installing:', packageId, winePrefix ? `(prefix: ${winePrefix})` : '(default prefix)');
 
             activeWinetricksProcess = spawn('winetricks', args, {
                 env,
@@ -1576,7 +1576,7 @@ ipcMain.handle('install-winetricks-package', async (event, { packageId, winePref
             });
 
             activeWinetricksProcess.on('close', (code) => {
-                console.log('🍷 [winetricks] Process closed with code:', code);
+                console.log('[winetricks] Process closed with code:', code);
                 activeWinetricksProcess = null;
 
                 if (code === 0) {
@@ -1591,13 +1591,13 @@ ipcMain.handle('install-winetricks-package', async (event, { packageId, winePref
             });
 
             activeWinetricksProcess.on('error', (err) => {
-                console.error('🍷 [winetricks] Spawn error:', err.message);
+                console.error('[winetricks] Spawn error:', err.message);
                 activeWinetricksProcess = null;
                 resolve({ success: false, package: packageId, error: err.message });
             });
 
         } catch (error) {
-            console.error('🍷 [winetricks] Error:', error.message);
+            console.error('[winetricks] Error:', error.message);
             resolve({ success: false, package: packageId, error: error.message });
         }
     });
@@ -1617,8 +1617,22 @@ ipcMain.handle('cancel-winetricks-install', async () => {
 });
 
 // --- NST Add-on Integration ---
-const NST_CONFIG_PATH = path.join(HOME_DIR, '.config', 'NST', 'NST.ini');
-const NST_PLUGIN_SETTINGS_PATH = path.join(HOME_DIR, '.config', 'NST', 'PluginSettings.ini');
+const LINGO_CONFIG_PATH = path.join(HOME_DIR, '.config', 'lingo', 'settings.ini');
+const LEGACY_NST_CONFIG_PATH = path.join(HOME_DIR, '.config', 'NST', 'NST.ini');
+const LINGO_PLUGIN_SETTINGS_PATH = path.join(HOME_DIR, '.config', 'lingo', 'PluginSettings.ini');
+const LEGACY_NST_PLUGIN_SETTINGS_PATH = path.join(HOME_DIR, '.config', 'NST', 'PluginSettings.ini');
+
+function getPrimaryConfigPath() {
+    if (fs.existsSync(LINGO_CONFIG_PATH)) return LINGO_CONFIG_PATH;
+    if (fs.existsSync(LEGACY_NST_CONFIG_PATH)) return LEGACY_NST_CONFIG_PATH;
+    return LINGO_CONFIG_PATH;
+}
+
+function getPrimaryPluginSettingsPath() {
+    if (fs.existsSync(LINGO_PLUGIN_SETTINGS_PATH)) return LINGO_PLUGIN_SETTINGS_PATH;
+    if (fs.existsSync(LEGACY_NST_PLUGIN_SETTINGS_PATH)) return LEGACY_NST_PLUGIN_SETTINGS_PATH;
+    return LINGO_PLUGIN_SETTINGS_PATH;
+}
 
 // Minimal INI read/write (Qt QSettings IniFormat compatible for flat sections)
 function parseIni(text) {
@@ -1638,66 +1652,292 @@ function serializeIni(ini) {
     ).join('\n\n') + '\n';
 }
 
-ipcMain.handle('nst-get-config', async () => {
+async function handleGetLingoConfig() {
     try {
-        const ini = parseIni(fs.readFileSync(NST_CONFIG_PATH, 'utf-8'));
+        const configPath = getPrimaryConfigPath();
+        const ini = parseIni(fs.readFileSync(configPath, 'utf-8'));
         return { success: true, general: ini['General'] || {} };
     } catch {
         return { success: true, general: {}, exists: false };
     }
-});
+}
+ipcMain.handle('lingo-get-config', handleGetLingoConfig);
+ipcMain.handle('nst-get-config', handleGetLingoConfig);
 
-ipcMain.handle('nst-set-llm-settings', async (event, { provider, apiKey, baseUrl, model }) => {
+async function handleSetLlmSettings(event, { provider, apiKey, baseUrl, model }) {
     try {
-        // Main LLM config used by NST core
-        const raw = fs.existsSync(NST_CONFIG_PATH) ? fs.readFileSync(NST_CONFIG_PATH, 'utf-8') : '[General]\n';
+        const configPath = getPrimaryConfigPath();
+        const raw = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf-8') : '[General]\n';
         const ini = parseIni(raw);
         ini.General = ini.General || {};
         if (provider !== undefined) ini.General.llmProvider = provider;
         if (apiKey !== undefined) ini.General.llmApiKey = apiKey;
         if (baseUrl !== undefined) ini.General.llmBaseUrl = baseUrl;
         if (model !== undefined) ini.General.llmModel = model;
-        fs.mkdirSync(path.dirname(NST_CONFIG_PATH), { recursive: true });
-        fs.writeFileSync(NST_CONFIG_PATH, serializeIni(ini), 'utf-8');
+        fs.mkdirSync(path.dirname(configPath), { recursive: true });
+        fs.writeFileSync(configPath, serializeIni(ini), 'utf-8');
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };
     }
-});
+}
+ipcMain.handle('lingo-set-llm-settings', handleSetLlmSettings);
+ipcMain.handle('nst-set-llm-settings', handleSetLlmSettings);
 
-ipcMain.handle('nst-set-plugin-setting', async (event, { pluginFile, key, value }) => {
+async function handleSetPluginSetting(event, { pluginFile, key, value }) {
     try {
-        // Per-Lua-plugin settings, e.g. groq_translate.lua\settings\api_key
-        const raw = fs.existsSync(NST_PLUGIN_SETTINGS_PATH)
-            ? fs.readFileSync(NST_PLUGIN_SETTINGS_PATH, 'utf-8') : '[Plugins]\n';
+        const settingsPath = getPrimaryPluginSettingsPath();
+        const raw = fs.existsSync(settingsPath)
+            ? fs.readFileSync(settingsPath, 'utf-8') : '[Plugins]\n';
         const ini = parseIni(raw);
         ini.Plugins = ini.Plugins || {};
         ini.Plugins[`${pluginFile}\\settings\\${key}`] = value ?? '';
-        fs.mkdirSync(path.dirname(NST_PLUGIN_SETTINGS_PATH), { recursive: true });
-        fs.writeFileSync(NST_PLUGIN_SETTINGS_PATH, serializeIni(ini), 'utf-8');
+        fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+        fs.writeFileSync(settingsPath, serializeIni(ini), 'utf-8');
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };
     }
-});
+}
+ipcMain.handle('lingo-set-plugin-setting', handleSetPluginSetting);
+ipcMain.handle('nst-set-plugin-setting', handleSetPluginSetting);
 
-// --- NST CLI Integration ---
-ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, nstExecutablePath, title, coverImage }) => {
+// --- Lingo / NST CLI Integration ---
+function resolveLingoCliPath(customPath) {
+    if (customPath && fs.existsSync(customPath)) {
+        return customPath;
+    }
+
+    // 1. Check settings.json for configured path
     try {
-        // Use provided path or default
-        // TODO: Make this path configurable via Settings UI if not provided
-        const nstPath = nstExecutablePath || 'NST';
+        const settings = loadJsonFile(SETTINGS_FILE, {});
+        if (settings.lingoExecutablePath && fs.existsSync(settings.lingoExecutablePath)) {
+            return settings.lingoExecutablePath;
+        }
+        if (settings.nstExecutablePath && fs.existsSync(settings.nstExecutablePath)) {
+            return settings.nstExecutablePath;
+        }
+    } catch (_) {}
 
-        // Check if NST exists
-        if (!fs.existsSync(nstPath)) {
-            return { success: false, error: `NST not found at: ${nstPath}` };
+    const isWin = process.platform === 'win32';
+    const binaryNames = isWin ? ['lingo.exe', 'nst.exe'] : ['lingo', 'nst'];
+
+    // 2. Managed binaries inside app userData/bin
+    for (const binName of binaryNames) {
+        const managed = path.join(USER_DATA_DIR, 'bin', binName);
+        if (fs.existsSync(managed)) return managed;
+    }
+
+    // 3. User local bin (~/.local/bin)
+    for (const binName of binaryNames) {
+        const localBin = path.join(HOME_DIR, '.local', 'bin', binName);
+        if (fs.existsSync(localBin)) return localBin;
+    }
+
+    // 4. Standard system directories
+    const sysDirs = ['/usr/local/bin', '/usr/bin', '/opt/lingo/bin', '/opt/nst/bin'];
+    for (const dir of sysDirs) {
+        for (const binName of binaryNames) {
+            const sysPath = path.join(dir, binName);
+            if (fs.existsSync(sysPath)) return sysPath;
+        }
+    }
+
+    // 5. Look in PATH environment variable via which/where
+    try {
+        const cmd = isWin ? 'where' : 'which';
+        for (const binName of binaryNames) {
+            const out = execSync(`${cmd} ${binName}`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+            const firstLine = out.split(/\r?\n/)[0];
+            if (firstLine && fs.existsSync(firstLine)) return firstLine;
+        }
+    } catch (_) {}
+
+    return null;
+}
+
+function getLingoVersion(executablePath) {
+    try {
+        const out = execSync(`"${executablePath}" version`, { encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'ignore'] });
+        return out.trim();
+    } catch (e) {
+        return 'unknown';
+    }
+}
+
+async function handleCheckLingoCli() {
+    const binPath = resolveLingoCliPath();
+    if (!binPath) {
+        return { installed: false };
+    }
+    const version = getLingoVersion(binPath);
+    return { installed: true, path: binPath, version };
+}
+ipcMain.handle('check-lingo-cli', handleCheckLingoCli);
+ipcMain.handle('check-nst-cli', handleCheckLingoCli);
+
+async function handleDownloadAndInstallLingo(event) {
+    try {
+        const binDir = path.join(USER_DATA_DIR, 'bin');
+        fs.mkdirSync(binDir, { recursive: true });
+
+        const isWin = process.platform === 'win32';
+        const isMac = process.platform === 'darwin';
+        const osName = isWin ? 'windows' : isMac ? 'darwin' : 'linux';
+        const archName = process.arch === 'arm64' ? 'arm64' : 'amd64';
+
+        // 1. Try finding release asset from ProjectErotic/Lingo-Translate or NST-Ghost/NST-V2
+        const repos = ['ProjectErotic/Lingo-Translate', 'NST-Ghost/NST-V2'];
+        let downloadUrl = null;
+        let assetFileName = null;
+
+        for (const repo of repos) {
+            try {
+                const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
+                const jsonText = await new Promise((resolve, reject) => {
+                    const req = net.request({ url: apiUrl, method: 'GET', headers: { 'User-Agent': 'ChanoX2' } });
+                    let body = '';
+                    req.on('response', (res) => {
+                        if (res.statusCode !== 200) {
+                            reject(new Error(`GitHub API returned ${res.statusCode}`));
+                            return;
+                        }
+                        res.on('data', (d) => body += d.toString());
+                        res.on('end', () => resolve(body));
+                    });
+                    req.on('error', reject);
+                    req.end();
+                });
+
+                const releaseData = JSON.parse(jsonText);
+                if (releaseData.assets && releaseData.assets.length > 0) {
+                    const asset = releaseData.assets.find(a => 
+                        a.name.includes(osName) && a.name.includes(archName) && (a.name.endsWith('.tar.gz') || a.name.endsWith('.zip'))
+                    ) || releaseData.assets.find(a => 
+                        a.name.includes(osName) && (a.name.endsWith('.tar.gz') || a.name.endsWith('.zip'))
+                    );
+                    if (asset) {
+                        downloadUrl = asset.browser_download_url;
+                        assetFileName = asset.name;
+                        break;
+                    }
+                }
+            } catch (err) {
+                console.warn(`[download-and-install-lingo] Release lookup failed for ${repo}:`, err.message);
+            }
         }
 
-        // Ensure NST has execute permissions
+        // Fallback default url if GitHub API was blocked/rate-limited
+        if (!downloadUrl) {
+            const ext = isWin ? 'zip' : 'tar.gz';
+            downloadUrl = `https://github.com/ProjectErotic/Lingo-Translate/releases/download/v2.0.0/nst-v2.0.0-${osName}-${archName}.${ext}`;
+            assetFileName = `lingo-${osName}-${archName}.${ext}`;
+        }
+
+        const tempDir = path.join(USER_DATA_DIR, 'temp-lingo');
+        fs.mkdirSync(tempDir, { recursive: true });
+        const archivePath = path.join(tempDir, assetFileName);
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('lingo-download-progress', { status: 'downloading', percent: 20 });
+            mainWindow.webContents.send('nst-download-progress', { status: 'downloading', percent: 20 });
+        }
+
+        console.log(`[download-and-install-lingo] Downloading from ${downloadUrl}...`);
+        await downloadFile(downloadUrl, archivePath);
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('lingo-download-progress', { status: 'extracting', percent: 70 });
+            mainWindow.webContents.send('nst-download-progress', { status: 'extracting', percent: 70 });
+        }
+
+        console.log(`[download-and-install-lingo] Extracting archive...`);
+        const extractedDir = path.join(tempDir, 'extracted');
+        fs.mkdirSync(extractedDir, { recursive: true });
+        await ExtractorService.extractArchive(archivePath, extractedDir);
+
+        // Find binary in extracted directory
+        const binTargetName = isWin ? 'lingo.exe' : 'lingo';
+        const legacyTargetName = isWin ? 'nst.exe' : 'nst';
+        let foundBin = null;
+
+        function findFileRecursive(dir) {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    findFileRecursive(full);
+                } else if (entry.name === binTargetName || entry.name === legacyTargetName) {
+                    foundBin = full;
+                    return;
+                }
+            }
+        }
+        findFileRecursive(extractedDir);
+
+        if (!foundBin) {
+            throw new Error(`Could not find executable in extracted archive.`);
+        }
+
+        const finalCliPath = path.join(binDir, binTargetName);
+        fs.copyFileSync(foundBin, finalCliPath);
+        if (!isWin) {
+            fs.chmodSync(finalCliPath, '755');
+        }
+
+        // Also create backward-compat copy/symlink as nst
+        const finalLegacyPath = path.join(binDir, legacyTargetName);
         try {
-            fs.chmodSync(nstPath, '755');
-        } catch (chmodErr) {
-            console.warn('⚠️ [open-nst-cli] Could not set permissions:', chmodErr.message);
+            if (!isWin) {
+                if (fs.existsSync(finalLegacyPath)) fs.unlinkSync(finalLegacyPath);
+                fs.symlinkSync(finalCliPath, finalLegacyPath);
+            } else {
+                fs.copyFileSync(foundBin, finalLegacyPath);
+            }
+        } catch (_) {}
+
+        // Cleanup
+        try {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        } catch (_) {}
+
+        const version = getLingoVersion(finalCliPath);
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('lingo-download-progress', { status: 'complete', percent: 100 });
+            mainWindow.webContents.send('nst-download-progress', { status: 'complete', percent: 100 });
+        }
+
+        return { success: true, path: finalCliPath, version };
+    } catch (err) {
+        console.error('[download-and-install-lingo] Error:', err.message);
+        return { success: false, error: err.message };
+    }
+}
+ipcMain.handle('download-and-install-lingo', handleDownloadAndInstallLingo);
+ipcMain.handle('download-and-install-nst', handleDownloadAndInstallLingo);
+
+async function handleOpenLingoCli(event, { projectPath, engine, outputPath, nstExecutablePath, lingoExecutablePath, title, coverImage }) => {
+    try {
+        const executablePath = lingoExecutablePath || nstExecutablePath;
+        const nstPath = resolveLingoCliPath(executablePath);
+
+        // Check if executable exists
+        if (!nstPath || !fs.existsSync(nstPath)) {
+            return {
+                success: false,
+                error: `ไม่พบโปรแกรม Lingo Translate ในเครื่อง กรุณาติดตั้งหรือดาวน์โหลดผ่านเมนูตั้งค่า`,
+                notInstalled: true
+            };
+        }
+
+        // Ensure executable permissions
+        if (process.platform !== 'win32') {
+            try {
+                fs.chmodSync(nstPath, '755');
+            } catch (chmodErr) {
+                console.warn('[open-lingo-cli] Could not set permissions:', chmodErr.message);
+            }
         }
 
         const args = ['-e', engine || 'rpgm', '-p', projectPath];
@@ -1705,7 +1945,7 @@ ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, 
             args.push('--output', outputPath);
         }
 
-        console.log('🌐 [open-nst-cli] Launching NST:', { nstPath, args });
+        console.log('[open-lingo-cli] Launching Lingo:', { nstPath, args });
 
         // Run NST and wait for completion
         return new Promise((resolve) => {
@@ -1719,9 +1959,9 @@ ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, 
             subprocess.stdout.on('data', (data) => {
                 const text = data.toString();
                 outputLog += text;
-                console.log(`[NST stdout]: ${text.trim()}`);
-                // Optional: Send progress to frontend if needed
+                console.log(`[Lingo stdout]: ${text.trim()}`);
                 if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('lingo-output', text);
                     mainWindow.webContents.send('nst-output', text);
                 }
             });
@@ -1729,7 +1969,7 @@ ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, 
             subprocess.stderr.on('data', (data) => {
                 const text = data.toString();
                 errorLog += text;
-                console.error(`[NST stderr]: ${text.trim()}`);
+                console.error(`[Lingo stderr]: ${text.trim()}`);
             });
 
             subprocess.on('close', async (code) => {
@@ -1763,19 +2003,19 @@ ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, 
                                 library.push(newGame);
                                 saveJsonFile(LIBRARY_FILE, library);
 
-                                console.log('✅ [open-nst-cli] Automatically added to library:', newGame.title);
+                                console.log('[open-nst-cli] Automatically added to library:', newGame.title);
 
                                 // Notify frontend to refresh library
                                 if (mainWindow && !mainWindow.isDestroyed()) {
                                     mainWindow.webContents.send('library-updated');
                                 }
                             } else {
-                                console.log('ℹ️ [open-nst-cli] Game allready in library, skipping add.');
+                                console.log('ℹ[open-nst-cli] Game allready in library, skipping add.');
                             }
 
                             resolve({ success: true, logs: outputLog });
                         } catch (libErr) {
-                            console.error('⚠️ [open-nst-cli] Failed to add to library:', libErr);
+                            console.error('[open-nst-cli] Failed to add to library:', libErr);
                             // Still resolve as success since translation worked
                             resolve({ success: true, logs: outputLog, warning: 'Failed to add to library' });
                         }
@@ -1789,16 +2029,18 @@ ipcMain.handle('open-nst-cli', async (event, { projectPath, engine, outputPath, 
             });
 
             subprocess.on('error', (err) => {
-                console.error('🔥 [open-nst-cli] Spawn error:', err.message);
+                console.error('[open-nst-cli] Spawn error:', err.message);
                 resolve({ success: false, error: err.message });
             });
         });
 
     } catch (error) {
-        console.error('🔥 [open-nst-cli] Error:', error.message);
+        console.error('[open-lingo-cli] Error:', error.message);
         return { success: false, error: error.message };
     }
-});
+}
+ipcMain.handle('open-lingo-cli', handleOpenLingoCli);
+ipcMain.handle('open-nst-cli', handleOpenLingoCli);
 
 // --- PE Architecture Detection Helper ---
 function getExeArchitecture(filePath) {
@@ -1942,7 +2184,7 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
         const arch = getExeArchitecture(executablePath);
         const version = getUnityVersion(executablePath);
         const isModernUnity = version && (version.startsWith('6') || version.startsWith('2023') || version.startsWith('2024'));
-        console.log(`📦 [install-auto-translator] Game architecture: ${arch}, Unity version: ${version}, Modern Unity: ${isModernUnity} for ${executablePath}`);
+        console.log(`[install-auto-translator] Game architecture: ${arch}, Unity version: ${version}, Modern Unity: ${isModernUnity} for ${executablePath}`);
 
         let bepinexUrl;
         if (isModernUnity) {
@@ -1968,27 +2210,27 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
         const fontBundleZip = path.join(tempDir, 'TMP_Font_AssetBundles.7z');
 
         // 1. Download BepInEx
-        console.log(`📥 Downloading BepInEx from ${bepinexUrl}...`);
+        console.log(`Downloading BepInEx from ${bepinexUrl}...`);
         await downloadFile(bepinexUrl, bepinexZip);
 
         // 2. Download AutoTranslator
-        console.log(`📥 Downloading XUnity.AutoTranslator from ${autotranslatorUrl}...`);
+        console.log(`Downloading XUnity.AutoTranslator from ${autotranslatorUrl}...`);
         await downloadFile(autotranslatorUrl, translatorZip);
 
         // 3. Download Font Asset Bundles (resolves Thai square boxes/□□□ issue)
-        console.log(`📥 Downloading TMP Font Asset Bundles from ${fontBundleUrl}...`);
+        console.log(`Downloading TMP Font Asset Bundles from ${fontBundleUrl}...`);
         await downloadFile(fontBundleUrl, fontBundleZip);
 
         // 4. Extract BepInEx
-        console.log(`📂 Extracting BepInEx to ${exeDir}...`);
+        console.log(`Extracting BepInEx to ${exeDir}...`);
         await ExtractorService.extractArchive(bepinexZip, exeDir);
 
         // 5. Extract AutoTranslator
-        console.log(`📂 Extracting XUnity.AutoTranslator to ${exeDir}...`);
+        console.log(`Extracting XUnity.AutoTranslator to ${exeDir}...`);
         await ExtractorService.extractArchive(translatorZip, exeDir);
 
         // 6. Extract Font Asset Bundles
-        console.log(`📂 Extracting TMP Font Asset Bundles to ${exeDir}...`);
+        console.log(`Extracting TMP Font Asset Bundles to ${exeDir}...`);
         await ExtractorService.extractArchive(fontBundleZip, exeDir);
 
         // Download custom font assets if provided
@@ -1997,10 +2239,10 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
                 try {
                     const filename = path.basename(asset.key || asset.url);
                     const destPath = path.join(exeDir, filename);
-                    console.log(`📥 Downloading custom font asset from ${asset.url} to ${destPath}...`);
+                    console.log(`Downloading custom font asset from ${asset.url} to ${destPath}...`);
                     await downloadFile(asset.url, destPath);
                 } catch (dlErr) {
-                    console.error('⚠️ Failed to download font asset:', dlErr);
+                    console.error('Failed to download font asset:', dlErr);
                 }
             }
         }
@@ -2050,7 +2292,7 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
                     installedAt: new Date().toISOString()
                 }, null, 2));
             } catch (metaErr) {
-                console.error('⚠️ Failed to write .chanox_font.json:', metaErr);
+                console.error('Failed to write .chanox_font.json:', metaErr);
             }
         } else {
             // Check for saved font metadata in game directory first
@@ -2060,7 +2302,7 @@ ipcMain.handle('install-auto-translator', async (event, { executablePath, target
                 try {
                     savedFontMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
                 } catch (e) {
-                    console.error('⚠️ Failed to parse .chanox_font.json:', e);
+                    console.error('Failed to parse .chanox_font.json:', e);
                 }
             }
 
@@ -2261,7 +2503,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
         gameId = Object.keys(allConfigs).find(key => allConfigs[key].executablePath === executablePath);
     }
 
-    console.log('🎮 [launch-game] Starting game:', {
+    console.log('[launch-game] Starting game:', {
         executablePath,
         useWine,
         gameId,
@@ -2272,9 +2514,9 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
     if (gameId) {
         allConfigs[gameId] = { ...allConfigs[gameId], lastPlayed: new Date().toISOString() };
         saveJsonFile(GAME_CONFIG_FILE, allConfigs);
-        console.log('🎮 [launch-game] Updated lastPlayed for gameId:', gameId);
+        console.log('[launch-game] Updated lastPlayed for gameId:', gameId);
     } else {
-        console.warn('⚠️ [launch-game] No gameId found, playtime will NOT be tracked!');
+        console.warn('[launch-game] No gameId found, playtime will NOT be tracked!');
     }
 
     // Ensure executable permissions (Linux/AppImage)
@@ -2306,11 +2548,11 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
 
     const gameDir = path.dirname(executablePath);
 
-    console.log('🎮 [launch-game] Spawning:', { command, finalArgs: finalArgs.slice(0, 2), gameDir });
+    console.log('[launch-game] Spawning:', { command, finalArgs: finalArgs.slice(0, 2), gameDir });
 
     // Check if game is already running
     if (gameId && runningGames.has(gameId)) {
-        console.log('⚠️ [launch-game] Game already running:', gameId);
+        console.log('[launch-game] Game already running:', gameId);
         return { success: false, error: 'Game is already running' };
     }
 
@@ -2352,7 +2594,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
                     } else {
                         cleanEnv.WINEDLLOVERRIDES = 'winhttp=n,b';
                     }
-                    console.log('🍷 [launch-game] Applied BepInEx WINEDLLOVERRIDES:', cleanEnv.WINEDLLOVERRIDES);
+                    console.log('[launch-game] Applied BepInEx WINEDLLOVERRIDES:', cleanEnv.WINEDLLOVERRIDES);
                 }
             }
 
@@ -2384,7 +2626,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
                         DiscordService.setGameActivity(gameInfo.title, startTime);
                     }
                 } catch (e) {
-                    console.warn('⚠️ [Main] Failed to update Discord activity:', e.message);
+                    console.warn('[Main] Failed to update Discord activity:', e.message);
                 }
 
                 // Notify frontend that game started
@@ -2394,7 +2636,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
             }
 
             subprocess.on('error', (spawnErr) => {
-                console.error('🔥 [launch-game] Spawn error:', spawnErr.message);
+                console.error('[launch-game] Spawn error:', spawnErr.message);
                 if (gameId) {
                     runningGames.delete(gameId);
                     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -2406,7 +2648,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
 
             subprocess.on('close', (code) => {
                 const duration = Math.floor((Date.now() - startTime) / 1000);
-                console.log('🎮 [launch-game] Process closed:', { code, duration, gameId });
+                console.log('[launch-game] Process closed:', { code, duration, gameId });
 
                 // Reset Discord status to idle
                 DiscordService.setIdleActivity();
@@ -2425,7 +2667,7 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
                         playTime: previousPlayTime + duration
                     };
                     const saved = saveJsonFile(GAME_CONFIG_FILE, currentConfigs);
-                    console.log('🎮 [launch-game] PlayTime saved:', {
+                    console.log('[launch-game] PlayTime saved:', {
                         gameId,
                         previousPlayTime,
                         duration,
@@ -2436,13 +2678,13 @@ ipcMain.handle('launch-game', async (event, { executablePath, useWine, args = []
             });
 
             subprocess.on('exit', (code, signal) => {
-                console.log('🎮 [launch-game] Process exit:', { code, signal });
+                console.log('[launch-game] Process exit:', { code, signal });
             });
 
             subprocess.unref();
             setTimeout(() => resolve({ success: true, logsPath: outLog, pid: subprocess.pid }), 500);
         } catch (error) {
-            console.error('🔥 [launch-game] Error:', error.message);
+            console.error('[launch-game] Error:', error.message);
             if (gameId) runningGames.delete(gameId);
             resolve({ success: false, error: error.message });
         }
@@ -2470,12 +2712,12 @@ ipcMain.handle('stop-game', async (event, gameId) => {
                     subprocess.kill('SIGTERM');
                 }
             }
-            console.log('🎮 [stop-game] Sent SIGTERM to game:', gameId);
+            console.log('[stop-game] Sent SIGTERM to game:', gameId);
             return { success: true };
         }
         return { success: false, error: 'Process already terminated' };
     } catch (err) {
-        console.error('🔥 [stop-game] Error:', err.message);
+        console.error('[stop-game] Error:', err.message);
         return { success: false, error: err.message };
     }
 });
@@ -2558,10 +2800,10 @@ ${execCommand}
             fs.chmodSync(shortcutPath, '755');
         }
 
-        console.log('✅ Created game shortcut:', shortcutPath);
+        console.log('Created game shortcut:', shortcutPath);
         return { success: true, path: shortcutPath };
     } catch (err) {
-        console.error('🔥 Failed to create shortcut:', err);
+        console.error('Failed to create shortcut:', err);
         return { success: false, error: err.message };
     }
 });
@@ -2575,12 +2817,12 @@ ipcMain.handle('delete-game-shortcut', async (event, { gameId, title }) => {
 
         if (fs.existsSync(shortcutPath)) {
             fs.unlinkSync(shortcutPath);
-            console.log('✅ Deleted game shortcut:', shortcutPath);
+            console.log('Deleted game shortcut:', shortcutPath);
             return { success: true };
         }
         return { success: true }; // Already doesn't exist
     } catch (err) {
-        console.error('🔥 Failed to delete shortcut:', err);
+        console.error('Failed to delete shortcut:', err);
         return { success: false, error: err.message };
     }
 });
@@ -2796,12 +3038,12 @@ function launchMainApp() {
             setTimeout(() => {
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     if (pendingGameLaunch) {
-                        log.info('🎮 Sending pending game launch:', pendingGameLaunch);
+                        log.info('Sending pending game launch:', pendingGameLaunch);
                         mainWindow.webContents.send('pending-game-launch', { gameId: pendingGameLaunch });
                         pendingGameLaunch = null;
                     }
                     if (pendingDeepLink) {
-                        log.info('🔗 Sending pending deep link:', pendingDeepLink);
+                        log.info('Sending pending deep link:', pendingDeepLink);
                         mainWindow.webContents.send('deep-link', { url: pendingDeepLink });
                         pendingDeepLink = null;
                     }
@@ -2839,14 +3081,14 @@ if (!gotTheLock) {
         // Check for --launch-game argument from shortcut
         const gameId = parseLaunchGameArg(commandLine);
         if (gameId && mainWindow && !mainWindow.isDestroyed()) {
-            console.log('🎮 Second instance game launch:', gameId);
+            console.log('Second instance game launch:', gameId);
             mainWindow.webContents.send('pending-game-launch', { gameId });
         }
 
         // Check for protocol URL
         const protocolUrl = parseProtocolUrl(commandLine);
         if (protocolUrl && mainWindow && !mainWindow.isDestroyed()) {
-            console.log('🔗 Second instance deep link:', protocolUrl);
+            console.log('Second instance deep link:', protocolUrl);
             mainWindow.webContents.send('deep-link', { url: protocolUrl });
         }
 

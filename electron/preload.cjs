@@ -169,14 +169,49 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('winetricks-progress', handler);
     },
 
-    // NST CLI Integration
-    openNstCli: (projectPath, engine) =>
-        ipcRenderer.invoke('open-nst-cli', { projectPath, engine }),
+    // Lingo Translate CLI Integration
+    checkLingoCli: () => ipcRenderer.invoke('check-lingo-cli'),
+    downloadAndInstallLingo: () => ipcRenderer.invoke('download-and-install-lingo'),
+    openLingoCli: (projectPath, engine, options) =>
+        ipcRenderer.invoke('open-lingo-cli', { projectPath, engine, ...(options || {}) }),
+    onLingoDownloadProgress: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('lingo-download-progress');
+        ipcRenderer.on('lingo-download-progress', handler);
+        return () => ipcRenderer.removeListener('lingo-download-progress', handler);
+    },
+    onLingoOutput: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('lingo-output');
+        ipcRenderer.on('lingo-output', handler);
+        return () => ipcRenderer.removeListener('lingo-output', handler);
+    },
 
-    // NST Add-on config (LLM keys etc. — written to NST's QSettings INI)
-    nstGetConfig: () => ipcRenderer.invoke('nst-get-config'),
-    nstSetLlmSettings: (settings) => ipcRenderer.invoke('nst-set-llm-settings', settings),
-    nstSetPluginSetting: (args) => ipcRenderer.invoke('nst-set-plugin-setting', args),
+    // Backward-compat NST aliases
+    checkNstCli: () => ipcRenderer.invoke('check-lingo-cli'),
+    downloadAndInstallNst: () => ipcRenderer.invoke('download-and-install-lingo'),
+    openNstCli: (projectPath, engine, options) =>
+        ipcRenderer.invoke('open-lingo-cli', { projectPath, engine, ...(options || {}) }),
+    onNstDownloadProgress: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('lingo-download-progress');
+        ipcRenderer.on('lingo-download-progress', handler);
+        return () => ipcRenderer.removeListener('lingo-download-progress', handler);
+    },
+    onNstOutput: (callback) => {
+        const handler = (event, data) => callback(data);
+        ipcRenderer.removeAllListeners('lingo-output');
+        ipcRenderer.on('lingo-output', handler);
+        return () => ipcRenderer.removeListener('lingo-output', handler);
+    },
+
+    // Lingo / NST LLM Settings
+    lingoGetConfig: () => ipcRenderer.invoke('lingo-get-config'),
+    lingoSetLlmSettings: (settings) => ipcRenderer.invoke('lingo-set-llm-settings', settings),
+    lingoSetPluginSetting: (args) => ipcRenderer.invoke('lingo-set-plugin-setting', args),
+    nstGetConfig: () => ipcRenderer.invoke('lingo-get-config'),
+    nstSetLlmSettings: (settings) => ipcRenderer.invoke('lingo-set-llm-settings', settings),
+    nstSetPluginSetting: (args) => ipcRenderer.invoke('lingo-set-plugin-setting', args),
 
     // Auto-Translator
     checkAutoTranslator: (executablePath) =>

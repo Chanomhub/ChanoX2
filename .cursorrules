@@ -18,3 +18,13 @@
 - Use UI primitives from `@/components/ui` (`Button`, `Card`, `Dialog`, `Input`, `Badge`).
 - Use icons strictly from `lucide-react`.
 - Border radius must remain consistent: `rounded-lg` for controls/inputs, `rounded-xl` for cards/dialogs.
+
+## 3. Backend Code Style (.cjs Files)
+- **NO EMOJIS** in `.cjs` files (including `electron/main.cjs`, `electron/preload.cjs`, services, and platforms).
+- Use bracketed text prefixes for logging (`[Main]`, `[Error]`, `[Success]`, `[Warn]`, `[Download]`, etc.) to prevent encoding and terminal issues.
+
+## 4. Translation Tool Naming Convention
+- The game translation tool is **Lingo-Translate** (or **Lingo**), maintained under `ProjectErotic/Lingo-Translate`.
+- **NEVER** name new files, components, settings, or functions with `nst` or `NST` (e.g. use `LingoSettings.tsx`, `openLingoCli`).
+- Keep legacy `nst` references only as backward-compatible fallback aliases for existing user configurations.
+

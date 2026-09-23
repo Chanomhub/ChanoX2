@@ -132,6 +132,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     const [selectedFontId, setSelectedFontId] = useState<string>('');
     const [loadingFonts, setLoadingFonts] = useState(false);
     const [fontDialogOpen, setFontDialogOpen] = useState(false);
+    const [isNstRunning, setIsNstRunning] = useState(false);
+    const [nstStatusText, setNstStatusText] = useState<string | null>(null);
 
     const isUnityGame = libraryItem.engine?.toLowerCase().includes('unity') || config?.engine?.toLowerCase().includes('unity');
 
@@ -844,34 +846,76 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                 </div>
                             )}
 
-                            {/* NST CLI Translation */}
+                            {/* Lingo / NST Translation */}
                             {((libraryItem.engine || 'rpgm') === 'rpgm' || 
                               ['rpgm', 'rpgmaker', 'tyrano'].includes((libraryItem.engine || '').toLowerCase()) ||
                               (libraryItem.engine || '').toLowerCase().includes('rpg') ||
                               isUnityGame) && (
                                 <div className="space-y-2 pt-1">
-                                    <div className="text-xs font-bold text-foreground">Translate Yourself (NST)</div>
+                                    <div className="text-xs font-bold text-foreground">Translate Yourself (Lingo Translate)</div>
                                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                        สกัดและแปลข้อความด้วยตนเองโดยใช้ NST CLI
+                                        สกัดและแปลข้อความด้วยตนเองโดยใช้ Lingo Translate (Go Edition)
                                     </p>
                                     <button
+                                        disabled={isNstRunning}
                                         onClick={async () => {
-                                            if (window.electronAPI?.openNstCli) {
+                                            if (!window.electronAPI?.openNstCli) {
+                                                alert('ไม่พบ Lingo/NST CLI API ในระบบ');
+                                                return;
+                                            }
+                                            setIsNstRunning(true);
+                                            setNstStatusText('กำลังตรวจสอบ...');
+                                            try {
+                                                const check = await window.electronAPI.checkNstCli?.();
+                                                if (check && !check.installed) {
+                                                    setIsNstRunning(false);
+                                                    setNstStatusText(null);
+                                                    const wantDownload = confirm('ยังไม่ได้ติดตั้ง Lingo-Translate (เครื่องมือสกัดและแปลเกม)\n\nต้องการดาวน์โหลดและติดตั้งอัตโนมัติหรือไม่? (~5 MB)');
+                                                    if (wantDownload) {
+                                                        setIsNstRunning(true);
+                                                        setNstStatusText('กำลังดาวน์โหลด...');
+                                                        const dl = await window.electronAPI.downloadAndInstallNst?.();
+                                                        if (!dl?.success) {
+                                                            alert(`ดาวน์โหลดและติดตั้งไม่สำเร็จ: ${dl?.error || 'Unknown error'}`);
+                                                            return;
+                                                        }
+                                                        alert(`ติดตั้ง Lingo-Translate สำเร็จแล้ว (${dl.version || 'v2.3.0'})!`);
+                                                    } else {
+                                                        return;
+                                                    }
+                                                }
+
+                                                setIsNstRunning(true);
+                                                setNstStatusText('กำลังเปิดเครื่องมือ...');
                                                 const result = await window.electronAPI.openNstCli(
                                                     libraryItem.extractedPath,
                                                     libraryItem.engine || 'rpgm'
                                                 );
                                                 if (!result.success) {
-                                                    alert(`ไม่สามารถเปิด NST ได้: ${result.error || 'Unknown error'}`);
+                                                    alert(`ไม่สามารถเปิดเครื่องมือได้: ${result.error || 'Unknown error'}`);
+                                                } else {
+                                                    alert('สกัดและเตรียมโครงสร้างการแปลภาษาสำเร็จแล้ว!');
                                                 }
-                                            } else {
-                                                alert('ไม่พบ NST CLI');
+                                            } catch (err: any) {
+                                                alert(`เกิดข้อผิดพลาด: ${err?.message || 'Unknown error'}`);
+                                            } finally {
+                                                setIsNstRunning(false);
+                                                setNstStatusText(null);
                                             }
                                         }}
-                                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/60 transition-colors"
+                                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <Languages className="w-3.5 h-3.5" />
-                                        เปิดเครื่องมือ NST
+                                        {isNstRunning ? (
+                                            <>
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                {nstStatusText || 'กำลังทำงาน...'}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Languages className="w-3.5 h-3.5" />
+                                                เปิดเครื่องมือแปลภาษา (Lingo)
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             )}

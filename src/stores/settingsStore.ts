@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'mac' | 'notifications' | 'security' | 'application' | 'nst';
+export type SettingsSection = 'account' | 'general' | 'storage' | 'linux' | 'mac' | 'notifications' | 'security' | 'application' | 'lingo' | 'nst';
 export type NsfwFilterLevel = 'low' | 'medium' | 'high';
 
 interface SettingsStore {

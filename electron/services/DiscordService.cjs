@@ -23,39 +23,39 @@ class DiscordService {
             if (fs.existsSync(settingsFile)) {
                 const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
                 if (settings.discordRPCEnabled === false) {
-                    console.log('🎮 [Discord] Skipping initialization: Disabled in settings');
+                    console.log('[Discord] Skipping initialization: Disabled in settings');
                     return;
                 }
             }
         } catch (e) {
-            console.warn('⚠️ [Discord] Error checking settings:', e.message);
+            console.warn('[Discord] Error checking settings:', e.message);
         }
 
-        console.log('🎮 [Discord] Initializing Discord RPC...');
+        console.log('[Discord] Initializing Discord RPC...');
         this.isConnecting = true;
 
         try {
             this.client = new RPC.Client({ transport: 'ipc' });
 
             this.client.on('ready', () => {
-                console.log('✅ [Discord] Rich Presence ready');
+                console.log('[Discord] Rich Presence ready');
                 this.isConnecting = false;
                 this.setIdleActivity();
             });
 
             this.client.on('disconnected', () => {
-                console.log('❌ [Discord] Disconnected');
+                console.log('[Discord] Disconnected');
                 this.cleanup();
                 this.scheduleReconnect();
             });
 
             await this.client.login({ clientId: this.clientId }).catch(err => {
-                console.warn('⚠️ [Discord] Could not connect to Discord (is it running?):', err.message);
+                console.warn('[Discord] Could not connect to Discord (is it running?):', err.message);
                 this.isConnecting = false;
                 this.scheduleReconnect();
             });
         } catch (error) {
-            console.error('🔥 [Discord] Initialization error:', error);
+            console.error('[Discord] Initialization error:', error);
             this.isConnecting = false;
             this.scheduleReconnect();
         }
@@ -86,7 +86,7 @@ class DiscordService {
             };
             await this.client.setActivity(this.currentActivity);
         } catch (err) {
-            console.error('🔥 [Discord] Failed to set activity:', err);
+            console.error('[Discord] Failed to set activity:', err);
         }
     }
 
@@ -112,10 +112,10 @@ class DiscordService {
             try {
                 const destroyPromise = this.client.destroy();
                 if (destroyPromise && typeof destroyPromise.catch === 'function') {
-                    destroyPromise.catch(e => console.warn('⚠️ [Discord] Error while destroying client:', e?.message));
+                    destroyPromise.catch(e => console.warn('[Discord] Error while destroying client:', e?.message));
                 }
             } catch (e) {
-                console.warn('⚠️ [Discord] Error while destroying client:', e.message);
+                console.warn('[Discord] Error while destroying client:', e.message);
             }
             this.client = null;
         }

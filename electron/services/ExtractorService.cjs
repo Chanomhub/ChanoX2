@@ -404,7 +404,7 @@ function findGameFolder(dir, depth = 0) {
 
         for (const item of items) {
             if (gameMarkers.includes(item)) {
-                console.log('🎮 [ExtractorService] Game marker found:', item, 'in', dir);
+                console.log('[ExtractorService] Game marker found:', item, 'in', dir);
                 return dir;
             }
         }

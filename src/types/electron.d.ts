@@ -208,10 +208,24 @@ export interface ElectronAPI {
     cancelWinetricksInstall: () => Promise<{ success: boolean; error?: string }>;
     onWinetricksProgress: (callback: (data: WinetricksProgressData) => void) => (() => void) | void;
 
-    // NST CLI Integration
-    openNstCli: (projectPath: string, engine: string) => Promise<{ success: boolean; error?: string }>;
+    // Lingo Translate CLI Integration
+    checkLingoCli: () => Promise<{ installed: boolean; path?: string; version?: string }>;
+    downloadAndInstallLingo: () => Promise<{ success: boolean; path?: string; version?: string; error?: string }>;
+    openLingoCli: (projectPath: string, engine: string, options?: { outputPath?: string; nstExecutablePath?: string; lingoExecutablePath?: string; title?: string; coverImage?: string; action?: string }) => Promise<{ success: boolean; error?: string; logs?: string; notInstalled?: boolean }>;
+    onLingoDownloadProgress: (callback: (data: { status: string; percent: number }) => void) => (() => void) | void;
+    onLingoOutput: (callback: (text: string) => void) => (() => void) | void;
 
-    // NST Add-on config
+    // Backward-compat NST CLI Aliases
+    checkNstCli: () => Promise<{ installed: boolean; path?: string; version?: string }>;
+    downloadAndInstallNst: () => Promise<{ success: boolean; path?: string; version?: string; error?: string }>;
+    openNstCli: (projectPath: string, engine: string, options?: { outputPath?: string; nstExecutablePath?: string; lingoExecutablePath?: string; title?: string; coverImage?: string; action?: string }) => Promise<{ success: boolean; error?: string; logs?: string; notInstalled?: boolean }>;
+    onNstDownloadProgress: (callback: (data: { status: string; percent: number }) => void) => (() => void) | void;
+    onNstOutput: (callback: (text: string) => void) => (() => void) | void;
+
+    // Lingo / NST LLM Settings
+    lingoGetConfig: () => Promise<{ success: boolean; general?: Record<string, string>; exists?: boolean }>;
+    lingoSetLlmSettings: (settings: { provider?: string; apiKey?: string; baseUrl?: string; model?: string }) => Promise<{ success: boolean; error?: string }>;
+    lingoSetPluginSetting: (args: { pluginFile: string; key: string; value?: string }) => Promise<{ success: boolean; error?: string }>;
     nstGetConfig: () => Promise<{ success: boolean; general?: Record<string, string>; exists?: boolean }>;
     nstSetLlmSettings: (settings: { provider?: string; apiKey?: string; baseUrl?: string; model?: string }) => Promise<{ success: boolean; error?: string }>;
     nstSetPluginSetting: (args: { pluginFile: string; key: string; value?: string }) => Promise<{ success: boolean; error?: string }>;

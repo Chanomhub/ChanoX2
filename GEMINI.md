@@ -39,3 +39,21 @@ All commits must follow the **Conventional Commits** standard to ensure automate
 - **Specification & Guidelines:** Refer to [COMMIT_RULES.md](./COMMIT_RULES.md)
 - **Format:** `<type>(<scope>): <subject>` (e.g. `feat(library): ...`, `fix(download): ...`, `style(ui): ...`)
 - **Automated Validation:** Enforced by Commitlint via Husky hook (`.husky/commit-msg`).
+
+## AI Coding Rules & Conventions
+
+### 1. No Emojis in Backend (.cjs) Files
+- Do NOT use emojis in `.cjs` files (including `electron/main.cjs`, `electron/preload.cjs`, and services/platforms).
+- Console logging must use clean, bracketed text prefixes instead of emojis:
+  - Good: `console.log('[Main] Loading configuration...');`
+  - Good: `console.error('[Error] Failed to connect:', err.message);`
+  - Good: `console.warn('[Warn] Deprecated setting detected');`
+  - Bad: `console.log('📝 [Main] Loading...');`
+  - Bad: `console.error('❌ Failed:', err);`
+  - Bad: `console.log('✅ Done!');`
+
+### 2. Translation Suite Naming (Lingo-Translate)
+- The visual novel / RPG translation tool is **Lingo-Translate** (or **Lingo**), maintained under `ProjectErotic/Lingo-Translate`.
+- Do NOT name new files, components, functions, or variables with `nst` or `NST` (e.g. use `LingoSettings.tsx`, not `NstSettings.tsx`; `openLingoCli`, not `openNstCli`).
+- Keep legacy `nst` references strictly as backward-compatible fallback aliases for existing user workspaces and paths.
+

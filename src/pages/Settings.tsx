@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import { useNotification } from '@/contexts/NotificationContext';
 import { LinuxSettings } from './settings/LinuxSettings';
 import { MacSettings } from './settings/MacSettings';
-import { NstSettings } from './settings/NstSettings';
+import { LingoSettings } from './settings/LingoSettings';
 import { useLibrary } from '@/contexts/LibraryContext';
 import { getCoverImageSrc } from '@/lib/coverImage';
 
@@ -1076,7 +1076,7 @@ export default function Settings() {
         ...(isLinux ? [{ id: 'linux' as const, label: 'Linux', icon: <MonitorCog size={18} />, group: 'PREFERENCES' }] : []),
         ...(isMac ? [{ id: 'mac' as const, label: 'MacOS', icon: <MonitorCog size={18} />, group: 'PREFERENCES' }] : []),
         { id: 'notifications', label: 'Notifications', icon: <Bell size={18} />, group: 'APPLICATION' },
-        { id: 'nst' as const, label: 'NST Translation', icon: <Languages size={18} />, group: 'APPLICATION' },
+        { id: 'lingo' as const, label: 'Lingo Translation', icon: <Languages size={18} />, group: 'APPLICATION' },
         { id: 'application', label: 'Application', icon: <SettingsIcon size={18} />, group: 'APPLICATION' },
         { id: 'security', label: 'Security', icon: <Shield size={18} />, group: 'APPLICATION' },
     ];
@@ -1097,8 +1097,9 @@ export default function Settings() {
                 return <NotificationsSection />;
             case 'application':
                 return <ApplicationSection />;
+            case 'lingo':
             case 'nst':
-                return <NstSettings />;
+                return <LingoSettings />;
             case 'security':
                 return <SecuritySection />;
             default:
