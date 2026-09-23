@@ -1917,7 +1917,7 @@ async function handleDownloadAndInstallLingo(event) {
 ipcMain.handle('download-and-install-lingo', handleDownloadAndInstallLingo);
 ipcMain.handle('download-and-install-nst', handleDownloadAndInstallLingo);
 
-async function handleOpenLingoCli(event, { projectPath, engine, outputPath, nstExecutablePath, lingoExecutablePath, title, coverImage }) => {
+async function handleOpenLingoCli(event, { projectPath, engine, outputPath, nstExecutablePath, lingoExecutablePath, title, coverImage }) {
     try {
         const executablePath = lingoExecutablePath || nstExecutablePath;
         const nstPath = resolveLingoCliPath(executablePath);

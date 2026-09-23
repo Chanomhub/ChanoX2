@@ -205,71 +205,19 @@ jobs:
           echo -e "$MAJOR_SUMMARY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Generate Commit Log
-        id: commit_log
-        shell: bash
-        run: |
-          FROM_TAG="${{ steps.base_tag.outputs.from_tag }}"
-          if [ -n "$FROM_TAG" ] && git rev-parse "$FROM_TAG" >/dev/null 2>&1; then
-            RANGE="$FROM_TAG..HEAD"
-          else
-            RANGE="HEAD"
-          fi
-          echo "Gathering commits for range: $RANGE"
-          
-          COMMITS=$(git log "$RANGE" --pretty=format:"* %s (%h by @%an)" --no-merges)
-          
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          if [ -n "$COMMITS" ]; then
-            echo "$COMMITS" >> $GITHUB_OUTPUT
-          else
-            echo "* No additional commits" >> $GITHUB_OUTPUT
-          fi
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Build Changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v5
-        with:
-          fromTag: ${{ steps.base_tag.outputs.from_tag }}
-          commitMode: true
-          configurationJson: |
-            {
-              "template": "${{ steps.base_tag.outputs.major_summary }}## What's Changed in #{{FROM_TAG}} to #{{TO_TAG}}\n\n#{{CHANGELOG}}",
-              "categories": [
-                {
-                  "title": "### 🚀 Major / Breaking Changes",
-                  "labels": ["breaking"],
-                  "regex": ".*(!|BREAKING CHANGE).*"
-                },
-                {
-                  "title": "### ✨ New Features",
-                  "labels": ["feature", "enhancement"],
-                  "regex": "^(feat|feature|add).*"
-                },
-                {
-                  "title": "### 🎨 UI & Design Improvements",
-                  "labels": ["ui", "style"],
-                  "regex": "^(style|ui|theme).*"
-                },
-                {
-                  "title": "### 🐛 Bug Fixes",
-                  "labels": ["bug", "fix"],
-                  "regex": "^(fix|patch|hotfix).*"
-                },
-                {
-                  "title": "### 📝 Documentation & Others",
-                  "labels": [],
-                  "regex": ".*"
-                }
-              ],
-              "ignore_labels": ["ignore"],
-              "max_pull_requests": 100,
-              "max_commits": 100,
-              "next_version_template": "#{{MAJOR}}.999.999"
-            }
+      - name: Generate Release Notes & AI Summary
+        id: release_notes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 .github/scripts/generate_release_notes.py \
+            --current-tag "${{ github.ref_name }}" \
+            --prev-tag "${{ steps.base_tag.outputs.from_tag }}" \
+            --repo "${{ github.repository }}" \
+            --output release_notes.md
+          cat release_notes.md
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -288,14 +236,9 @@ jobs:
             artifacts/**/*.tar.gz
             artifacts/**/*.flatpak
             artifacts/**/latest*.yml
-          body: |
-            ${{ steps.build_changelog.outputs.changelog }}
-
-            ### 🔨 Commits
-            ${{ steps.commit_log.outputs.commits }}
-          generate_release_notes: false
-          append_body: false
+          body_path: release_notes.md
           draft: false
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+          token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

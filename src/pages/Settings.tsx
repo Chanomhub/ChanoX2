@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
     User, Settings as SettingsIcon, HardDrive, MonitorCog, Bell, Shield,
     ChevronLeft, Check, Loader2, ExternalLink, FolderOpen, Trash2, EyeOff,
-    Search, ArrowUpDown, Languages
+    Search, ArrowUpDown, Languages, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { LinuxSettings } from './settings/LinuxSettings';
 import { MacSettings } from './settings/MacSettings';
 import { LingoSettings } from './settings/LingoSettings';
+import { ReleaseNotesDialog } from '@/components/common/ReleaseNotesDialog';
 import { useLibrary } from '@/contexts/LibraryContext';
 import { getCoverImageSrc } from '@/lib/coverImage';
 
@@ -157,6 +158,7 @@ function GeneralSection() {
     const [error, setError] = useState<string | null>(null);
     const [releaseUrl, setReleaseUrl] = useState<string | null>(null);
     const [releaseNotes, setReleaseNotes] = useState<string | null>(null);
+    const [showReleaseNotes, setShowReleaseNotes] = useState(false);
     const currentVersion = packageJson.version;
 
     useEffect(() => {
@@ -202,6 +204,16 @@ function GeneralSection() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowReleaseNotes(true)}
+                                className="border-border hover:bg-muted text-xs gap-1.5 h-8"
+                            >
+                                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                                <span>What's New</span>
+                            </Button>
+
                             {loading ? (
                                 <Loader2 className="w-5 h-5 text-chanox-accent animate-spin" />
                             ) : isUpdateAvailable ? (
@@ -243,19 +255,41 @@ function GeneralSection() {
                         />
                     </div>
 
-                    {/* Release Notes Panel */}
-                    {isUpdateAvailable && releaseNotes && (
+                    {/* Release Notes Preview Panel */}
+                    {isUpdateAvailable && (
                         <div className="mt-5 p-4 bg-zinc-900/40 border border-zinc-800/60 rounded-lg">
-                            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">What's New in v{latestVersion}</p>
-                            <ScrollArea className="h-40 w-full pr-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <span>What's New in v{latestVersion}</span>
+                                </p>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowReleaseNotes(true)}
+                                    className="h-6 text-xs text-muted-foreground hover:text-primary p-0"
+                                >
+                                    View Full Details →
+                                </Button>
+                            </div>
+                            <ScrollArea className="h-32 w-full pr-3">
                                 <div className="text-zinc-300 text-xs font-sans whitespace-pre-wrap leading-relaxed select-text">
-                                    {releaseNotes}
+                                    {releaseNotes || 'An updated release of ChanoX2 is available with improvements and fixes.'}
                                 </div>
                             </ScrollArea>
                         </div>
                     )}
                 </CardContent>
             </Card>
+
+            {/* Release Notes Dialog */}
+            <ReleaseNotesDialog
+                open={showReleaseNotes}
+                onOpenChange={setShowReleaseNotes}
+                releaseNotes={releaseNotes}
+                version={latestVersion || currentVersion}
+                releaseUrl={releaseUrl}
+            />
 
             <SectionHeader title={t('language')} />
 
