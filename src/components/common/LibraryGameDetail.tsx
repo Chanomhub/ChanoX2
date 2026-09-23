@@ -859,14 +859,18 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                     <button
                                         disabled={isNstRunning}
                                         onClick={async () => {
-                                            if (!window.electronAPI?.openNstCli) {
-                                                alert('ไม่พบ Lingo/NST CLI API ในระบบ');
+                                            const openTool = window.electronAPI?.openLingoCli || window.electronAPI?.openNstCli;
+                                            const checkTool = window.electronAPI?.checkLingoCli || window.electronAPI?.checkNstCli;
+                                            const downloadTool = window.electronAPI?.downloadAndInstallLingo || window.electronAPI?.downloadAndInstallNst;
+
+                                            if (!openTool) {
+                                                alert('ไม่พบ Lingo Translate API ในระบบ');
                                                 return;
                                             }
                                             setIsNstRunning(true);
                                             setNstStatusText('กำลังตรวจสอบ...');
                                             try {
-                                                const check = await window.electronAPI.checkNstCli?.();
+                                                const check = await checkTool?.();
                                                 if (check && !check.installed) {
                                                     setIsNstRunning(false);
                                                     setNstStatusText(null);
@@ -874,27 +878,25 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                                                     if (wantDownload) {
                                                         setIsNstRunning(true);
                                                         setNstStatusText('กำลังดาวน์โหลด...');
-                                                        const dl = await window.electronAPI.downloadAndInstallNst?.();
+                                                        const dl = await downloadTool?.();
                                                         if (!dl?.success) {
                                                             alert(`ดาวน์โหลดและติดตั้งไม่สำเร็จ: ${dl?.error || 'Unknown error'}`);
                                                             return;
                                                         }
-                                                        alert(`ติดตั้ง Lingo-Translate สำเร็จแล้ว (${dl.version || 'v2.3.0'})!`);
+                                                        alert(`ติดตั้ง Lingo-Translate สำเร็จแล้ว (${dl.version || 'v2.4.0'})!`);
                                                     } else {
                                                         return;
                                                     }
                                                 }
 
                                                 setIsNstRunning(true);
-                                                setNstStatusText('กำลังเปิดเครื่องมือ...');
-                                                const result = await window.electronAPI.openNstCli(
+                                                setNstStatusText('กำลังเตรียมข้อมูลและเปิด Lingo...');
+                                                const result = await openTool(
                                                     libraryItem.extractedPath,
                                                     libraryItem.engine || 'rpgm'
                                                 );
                                                 if (!result.success) {
                                                     alert(`ไม่สามารถเปิดเครื่องมือได้: ${result.error || 'Unknown error'}`);
-                                                } else {
-                                                    alert('สกัดและเตรียมโครงสร้างการแปลภาษาสำเร็จแล้ว!');
                                                 }
                                             } catch (err: any) {
                                                 alert(`เกิดข้อผิดพลาด: ${err?.message || 'Unknown error'}`);

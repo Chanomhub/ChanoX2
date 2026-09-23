@@ -1756,6 +1756,51 @@ function resolveLingoCliPath(customPath) {
     return null;
 }
 
+function resolveLingoDesktopPath(customPath) {
+    if (customPath && fs.existsSync(customPath)) {
+        return customPath;
+    }
+
+    try {
+        const settings = loadJsonFile(SETTINGS_FILE, {});
+        if (settings.lingoDesktopPath && fs.existsSync(settings.lingoDesktopPath)) {
+            return settings.lingoDesktopPath;
+        }
+    } catch (_) {}
+
+    const isWin = process.platform === 'win32';
+    const binaryNames = isWin ? ['lingo-desktop.exe', 'nst-desktop.exe'] : ['lingo-desktop', 'nst-desktop'];
+
+    for (const binName of binaryNames) {
+        const managed = path.join(USER_DATA_DIR, 'bin', binName);
+        if (fs.existsSync(managed)) return managed;
+    }
+
+    for (const binName of binaryNames) {
+        const localBin = path.join(HOME_DIR, '.local', 'bin', binName);
+        if (fs.existsSync(localBin)) return localBin;
+    }
+
+    const sysDirs = ['/usr/local/bin', '/usr/bin', '/opt/lingo/bin', '/opt/nst/bin'];
+    for (const dir of sysDirs) {
+        for (const binName of binaryNames) {
+            const sysPath = path.join(dir, binName);
+            if (fs.existsSync(sysPath)) return sysPath;
+        }
+    }
+
+    try {
+        const cmd = isWin ? 'where' : 'which';
+        for (const binName of binaryNames) {
+            const out = execSync(`${cmd} ${binName}`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+            const firstLine = out.split(/\r?\n/)[0];
+            if (firstLine && fs.existsSync(firstLine)) return firstLine;
+        }
+    } catch (_) {}
+
+    return null;
+}
+
 function getLingoVersion(executablePath) {
     try {
         const out = execSync(`"${executablePath}" version`, { encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'ignore'] });
@@ -1856,10 +1901,13 @@ async function handleDownloadAndInstallLingo(event) {
         fs.mkdirSync(extractedDir, { recursive: true });
         await ExtractorService.extractArchive(archivePath, extractedDir);
 
-        // Find binary in extracted directory
+        // Find binaries in extracted directory
         const binTargetName = isWin ? 'lingo.exe' : 'lingo';
         const legacyTargetName = isWin ? 'nst.exe' : 'nst';
+        const desktopTargetName = isWin ? 'lingo-desktop.exe' : 'lingo-desktop';
+        const desktopLegacyName = isWin ? 'nst-desktop.exe' : 'nst-desktop';
         let foundBin = null;
+        let foundDesktopBin = null;
 
         function findFileRecursive(dir) {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -1867,9 +1915,13 @@ async function handleDownloadAndInstallLingo(event) {
                 const full = path.join(dir, entry.name);
                 if (entry.isDirectory()) {
                     findFileRecursive(full);
-                } else if (entry.name === binTargetName || entry.name === legacyTargetName) {
-                    foundBin = full;
-                    return;
+                } else {
+                    if (entry.name === binTargetName || entry.name === legacyTargetName) {
+                        if (!foundBin) foundBin = full;
+                    }
+                    if (entry.name === desktopTargetName || entry.name === desktopLegacyName) {
+                        if (!foundDesktopBin) foundDesktopBin = full;
+                    }
                 }
             }
         }
@@ -1896,6 +1948,24 @@ async function handleDownloadAndInstallLingo(event) {
             }
         } catch (_) {}
 
+        // Install desktop GUI binary if present in archive
+        if (foundDesktopBin) {
+            const finalDesktopPath = path.join(binDir, desktopTargetName);
+            fs.copyFileSync(foundDesktopBin, finalDesktopPath);
+            if (!isWin) {
+                fs.chmodSync(finalDesktopPath, '755');
+            }
+            const finalLegacyDesktopPath = path.join(binDir, desktopLegacyName);
+            try {
+                if (!isWin) {
+                    if (fs.existsSync(finalLegacyDesktopPath)) fs.unlinkSync(finalLegacyDesktopPath);
+                    fs.symlinkSync(finalDesktopPath, finalLegacyDesktopPath);
+                } else {
+                    fs.copyFileSync(foundDesktopBin, finalLegacyDesktopPath);
+                }
+            } catch (_) {}
+        }
+
         // Cleanup
         try {
             fs.rmSync(tempDir, { recursive: true, force: true });
@@ -1921,119 +1991,163 @@ async function handleOpenLingoCli(event, { projectPath, engine, outputPath, nstE
     try {
         const executablePath = lingoExecutablePath || nstExecutablePath;
         const nstPath = resolveLingoCliPath(executablePath);
+        const desktopPath = resolveLingoDesktopPath();
 
-        // Check if executable exists
-        if (!nstPath || !fs.existsSync(nstPath)) {
+        // 1. If batch translation (outputPath provided)
+        if (outputPath) {
+            if (!nstPath || !fs.existsSync(nstPath)) {
+                return {
+                    success: false,
+                    error: 'ไม่พบโปรแกรม Lingo Translate ในเครื่อง กรุณาติดตั้งหรือดาวน์โหลดผ่านเมนูตั้งค่า',
+                    notInstalled: true
+                };
+            }
+
+            if (process.platform !== 'win32') {
+                try {
+                    fs.chmodSync(nstPath, '755');
+                } catch (chmodErr) {
+                    console.warn('[open-lingo-cli] Could not set permissions:', chmodErr.message);
+                }
+            }
+
+            const args = ['-e', engine || 'rpgm', '-p', projectPath, '--output', outputPath];
+            console.log('[open-lingo-cli] Launching Lingo batch translate:', { nstPath, args });
+
+            return new Promise((resolve) => {
+                const subprocess = spawn(nstPath, args, { stdio: 'pipe' });
+                let outputLog = '';
+                let errorLog = '';
+
+                subprocess.stdout.on('data', (data) => {
+                    const text = data.toString();
+                    outputLog += text;
+                    console.log(`[Lingo stdout]: ${text.trim()}`);
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('lingo-output', text);
+                        mainWindow.webContents.send('nst-output', text);
+                    }
+                });
+
+                subprocess.stderr.on('data', (data) => {
+                    const text = data.toString();
+                    errorLog += text;
+                    console.error(`[Lingo stderr]: ${text.trim()}`);
+                });
+
+                subprocess.on('close', async (code) => {
+                    console.log(`[Lingo] Process exited with code ${code}`);
+
+                    if (code === 0) {
+                        if (fs.existsSync(outputPath)) {
+                            try {
+                                const library = loadJsonFile(LIBRARY_FILE, []);
+                                const isDuplicate = library.some(item => item.extractedPath === outputPath);
+                                if (!isDuplicate) {
+                                    const newGame = {
+                                        id: Date.now(),
+                                        title: title || `${path.basename(projectPath)} (Translated)`,
+                                        extractedPath: outputPath,
+                                        addedAt: new Date().toISOString(),
+                                        engine: engine,
+                                        coverImage: coverImage || null,
+                                        isMod: true
+                                    };
+
+                                    library.push(newGame);
+                                    saveJsonFile(LIBRARY_FILE, library);
+
+                                    console.log('[open-lingo-cli] Automatically added to library:', newGame.title);
+
+                                    if (mainWindow && !mainWindow.isDestroyed()) {
+                                        mainWindow.webContents.send('library-updated');
+                                    }
+                                } else {
+                                    console.log('[open-lingo-cli] Game already in library, skipping add.');
+                                }
+
+                                resolve({ success: true, logs: outputLog });
+                            } catch (libErr) {
+                                console.error('[open-lingo-cli] Failed to add to library:', libErr);
+                                resolve({ success: true, logs: outputLog, warning: 'Failed to add to library' });
+                            }
+                        } else {
+                            resolve({ success: true, logs: outputLog, warning: 'Output path not found' });
+                        }
+                    } else {
+                        resolve({ success: false, error: `Lingo process exited with code ${code}`, logs: outputLog, errorLogs: errorLog });
+                    }
+                });
+
+                subprocess.on('error', (err) => {
+                    console.error('[open-lingo-cli] Spawn error:', err.message);
+                    resolve({ success: false, error: err.message });
+                });
+            });
+        }
+
+        // 2. Interactive GUI Mode (no outputPath) - Open Lingo GUI for translation
+        const wsFile = path.join(projectPath, 'workspace.nst');
+        const resolvedHomeWs = path.join(HOME_DIR, '.lingo', `${path.basename(path.resolve(projectPath))}.nst`);
+        const isExtracted = fs.existsSync(wsFile) || fs.existsSync(resolvedHomeWs);
+
+        // If not yet extracted and CLI is available, perform extraction first so user gets real-time progress
+        if (!isExtracted && nstPath && fs.existsSync(nstPath)) {
+            if (process.platform !== 'win32') {
+                try {
+                    fs.chmodSync(nstPath, '755');
+                } catch (_) {}
+            }
+
+            console.log('[open-lingo-cli] Extracting game strings before opening GUI...');
+            await new Promise((resolve) => {
+                const extProc = spawn(nstPath, ['extract', '-p', projectPath, '-e', engine || 'rpgm'], { stdio: 'pipe' });
+                extProc.stdout.on('data', (d) => {
+                    const text = d.toString();
+                    console.log(`[Lingo extract stdout]: ${text.trim()}`);
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('lingo-output', text);
+                    }
+                });
+                extProc.stderr.on('data', (d) => {
+                    console.error(`[Lingo extract stderr]: ${d.toString().trim()}`);
+                });
+                extProc.on('close', () => resolve());
+                extProc.on('error', () => resolve());
+            });
+        }
+
+        // Launch Desktop GUI application
+        const guiExecutable = desktopPath || nstPath;
+        if (!guiExecutable || !fs.existsSync(guiExecutable)) {
             return {
                 success: false,
-                error: `ไม่พบโปรแกรม Lingo Translate ในเครื่อง กรุณาติดตั้งหรือดาวน์โหลดผ่านเมนูตั้งค่า`,
+                error: 'ไม่พบโปรแกรม Lingo Translate ในเครื่อง กรุณาติดตั้งหรือดาวน์โหลดผ่านเมนูตั้งค่า',
                 notInstalled: true
             };
         }
 
-        // Ensure executable permissions
         if (process.platform !== 'win32') {
             try {
-                fs.chmodSync(nstPath, '755');
-            } catch (chmodErr) {
-                console.warn('[open-lingo-cli] Could not set permissions:', chmodErr.message);
-            }
+                fs.chmodSync(guiExecutable, '755');
+            } catch (_) {}
         }
 
-        const args = ['-e', engine || 'rpgm', '-p', projectPath];
-        if (outputPath) {
-            args.push('--output', outputPath);
+        let guiArgs = ['-p', projectPath, '-e', engine || 'rpgm'];
+        if (guiExecutable === nstPath && !desktopPath) {
+            // CLI fallback: use `lingo app`
+            guiArgs = ['app', '-p', projectPath, '-e', engine || 'rpgm'];
         }
 
-        console.log('[open-lingo-cli] Launching Lingo:', { nstPath, args });
+        console.log('[open-lingo-cli] Spawning Lingo GUI:', { guiExecutable, guiArgs });
 
-        // Run NST and wait for completion
-        return new Promise((resolve) => {
-            const subprocess = spawn(nstPath, args, {
-                stdio: 'pipe' // Capture output for debugging/logging
-            });
-
-            let outputLog = '';
-            let errorLog = '';
-
-            subprocess.stdout.on('data', (data) => {
-                const text = data.toString();
-                outputLog += text;
-                console.log(`[Lingo stdout]: ${text.trim()}`);
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('lingo-output', text);
-                    mainWindow.webContents.send('nst-output', text);
-                }
-            });
-
-            subprocess.stderr.on('data', (data) => {
-                const text = data.toString();
-                errorLog += text;
-                console.error(`[Lingo stderr]: ${text.trim()}`);
-            });
-
-            subprocess.on('close', async (code) => {
-                console.log(`[NST] Process exited with code ${code}`);
-
-                if (code === 0) {
-                    // Success!
-                    let resultPath = outputPath;
-
-                    // If outputPath wasn't provided, we might need to guess where it went (default behavior of NST?)
-                    // For now, we assume outputPath IS provided for the auto-add feature to work effectively.
-
-                    if (outputPath && fs.existsSync(outputPath)) {
-                        // Auto-Add to Library
-                        try {
-                            const library = loadJsonFile(LIBRARY_FILE, []);
-
-                            // Check for duplicates (by path)
-                            const isDuplicate = library.some(item => item.extractedPath === outputPath);
-                            if (!isDuplicate) {
-                                const newGame = {
-                                    id: Date.now(),
-                                    title: title || `${path.basename(projectPath)} (Translated)`,
-                                    extractedPath: outputPath,
-                                    addedAt: new Date().toISOString(),
-                                    engine: engine,
-                                    coverImage: coverImage || null,
-                                    isMod: true // Mark as modified/translated version
-                                };
-
-                                library.push(newGame);
-                                saveJsonFile(LIBRARY_FILE, library);
-
-                                console.log('[open-nst-cli] Automatically added to library:', newGame.title);
-
-                                // Notify frontend to refresh library
-                                if (mainWindow && !mainWindow.isDestroyed()) {
-                                    mainWindow.webContents.send('library-updated');
-                                }
-                            } else {
-                                console.log('ℹ[open-nst-cli] Game allready in library, skipping add.');
-                            }
-
-                            resolve({ success: true, logs: outputLog });
-                        } catch (libErr) {
-                            console.error('[open-nst-cli] Failed to add to library:', libErr);
-                            // Still resolve as success since translation worked
-                            resolve({ success: true, logs: outputLog, warning: 'Failed to add to library' });
-                        }
-                    } else {
-                        // Translation finished but output path invalid?
-                        resolve({ success: true, logs: outputLog, warning: 'Output path not found' });
-                    }
-                } else {
-                    resolve({ success: false, error: `NST process exited with code ${code}`, logs: outputLog, errorLogs: errorLog });
-                }
-            });
-
-            subprocess.on('error', (err) => {
-                console.error('[open-nst-cli] Spawn error:', err.message);
-                resolve({ success: false, error: err.message });
-            });
+        const child = spawn(guiExecutable, guiArgs, {
+            detached: true,
+            stdio: 'ignore'
         });
+        child.unref();
 
+        return { success: true, opened: true };
     } catch (error) {
         console.error('[open-lingo-cli] Error:', error.message);
         return { success: false, error: error.message };
