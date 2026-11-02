@@ -16,9 +16,12 @@ build_output*.txt
 .env.local
 .env.*.local
 
-# IDE
+# IDE & Agents
 .vscode/
 .idea/
+.agents/
+.claude/
+.cursor/
 *.swp
 *.swo
 

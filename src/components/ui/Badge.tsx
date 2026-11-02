@@ -1,25 +1,63 @@
-
+import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-interface BadgeProps {
-    label: string;
+const badgeVariants = cva(
+    "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+    {
+        variants: {
+            variant: {
+                default: "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+                secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                destructive: "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
+                outline: "text-foreground",
+            },
+        },
+        defaultVariants: {
+            variant: "default",
+        },
+    }
+);
+
+export interface BadgeProps
+    extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {
+    label?: string;
     value?: string;
-    className?: string;
     labelClassName?: string;
     valueClassName?: string;
 }
 
-export const Badge = ({ label, value, className, labelClassName, valueClassName }: BadgeProps) => {
-    return (
-        <div className={cn("mb-1.5 flex flex-col", className)}>
-            <span className={cn("text-muted-foreground text-[10px] font-bold mb-0.5 uppercase tracking-wider", labelClassName)}>
-                {label}
-            </span>
-            {value && (
-                <span className={cn("text-foreground text-[13px] font-medium leading-none", valueClassName)}>
-                    {value}
+export function Badge({
+    className,
+    variant,
+    label,
+    value,
+    labelClassName,
+    valueClassName,
+    children,
+    ...props
+}: BadgeProps) {
+    if (label !== undefined) {
+        return (
+            <div className={cn("mb-1.5 flex flex-col", className)} {...props}>
+                <span className={cn("text-muted-foreground text-[10px] font-bold mb-0.5 uppercase tracking-wider", labelClassName)}>
+                    {label}
                 </span>
-            )}
+                {value && (
+                    <span className={cn("text-foreground text-[13px] font-medium leading-none", valueClassName)}>
+                        {value}
+                    </span>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className={cn(badgeVariants({ variant }), className)} {...props}>
+            {children}
         </div>
     );
-};
+}
+
+export { badgeVariants };

@@ -8,6 +8,7 @@ import type { ArticleWithDownloads, Download } from '@chanomhub/sdk';
 import { OfficialDownloadSourcesResponse, DownloadsResponse } from '@/types/graphql';
 import { useDownloads } from '@/contexts/DownloadContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { useFavorite } from '@/hooks/useFavorite';
 import { ArticleDownloadDialog } from '@/components/common/ArticleDownloadDialog';
@@ -25,7 +26,8 @@ import {
     CloudDownload,
     ExternalLink,
     Lock,
-    ShoppingCart
+    ShoppingCart,
+    Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
@@ -79,6 +81,7 @@ export default function ArticleDetail() {
     const { slug } = useParams<{ slug: string }>();
     const { openDownloadLink } = useDownloads();
     const { language } = useLanguage();
+    const { isAuthenticated } = useAuth();
 
     const [selectedDownload, setSelectedDownload] = useState<Download | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -344,6 +347,18 @@ export default function ArticleDetail() {
                             </button>
                         )}
                     </div>
+
+                    {isAuthenticated && (
+                        <div className="mt-2">
+                            <Link
+                                to={`/editor/${article.slug}`}
+                                className="w-full py-1.5 rounded-md flex items-center justify-center gap-2 transition-colors text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border/60"
+                            >
+                                <Pencil className="w-3.5 h-3.5 text-primary" />
+                                Edit Article in Studio
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </div>
 

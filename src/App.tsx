@@ -22,6 +22,7 @@ import Downloads from '@/pages/Downloads'
 import Library from '@/pages/Library'
 import Settings from '@/pages/Settings'
 import Profile from '@/pages/Profile'
+import Editor from '@/pages/Editor'
 
 // Global pending game launch handler component
 function PendingGameLaunchHandler() {
@@ -53,6 +54,7 @@ function DeepLinkHandler() {
 
         // Handle chanox2://article/slug
         const articlePrefix = 'chanox2://article/';
+        const editorPrefix = 'chanox2://editor/';
         if (cleanUrl.startsWith(articlePrefix)) {
             const slug = cleanUrl.substring(articlePrefix.length).split('?')[0];
             if (slug) {
@@ -61,6 +63,11 @@ function DeepLinkHandler() {
             } else {
                 console.warn('⚠️ App: Deep link article slug is empty');
             }
+        } else if (cleanUrl.startsWith(editorPrefix)) {
+            const slug = cleanUrl.substring(editorPrefix.length).split('?')[0];
+            navigate(slug ? `/editor/${slug}` : '/editor');
+        } else if (cleanUrl === 'chanox2://editor') {
+            navigate('/editor');
         } else {
             console.warn('⚠️ App: Unrecognized deep link format:', cleanUrl);
         }
@@ -91,6 +98,10 @@ export default function App() {
                                             <Route path="/register" element={<Register />} />
                                             <Route path="/callback" element={<Callback />} />
                                             <Route path="/article/:slug" element={<ArticleDetail />} />
+                                            <Route path="/editor" element={<Editor mode="create" />} />
+                                            <Route path="/editor/:slug" element={<Editor mode="edit" />} />
+                                            <Route path="/upload" element={<Navigate to="/editor" replace />} />
+                                            <Route path="/upload/games" element={<Navigate to="/editor" replace />} />
                                             <Route path="/downloads" element={<Downloads />} />
                                             <Route path="/library" element={<Library />} />
                                             <Route path="/search" element={<Navigate to="/" replace />} />

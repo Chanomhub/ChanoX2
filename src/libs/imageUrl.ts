@@ -28,6 +28,22 @@ export function resolveImageUrl(url: string | null | undefined): string | null {
 }
 
 /**
+ * Resolves an article image URL using Imgproxy.
+ * - If it's already a full external URL (not hosted on our storage), returns it as-is
+ * - If it's on storage or is a relative path/hash, routes through Imgproxy
+ */
+export function resolveArticleImageUrl(imageUrl: string | null | undefined): string | null {
+    if (!imageUrl) return null;
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        if (imageUrl.includes(CDN_DOMAIN) || imageUrl.includes('storage.chanomhub.com')) {
+            return resolveImageUrl(imageUrl) || imageUrl;
+        }
+        return imageUrl;
+    }
+    return resolveImageUrl(imageUrl) || imageUrl;
+}
+
+/**
  * Check if a field name represents an image URL
  */
 function isImageField(key: string): boolean {

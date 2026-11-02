@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router';
-import { Store, Library, Download } from 'lucide-react';
+import { Store, Library, Download, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
     { to: '/', label: 'STORE', icon: Store },
     { to: '/library', label: 'LIBRARY', icon: Library },
     { to: '/downloads', label: 'DOWNLOADS', icon: Download },
+    { to: '/editor', label: 'UPLOAD', icon: Upload },
 ];
 
 export default function MenuBar() {

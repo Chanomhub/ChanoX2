@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check, Bell, Trash2, CheckCheck, Sparkles, Download } from 'lucide-react';
+import { Minus, Square, X, Settings, LogOut, ChevronDown, User, UserPlus, Check, Bell, Trash2, CheckCheck, Sparkles, Download, Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useDownloads } from '@/contexts/DownloadContext';
@@ -305,6 +305,16 @@ export default function TitleBar() {
                                 )}
 
                                 {/* Menu Items */}
+                                <button
+                                    onClick={() => {
+                                        setDropdownOpen(false);
+                                        navigate('/editor');
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                                >
+                                    <Upload size={14} />
+                                    Upload Article
+                                </button>
                                 <button
                                     onClick={handleSettings}
                                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
