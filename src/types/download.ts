@@ -9,6 +9,7 @@ export interface Download {
     articleDescription?: string;
     articleBody?: string;
     coverImage?: string;
+    backgroundImage?: string;
     engine?: string;
     gameVersion?: string;
     status: 'downloading' | 'completed' | 'failed' | 'cancelled' | 'extracting';

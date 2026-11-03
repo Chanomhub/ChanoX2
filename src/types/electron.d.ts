@@ -171,6 +171,10 @@ export interface ElectronAPI {
     getLibrary: () => Promise<unknown[]>;
     saveLibrary: (library: unknown[]) => Promise<boolean>;
     downloadCoverImage: (gameId: number | string, coverImageUrl: string) => Promise<{ success: boolean; localPath?: string }>;
+    selectGameBackground: () => Promise<string | null>;
+    saveGameBackground: (gameId: number | string, sourcePath: string) => Promise<{ success: boolean; localPath?: string; error?: string }>;
+    downloadGameBackground: (gameId: number | string, imageUrl: string) => Promise<{ success: boolean; localPath?: string; error?: string }>;
+    removeGameBackground: (gameId: number | string) => Promise<{ success: boolean; error?: string }>;
 
     // File Management
     moveArchiveToStorage: (sourcePath: string, filename: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;

@@ -12,6 +12,8 @@ import WinetricksDialog from './WinetricksDialog';
 import FontSelectionDialog from './FontSelectionDialog';
 import { ArticleModDialog } from './ArticleModDialog';
 import { ModExtractionDialog } from './ModExtractionDialog';
+import ChangeBackgroundDialog from './ChangeBackgroundDialog';
+import { getGameBackgroundSrc } from '@/lib/coverImage';
 import { useGameLauncher } from '@/hooks/useGameLauncher';
 import { useGameScanner } from '@/hooks/useGameScanner';
 import { Button } from '@/components/ui/Button';
@@ -40,7 +42,8 @@ import {
     Languages,
     Download as DownloadIcon,
     Check,
-    CheckCircle2
+    CheckCircle2,
+    Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -85,7 +88,22 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
     const [shortcutLoading, setShortcutLoading] = useState(false);
     const [winetricksDialogOpen, setWinetricksDialogOpen] = useState(false);
     const [modDialogOpen, setModDialogOpen] = useState(false);
+    const [bgDialogOpen, setBgDialogOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'files' | 'mods'>('overview');
+
+    const bgSrc = getGameBackgroundSrc(libraryItem);
+
+    const handleResetBackground = async () => {
+        if (!libraryItem.customBackgroundImage) return;
+        if (window.electronAPI?.removeGameBackground) {
+            try {
+                await window.electronAPI.removeGameBackground(libraryItem.id);
+            } catch (err) {
+                console.warn('Failed to remove custom background file:', err);
+            }
+        }
+        updateLibraryItem(libraryItem.id, { customBackgroundImage: undefined });
+    };
 
     // Custom Hooks
     const { config, launchGame, saveConfig, loadConfig, isRunning, gamePid, stopGame } = useGameLauncher(libraryItem.id);
@@ -261,7 +279,8 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                         updateLibraryItem(libraryItem.id, {
                             description: data.article.description,
                             body: data.article.body,
-                            slug: data.article.slug
+                            slug: data.article.slug,
+                            backgroundImage: libraryItem.backgroundImage || data.article.backgroundImage || data.article.mainImage || undefined
                         });
                     }
                 } catch (err) {
@@ -434,23 +453,57 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
             {/* Back Button */}
             <button
                 onClick={onBack}
-                className="absolute top-4 left-4 z-10 p-2 bg-background/80 border border-border/60 rounded-full hover:bg-muted text-foreground transition-colors"
+                className="absolute top-4 left-4 z-20 p-2 bg-background/80 backdrop-blur-md border border-border/60 rounded-full hover:bg-muted text-foreground transition-colors shadow-md"
             >
                 <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
 
             {/* Hero Section */}
-            <div className="relative h-[300px] w-full flex-shrink-0">
-                {libraryItem.coverImage ? (
+            <div
+                className="relative h-[320px] w-full flex-shrink-0 group overflow-hidden select-none"
+                onContextMenu={(e) => {
+                    e.preventDefault();
+                    setBgDialogOpen(true);
+                }}
+            >
+                {bgSrc ? (
                     <SafeImage
-                        src={libraryItem.coverImage}
-                        className="w-full h-full object-cover opacity-80"
+                        src={bgSrc}
+                        className="w-full h-full object-cover opacity-85 transition-transform duration-700 group-hover:scale-105"
                         alt={libraryItem.title}
                     />
                 ) : (
-                    <div className="w-full h-full bg-card" />
+                    <div className="w-full h-full bg-gradient-to-br from-card to-background" />
                 )}
-                <div className="absolute inset-x-0 bottom-0 h-[150px] bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                {/* Ambient vignette and gradients */}
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-transparent pointer-events-none" />
+
+                {/* Change Background Buttons in Top-Right Corner */}
+                <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                    {libraryItem.customBackgroundImage && (
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleResetBackground()}
+                            className="bg-background/80 backdrop-blur-md hover:bg-background text-xs text-muted-foreground hover:text-foreground border border-border/60 shadow-md opacity-0 group-hover:opacity-100 transition-all h-8 px-2.5"
+                            title="คืนค่าพื้นหลังเริ่มต้น (Reset to default background)"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                            รีเซ็ตพื้นหลัง
+                        </Button>
+                    )}
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setBgDialogOpen(true)}
+                        className="bg-background/80 backdrop-blur-md hover:bg-background text-xs text-foreground border border-border/60 shadow-md opacity-80 group-hover:opacity-100 transition-all h-8 px-3 hover:scale-105"
+                        title="เปลี่ยนภาพพื้นหลังจอเกม (คลิกขวาที่ภาพได้เช่นกัน)"
+                    >
+                        <ImageIcon className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                        เปลี่ยนพื้นหลัง
+                    </Button>
+                </div>
 
                 <div className="absolute bottom-5 left-8 space-y-2">
                     <h1 className="text-foreground text-4xl font-bold drop-shadow-md">
@@ -513,6 +566,13 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                 </div>
 
                 <div className="flex gap-2">
+                    <button
+                        onClick={() => setBgDialogOpen(true)}
+                        className="p-2 bg-card border border-border/70 rounded-md hover:bg-muted text-foreground transition-colors"
+                        title="เปลี่ยนภาพพื้นหลังจอเกม (Change Background)"
+                    >
+                        <ImageIcon className="w-5 h-5" />
+                    </button>
                     <button
                         onClick={() => handleOpenLaunchOptions()}
                         className="p-2 bg-card border border-border/70 rounded-md hover:bg-muted text-foreground transition-colors"
@@ -1078,6 +1138,12 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
                     gamePath={libraryItem.extractedPath}
                 />
             )}
+
+            <ChangeBackgroundDialog
+                open={bgDialogOpen}
+                onOpenChange={setBgDialogOpen}
+                libraryItem={libraryItem}
+            />
         </div>
     );
 }

@@ -103,6 +103,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLibrary: () => ipcRenderer.invoke('get-library'),
     saveLibrary: (library) => ipcRenderer.invoke('save-library', library),
     downloadCoverImage: (gameId, coverImageUrl) => ipcRenderer.invoke('download-cover-image', { gameId, coverImageUrl }),
+    selectGameBackground: () => ipcRenderer.invoke('select-game-background'),
+    saveGameBackground: (gameId, sourcePath) => ipcRenderer.invoke('save-game-background', { gameId, sourcePath }),
+    downloadGameBackground: (gameId, imageUrl) => ipcRenderer.invoke('download-game-background', { gameId, imageUrl }),
+    removeGameBackground: (gameId) => ipcRenderer.invoke('remove-game-background', { gameId }),
 
     // File Management
     moveArchiveToStorage: (sourcePath, filename) => ipcRenderer.invoke('move-archive-to-storage', { sourcePath, filename }),

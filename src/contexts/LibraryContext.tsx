@@ -104,6 +104,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             }
         }
 
+        // Clean up custom background file if present
+        if (window.electronAPI?.removeGameBackground) {
+            try {
+                await window.electronAPI.removeGameBackground(id);
+            } catch (err) {
+                console.warn('Failed to clean up game background:', err);
+            }
+        }
+
         setLibraryItems(prev => prev.filter(i => i.id !== id));
     };
 

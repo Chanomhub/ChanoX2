@@ -551,6 +551,7 @@ export default function ArticleDetail() {
                             articleId: article?.id ? Number(article.id) : undefined,
                             title: article?.title,
                             cover: article?.coverImage || article?.mainImage || article?.backgroundImage || undefined,
+                            backgroundImage: article?.backgroundImage || article?.mainImage || undefined,
                             engine: article?.engine?.name || undefined,
                             gameVersion: article?.ver || undefined,
                             description: article?.description || undefined,

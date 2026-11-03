@@ -6,6 +6,8 @@ export interface LibraryItem {
     title: string;            // ชื่อบทความ/เกม
     coverImage?: string;      // รูปปก (URL จาก CDN)
     localCoverImage?: string; // รูปปกที่ดาวน์โหลดไว้ในเครื่อง (สำหรับ offline)
+    backgroundImage?: string; // รูปพื้นหลังทางการ (URL จาก CDN/API)
+    customBackgroundImage?: string; // รูปพื้นหลังที่ผู้ใช้กำหนดเอง (local path หรือ URL)
     description?: string;     // คำอธิบายย่อ
     body?: string;            // เนื้อหาบทความ (HTML)
 

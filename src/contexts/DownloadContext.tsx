@@ -43,6 +43,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
             apiDownloadId: download.apiDownloadId,
             title: download.articleTitle || download.filename,
             coverImage: download.coverImage,
+            backgroundImage: download.backgroundImage,
             description: download.articleDescription,
             body: download.articleBody,
             extractedPath: extractedPath,

@@ -1024,6 +1024,116 @@ ipcMain.handle('download-cover-image', async (event, { gameId, coverImageUrl }) 
     return { success: !!localPath, localPath };
 });
 
+// Select custom game background image from local files
+ipcMain.handle('select-game-background', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select Game Background Image',
+        properties: ['openFile'],
+        filters: [
+            { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif'] }
+        ]
+    });
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+});
+
+// Save local game background into user data directory
+ipcMain.handle('save-game-background', async (event, { gameId, sourcePath }) => {
+    try {
+        if (!sourcePath || !fs.existsSync(sourcePath)) {
+            return { success: false, error: 'Source file does not exist' };
+        }
+        const backgroundsDir = path.join(USER_DATA_DIR, 'game-backgrounds');
+        if (!fs.existsSync(backgroundsDir)) {
+            fs.mkdirSync(backgroundsDir, { recursive: true });
+        }
+
+        const ext = path.extname(sourcePath).toLowerCase() || '.jpg';
+        const targetFilename = `${gameId}_bg_${Date.now()}${ext}`;
+        const targetPath = path.join(backgroundsDir, targetFilename);
+
+        // Remove old background files for this gameId
+        try {
+            const files = fs.readdirSync(backgroundsDir);
+            for (const file of files) {
+                if (file.startsWith(`${gameId}_bg_`)) {
+                    fs.unlinkSync(path.join(backgroundsDir, file));
+                }
+            }
+        } catch (cleanupErr) {
+            console.warn('Failed to clean up old background:', cleanupErr);
+        }
+
+        fs.copyFileSync(sourcePath, targetPath);
+        console.log(`[Library] Saved custom background for game ${gameId}: ${targetPath}`);
+        return { success: true, localPath: targetPath };
+    } catch (err) {
+        console.error('Failed to save game background:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+// Download and save remote game background into user data directory
+ipcMain.handle('download-game-background', async (event, { gameId, imageUrl }) => {
+    try {
+        if (!imageUrl || !imageUrl.startsWith('http')) {
+            return { success: false, error: 'Invalid URL' };
+        }
+        const backgroundsDir = path.join(USER_DATA_DIR, 'game-backgrounds');
+        if (!fs.existsSync(backgroundsDir)) {
+            fs.mkdirSync(backgroundsDir, { recursive: true });
+        }
+
+        const urlObj = new URL(imageUrl);
+        const ext = path.extname(urlObj.pathname).toLowerCase() || '.jpg';
+        const targetFilename = `${gameId}_bg_${Date.now()}${ext}`;
+        const targetPath = path.join(backgroundsDir, targetFilename);
+
+        // Remove old background files for this gameId
+        try {
+            const files = fs.readdirSync(backgroundsDir);
+            for (const file of files) {
+                if (file.startsWith(`${gameId}_bg_`)) {
+                    fs.unlinkSync(path.join(backgroundsDir, file));
+                }
+            }
+        } catch (cleanupErr) {
+            console.warn('Failed to clean up old background:', cleanupErr);
+        }
+
+        const response = await fetch(imageUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status} failed to download image`);
+        const buffer = Buffer.from(await response.arrayBuffer());
+        fs.writeFileSync(targetPath, buffer);
+
+        console.log(`[Library] Downloaded custom background for game ${gameId}: ${targetPath}`);
+        return { success: true, localPath: targetPath };
+    } catch (err) {
+        console.error('Failed to download game background:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+// Remove custom game background
+ipcMain.handle('remove-game-background', async (event, { gameId }) => {
+    try {
+        const backgroundsDir = path.join(USER_DATA_DIR, 'game-backgrounds');
+        if (fs.existsSync(backgroundsDir)) {
+            const files = fs.readdirSync(backgroundsDir);
+            for (const file of files) {
+                if (file.startsWith(`${gameId}_bg_`)) {
+                    fs.unlinkSync(path.join(backgroundsDir, file));
+                }
+            }
+        }
+        console.log(`[Library] Removed custom background for game ${gameId}`);
+        return { success: true };
+    } catch (err) {
+        console.error('Failed to remove game background:', err);
+        return { success: false, error: err.message };
+    }
+});
+
 // Move archive to archives subfolder
 ipcMain.handle('move-archive-to-storage', async (event, { sourcePath, filename }) => {
     try {

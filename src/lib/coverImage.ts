@@ -15,3 +15,41 @@ export function getCoverImageSrc(localCoverImage?: string, coverImage?: string):
     // Fallback to online URL
     return coverImage;
 }
+
+/**
+ * Get the best available background image source for a library item.
+ * Priority:
+ * 1. customBackgroundImage (User selected custom background image: local file path or URL)
+ * 2. backgroundImage (Official background image from article)
+ * 3. coverImage (Fallback to cover image)
+ * 4. localCoverImage (Fallback to offline cached cover)
+ */
+export function getGameBackgroundSrc(item?: {
+    customBackgroundImage?: string;
+    backgroundImage?: string;
+    coverImage?: string;
+    localCoverImage?: string;
+}): string | undefined {
+    if (!item) return undefined;
+
+    if (item.customBackgroundImage) {
+        if (
+            typeof window !== 'undefined' &&
+            window.electronAPI &&
+            !item.customBackgroundImage.startsWith('http://') &&
+            !item.customBackgroundImage.startsWith('https://') &&
+            !item.customBackgroundImage.startsWith('file://') &&
+            !item.customBackgroundImage.startsWith('data:') &&
+            !item.customBackgroundImage.startsWith('blob:')
+        ) {
+            return `file://${item.customBackgroundImage}`;
+        }
+        return item.customBackgroundImage;
+    }
+
+    if (item.backgroundImage) {
+        return item.backgroundImage;
+    }
+
+    return getCoverImageSrc(item.localCoverImage, item.coverImage);
+}

@@ -43,6 +43,7 @@ export const useDownloadStore = create<DownloadState>()(
                                 apiDownloadId: metadata?.apiDownloadId,
                                 articleTitle: metadata?.title,
                                 coverImage: metadata?.cover,
+                                backgroundImage: metadata?.backgroundImage,
                                 engine: metadata?.engine,
                                 gameVersion: metadata?.gameVersion,
                                 status: 'downloading',

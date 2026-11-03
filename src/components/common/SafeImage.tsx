@@ -53,16 +53,27 @@ export function SafeImage({
         format: format ?? options?.format,
     }), [options, width, height, quality, resizeType, format]);
 
-    const resolvedSrc = useMemo(() => resolveImageUrl(src, CDN_URL, STORAGE_URL, mergedOptions) || src, [src, mergedOptions]);
+    const isLocalOrData = useMemo(() => {
+        if (!src) return false;
+        return src.startsWith('file://') || src.startsWith('data:') || src.startsWith('blob:');
+    }, [src]);
+
+    const resolvedSrc = useMemo(() => {
+        if (!src) return '';
+        if (isLocalOrData) return src;
+        return resolveImageUrl(src, CDN_URL, STORAGE_URL, mergedOptions) || src;
+    }, [src, isLocalOrData, mergedOptions]);
+
     const [currentSrc, setCurrentSrc] = useState(resolvedSrc);
     const [hasErrored, setHasErrored] = useState(false);
 
     // Auto-generate fallback URL from CDN URL if not provided
     const effectiveFallbackSrc = useMemo(() => {
         if (fallbackSrc) return fallbackSrc;
+        if (isLocalOrData || !src) return undefined;
         const autoFallback = getFallbackUrl(src, CDN_URL, STORAGE_URL);
         return autoFallback || undefined;
-    }, [fallbackSrc, src]);
+    }, [fallbackSrc, src, isLocalOrData]);
 
     // Reset state when resolvedSrc changes
     useEffect(() => {
