@@ -80,24 +80,7 @@ let oauthServer = null;
 const OAUTH_CALLBACK_PORT = 9876;
 let parallelDownloader = null;
 
-// Parse command line arguments for game launch
-function parseLaunchGameArg(args) {
-    const launchArg = args.find(arg => arg.startsWith('--launch-game='));
-    return launchArg ? launchArg.split('=')[1] : null;
-}
-
-// Parse command line arguments for protocol URL
-function parseProtocolUrl(args) {
-    console.log('[Main] Parsing command line args:', args);
-    // Find any argument that contains chanox2://
-    const protocolArg = args.find(arg => arg.includes('chanox2://'));
-    if (protocolArg) {
-        // Extract the actual URL (in case it's part of a larger string)
-        const match = protocolArg.match(/chanox2:\/\/[^\s"]+/);
-        return match ? match[0] : protocolArg;
-    }
-    return null;
-}
+const { parseLaunchGameArg, parseProtocolUrl, loadJsonFile, saveJsonFile, parseIni, serializeIni } = require('./lib/parsers.cjs');
 
 let pendingGameLaunch = parseLaunchGameArg(process.argv.slice(1));
 let pendingDeepLink = parseProtocolUrl(process.argv.slice(1));
@@ -225,27 +208,6 @@ try {
 }
 
 // ============= Helper Functions =============
-
-function loadJsonFile(filePath, defaultValue = {}) {
-    try {
-        if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        }
-    } catch (e) {
-        console.error(`Failed to load ${filePath}:`, e);
-    }
-    return defaultValue;
-}
-
-function saveJsonFile(filePath, data) {
-    try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-        return true;
-    } catch (e) {
-        console.error(`Failed to save ${filePath}:`, e);
-        return false;
-    }
-}
 
 function compareVersions(v1, v2) {
     const p1 = v1.split('.').map(Number);
@@ -1742,24 +1704,6 @@ function getPrimaryPluginSettingsPath() {
     if (fs.existsSync(LINGO_PLUGIN_SETTINGS_PATH)) return LINGO_PLUGIN_SETTINGS_PATH;
     if (fs.existsSync(LEGACY_NST_PLUGIN_SETTINGS_PATH)) return LEGACY_NST_PLUGIN_SETTINGS_PATH;
     return LINGO_PLUGIN_SETTINGS_PATH;
-}
-
-// Minimal INI read/write (Qt QSettings IniFormat compatible for flat sections)
-function parseIni(text) {
-    const out = {};
-    let section = null;
-    for (const line of (text || '').split(/\r?\n/)) {
-        const m = line.match(/^\[(.+)\]\s*$/);
-        if (m) { section = m[1]; out[section] = {}; continue; }
-        const kv = line.match(/^([^=]+)=(.*)$/);
-        if (kv && section) out[section][kv[1].trim()] = kv[2];
-    }
-    return out;
-}
-function serializeIni(ini) {
-    return Object.entries(ini).map(([sec, kvs]) =>
-        `[${sec}]\n` + Object.entries(kvs).map(([k, v]) => `${k}=${v}`).join('\n')
-    ).join('\n\n') + '\n';
 }
 
 async function handleGetLingoConfig() {
