@@ -47,18 +47,21 @@ class ParallelDownloader {
             console.log(`[ParallelDownloader] Starting download for: ${url}`);
 
             // 1. Get file info (HEAD request)
-            const headRes = await fetch(url, {
+            // A 40x on HEAD (e.g. 405 from servers without HEAD support) resolves,
+            // not rejects — so both cases must fall back to a 1-byte ranged GET.
+            let headRes = await fetch(url, {
                 method: 'HEAD',
                 headers: { ...headers },
                 signal
-            }).catch(err => {
-                // If HEAD fails (some servers don't support it or return 405), fallback to GET with Range 0-0
-                return fetch(url, {
+            }).catch(() => null);
+
+            if (!headRes || (!headRes.ok && headRes.status !== 206)) {
+                headRes = await fetch(url, {
                     method: 'GET',
                     headers: { ...headers, 'Range': 'bytes=0-0' },
                     signal
                 });
-            });
+            }
 
             if (!headRes.ok && headRes.status !== 206) {
                 throw new Error(`Failed to fetch file info: HTTP ${headRes.status}`);
@@ -268,13 +271,17 @@ class ParallelDownloader {
      */
     getFilenameFromUrl(url, contentDisposition) {
         if (contentDisposition) {
-            const match = contentDisposition.match(/filename\*?=["']?([^"';]+)["']?/);
+            // RFC 5987 (filename*=UTF-8''...) must be matched before the generic
+            // filename= pattern, whose [^"';] class stops at the '' delimiter
+            const utf8 = contentDisposition.match(/filename\*=(?:utf-8|UTF-8)''([^;]+)/i);
+            if (utf8) {
+                try {
+                    return decodeURIComponent(utf8[1]);
+                } catch (e) { /* malformed escape — fall through to plain name */ }
+            }
+            const match = contentDisposition.match(/filename=["']?([^"';]+)["']?/);
             if (match) {
-                let filename = match[1];
-                if (filename.startsWith("UTF-8''")) {
-                    filename = decodeURIComponent(filename.substring(7));
-                }
-                return filename;
+                return match[1];
             }
         }
 

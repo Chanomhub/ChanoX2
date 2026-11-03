@@ -18,6 +18,7 @@
     "check:types": "tsc --noEmit",
     "check:unused": "ts-prune",
     "check:deps": "depcheck",
+    "test": "node --test tests/*.test.mjs",
     "validate": "bun run check:types && bun run check:unused && bun run check:deps",
     "setup:linux-protocol": "bash ./scripts/setup-linux-protocol.sh",
     "prepare": "husky"
