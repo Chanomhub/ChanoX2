@@ -25,8 +25,6 @@ import {
     Gem,
     CloudDownload,
     ExternalLink,
-    Lock,
-    ShoppingCart,
     Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,7 +50,7 @@ const articleFetcher = async ([, slug, language]: [string, string, string]): Pro
         const downloads = (downloadsData.downloads || []).map(d => ({
             ...d,
             name: d.name || '', // Ensure name is not null as required by SDK types
-            type: (d as any).type || ((d as any).isPurchaseRedirect ? 'PURCHASE_REDIRECT' : 'DIRECT_FILE')
+            type: (d as any).type || 'DIRECT_FILE'
         })) as Download[];
 
         return withDataTransform({
@@ -107,20 +105,11 @@ export default function ArticleDetail() {
         article?.favoritesCount || 0
     );
 
-    // Check if the article is actually unlocked/purchased based on JWT context
-    const isUnlocked = article?.isUnlocked || article?.price === 0;
-
-    // Filter downloads based on purchase status
+    // Filter out inactive downloads
     const actualDownloads = useMemo(() =>
-        articleData?.downloads?.filter(d => d.isActive && !d.isPurchaseRedirect) || [],
+        articleData?.downloads?.filter(d => d.isActive) || [],
         [articleData]
     );
-
-    const purchaseLinks = useMemo(() => {
-        // If already unlocked, we don't need to show purchase links anymore
-        if (isUnlocked) return [];
-        return articleData?.downloads?.filter(d => d.isActive && d.isPurchaseRedirect) || [];
-    }, [articleData, isUnlocked]);
 
     const downloads = actualDownloads;
 
@@ -380,46 +369,8 @@ export default function ArticleDetail() {
                 <div className="flex-1" ref={downloadsRef}>
                     <div className="bg-card p-5 rounded-md border border-border/60 sticky top-6">
 
-                        {(downloads.length > 0 || officialSources.length > 0 || purchaseLinks.length > 0) ? (
+                        {(downloads.length > 0 || officialSources.length > 0) ? (
                             <>
-                                {/* Purchase / Unlock Section */}
-                                {purchaseLinks.length > 0 && (
-                                    <div className="mb-6 pb-6 border-b border-border/60">
-                                        <h2 className="text-primary text-base font-bold mb-3 flex items-center gap-2">
-                                            <Lock className="w-4 h-4" />
-                                            {language === 'th' ? 'ปลดล็อกเนื้อหา' : 'Unlock Content'}
-                                        </h2>
-                                        <p className="text-muted-foreground text-xs mb-4 leading-relaxed">
-                                            {language === 'th' ? 'ต้องซื้อบทความเพื่อเข้าถึงไฟล์ดาวน์โหลดทั้งหมด' : 'Purchase the article to access all download files.'}
-                                        </p>
-                                        <div className="space-y-3">
-                                            {purchaseLinks.map((link) => (
-                                                <a
-                                                    key={link.id}
-                                                    href={link.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        ElectronDownloader.openDownloadLink(link.url, null);
-                                                    }}
-                                                    className="block bg-primary hover:bg-primary/90 p-3 rounded-md border border-primary/30 text-primary-foreground transition-all shadow-md group"
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <ShoppingCart className="w-4 h-4" />
-                                                            <span className="text-sm font-bold uppercase tracking-wider">
-                                                                {link.name && link.name !== 'Source' ? link.name : (language === 'th' ? 'ไปที่หน้าร้านค้า' : 'Go to Store')}
-                                                            </span>
-                                                        </div>
-                                                        <ExternalLink className="w-4 h-4 opacity-80 group-hover:opacity-100" />
-                                                    </div>
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
                                 {/* Official Sources */}
                                 {officialSources.length > 0 && (
                                     <div className="mb-6">
@@ -467,15 +418,13 @@ export default function ArticleDetail() {
                                                     key={download.id}
                                                     className={cn(
                                                         "bg-background/80 p-3 rounded-md border transition-colors group relative overflow-hidden",
-                                                        !isUnlocked ? "opacity-60 grayscale-[0.5]" : (download.vipOnly ? "border-amber-500/40 bg-amber-500/5" : "border-border/60 hover:border-primary/50")
+                                                        download.vipOnly ? "border-amber-500/40 bg-amber-500/5" : "border-border/60 hover:border-primary/50"
                                                     )}
                                                 >
                                                     <div className="flex items-start justify-between gap-3 mb-2.5">
                                                         <div className="min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                {!isUnlocked ? (
-                                                                    <Lock className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                                                                ) : download.vipOnly ? (
+                                                                {download.vipOnly ? (
                                                                     <Gem className="w-4 h-4 text-amber-500 flex-shrink-0" />
                                                                 ) : (
                                                                     <CloudDownload className="w-4 h-4 text-primary flex-shrink-0" />
@@ -490,18 +439,12 @@ export default function ArticleDetail() {
                                                         </div>
                                                     </div>
 
-                                                    {isUnlocked ? (
-                                                        <button
-                                                            onClick={() => setSelectedDownload(download)}
-                                                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold py-2 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm"
-                                                        >
-                                                            <DownloadIcon className="w-3.5 h-3.5" /> DOWNLOAD
-                                                        </button>
-                                                    ) : (
-                                                        <div className="w-full bg-muted/40 text-muted-foreground text-[10px] font-bold py-2 rounded-md flex items-center justify-center gap-2 uppercase tracking-wider border border-border/40">
-                                                            Purchase Required to Access
-                                                        </div>
-                                                    )}
+                                                    <button
+                                                        onClick={() => setSelectedDownload(download)}
+                                                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold py-2 rounded-md transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                                    >
+                                                        <DownloadIcon className="w-3.5 h-3.5" /> DOWNLOAD
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>

@@ -48,8 +48,6 @@ export interface ArticleStudioFormData {
   tags: string[];
   categories: string[];
   platforms: string[];
-  isPaid: boolean;
-  price?: number;
   status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'ARCHIVED';
   favorited?: boolean;
   favoritesCount?: number;

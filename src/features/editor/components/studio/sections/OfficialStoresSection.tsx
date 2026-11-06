@@ -74,7 +74,7 @@ export const OfficialStoresSection: React.FC<OfficialStoresSectionProps> = ({
         <div className="flex items-center gap-2">
           <ShoppingBag className="h-5 w-5 text-primary" />
           <div>
-            <h3 className="font-semibold text-foreground text-sm">Official Purchase & Store Links</h3>
+            <h3 className="font-semibold text-foreground text-sm">Official Store Links</h3>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               Support the original developer with links to Steam, DLsite, itch.io, etc.
             </p>

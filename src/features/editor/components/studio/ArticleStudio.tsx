@@ -12,7 +12,6 @@ import { DownloadsSection } from './sections/DownloadsSection';
 import { OfficialStoresSection } from './sections/OfficialStoresSection';
 import { DevlogSection } from './sections/DevlogSection';
 import { PublishingCard } from './sidebar/PublishingCard';
-import { PricingCard } from './sidebar/PricingCard';
 import { SpecsCard } from './sidebar/SpecsCard';
 import { TaxonomyCard } from './sidebar/TaxonomyCard';
 import { HealthCheckCard } from './sidebar/HealthCheckCard';
@@ -181,13 +180,6 @@ export const ArticleStudio: React.FC<ArticleStudioProps> = (props) => {
               mode={mode}
               onStatusChange={(st) => updateField('status', st)}
               onFavoritedChange={(fav) => updateField('favorited', fav)}
-            />
-
-            {/* Pricing & Monetization */}
-            <PricingCard
-              isPaid={formData.isPaid}
-              price={formData.price}
-              onUpdateField={(k, v) => updateField(k, v)}
             />
 
             {/* Game Specs (Platforms, Engine, Developer, Version) */}

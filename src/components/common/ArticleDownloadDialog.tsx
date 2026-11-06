@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
-import { Download as DownloadIcon, ShoppingCart } from 'lucide-react';
+import { Download as DownloadIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import { useLibrary } from '@/contexts/LibraryContext';
@@ -13,7 +13,6 @@ interface DownloadItem {
     url: string;
     name?: string;
     vipOnly?: boolean;
-    isPurchaseRedirect?: boolean;
 }
 
 interface ArticleDownloadDialogProps {
@@ -54,7 +53,6 @@ export function ArticleDownloadDialog({
 
     if (!download) return null;
 
-    const isPurchase = download.isPurchaseRedirect;
     const isAlreadyInLibrary = !!existingLibraryItem;
     const isAlreadyDownloading = !!activeDownload;
 
@@ -63,7 +61,7 @@ export function ArticleDownloadDialog({
             <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
                 <DialogHeader>
                     <DialogTitle className="text-foreground font-semibold">
-                        {isPurchase ? 'Unlock Required' : 'Download Options'}
+                        Download Options
                     </DialogTitle>
                 </DialogHeader>
 
@@ -97,10 +95,9 @@ export function ArticleDownloadDialog({
 
                     <div className="space-y-1">
                         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                            {isPurchase ? 'Store / Purchase Link' : 
-                             (download.url.includes('google.com') ? 'Google Drive' : 
-                             download.url.includes('mega.nz') ? 'MEGA' : 
-                             download.url.includes('mediafire.com') ? 'MediaFire' : 'Download Link')}
+                            {download.url.includes('google.com') ? 'Google Drive' :
+                             download.url.includes('mega.nz') ? 'MEGA' :
+                             download.url.includes('mediafire.com') ? 'MediaFire' : 'Download Link'}
                         </label>
                         <div className="text-sm text-foreground break-all bg-background p-2.5 rounded-md border border-border font-mono">
                             {download.url}
@@ -117,13 +114,7 @@ export function ArticleDownloadDialog({
                         </div>
                     )}
 
-                    {isPurchase && (
-                        <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-md text-xs text-amber-400 leading-relaxed">
-                            This content is locked. You need to purchase the article on the store to access the files.
-                        </div>
-                    )}
-
-                    {isAlreadyInLibrary && !isPurchase && (
+                    {isAlreadyInLibrary && (
                         <div className="bg-primary/10 border border-primary/25 p-3 rounded-md text-xs text-primary leading-relaxed">
                             You already have this item in your library. Downloading it again may create a duplicate.
                         </div>
@@ -142,31 +133,20 @@ export function ArticleDownloadDialog({
                     </Button>
                     
                     <Button
-                        variant={isPurchase ? "secondary" : "primary"}
+                        variant="primary"
                         onClick={() => {
                             onDownload(download.url);
                             onOpenChange(false);
                         }}
                         className={cn(
                             "shadow-none",
-                            isPurchase
-                                ? "bg-amber-600 hover:bg-amber-700 text-white font-bold"
-                                : (isAlreadyInLibrary
-                                    ? "bg-muted text-foreground hover:bg-muted/80"
-                                    : "bg-primary hover:bg-primary/90 text-primary-foreground font-bold")
+                            isAlreadyInLibrary
+                                ? "bg-muted text-foreground hover:bg-muted/80"
+                                : "bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
                         )}
                     >
-                        {isPurchase ? (
-                            <>
-                                <ShoppingCart className="w-4 h-4 mr-2" />
-                                Unlock Now
-                            </>
-                        ) : (
-                            <>
-                                <DownloadIcon className="w-4 h-4 mr-2" />
-                                {isAlreadyInLibrary ? 'Download Again' : 'Download'}
-                            </>
-                        )}
+                        <DownloadIcon className="w-4 h-4 mr-2" />
+                        {isAlreadyInLibrary ? 'Download Again' : 'Download'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

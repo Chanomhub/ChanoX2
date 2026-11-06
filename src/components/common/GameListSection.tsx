@@ -14,10 +14,7 @@ interface ArticleWithImages extends Article {
     images?: ArticleImage[];
     reviewScore?: number;      // 0-100
     reviewCount?: number;
-    price?: number;
-    originalPrice?: number;
     discount?: number;
-    isFree?: boolean;
     releaseDate?: string;
     excerpt?: string;
 }
@@ -62,25 +59,10 @@ function ReviewBar({ score, count }: { score?: number; count?: number }) {
     );
 }
 
-function PriceTag({ price, originalPrice, discount, isFree }: {
-    price?: number; originalPrice?: number; discount?: number; isFree?: boolean;
-}) {
-    if (isFree || price === 0) return (
+function PriceTag() {
+    return (
         <span className="text-xs font-bold text-primary">FREE</span>
     );
-    if (price == null) return null;
-    if (discount && originalPrice) return (
-        <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.5 rounded leading-none">
-                -{discount}%
-            </span>
-            <div className="flex flex-col items-end leading-none gap-0.5">
-                <span className="text-[10px] text-muted-foreground line-through">${originalPrice.toFixed(2)}</span>
-                <span className="text-sm font-bold text-primary">${price.toFixed(2)}</span>
-            </div>
-        </div>
-    );
-    return <span className="text-sm font-bold text-foreground">${price.toFixed(2)}</span>;
 }
 
 function PlatformIcons({ platforms }: { platforms?: { name: string }[] }) {
@@ -327,14 +309,9 @@ export default function GameListSection({
                                     </div>
                                 </div>
 
-                                {/* Right: price + wishlist */}
+                                {/* Right: wishlist */}
                                 <div className="flex flex-col items-end justify-center gap-1.5 px-3 w-[130px] flex-shrink-0">
-                                    <PriceTag
-                                        price={article.price}
-                                        originalPrice={article.originalPrice}
-                                        discount={article.discount}
-                                        isFree={article.isFree}
-                                    />
+                                    <PriceTag />
                                     <button onClick={e => toggleWishlist(article.id, e)}
                                         className={cn(
                                             'flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-all',
@@ -492,14 +469,9 @@ export default function GameListSection({
                             </div>
                         )}
 
-                        {/* Price + CTA — pinned to bottom */}
+                        {/* CTA — pinned to bottom */}
                         <div className="px-4 py-3 border-t border-border/60 flex items-center justify-between gap-3 flex-shrink-0 bg-muted/40">
-                            <PriceTag
-                                price={hoveredArticle.price}
-                                originalPrice={hoveredArticle.originalPrice}
-                                discount={hoveredArticle.discount}
-                                isFree={hoveredArticle.isFree}
-                            />
+                            <PriceTag />
                             <Link to={`/article/${hoveredArticle.slug}`}
                                 className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
                                 <ShoppingCart className="w-3.5 h-3.5" />

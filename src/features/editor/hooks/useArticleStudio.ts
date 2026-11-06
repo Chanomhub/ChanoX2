@@ -49,8 +49,6 @@ export function useArticleStudio({
     platforms: Array.isArray(initialData?.platforms)
       ? initialData.platforms.map((p: any) => (typeof p === 'string' ? p : p?.platform?.name || p?.name || '')).filter(Boolean)
       : (contentType === 'game' ? ['Windows'] : []),
-    isPaid: initialData?.isPaid || false,
-    price: initialData?.price || undefined,
     status: initialData?.status || 'DRAFT',
     favorited: initialData?.favorited || false,
     favoritesCount: initialData?.favoritesCount || 0,
@@ -249,8 +247,6 @@ export function useArticleStudio({
               tags: normalizedTags,
               categories: normalizedCategories,
               platforms: normalizedPlatforms,
-              isPaid: article.isPaid ?? article.isPremium ?? false,
-              price: article.price || undefined,
               status: article.status || 'DRAFT',
               favorited: article.favorited || false,
               favoritesCount: article.favoritesCount || 0,
@@ -746,9 +742,6 @@ export function useArticleStudio({
           categories: formData.categories,
           platforms: formData.platforms,
           language: 'en',
-          isPaid: formData.isPaid,
-          isPremium: formData.isPaid,
-          price: Number(formData.price || 0),
           ...(mode === 'edit' && formData.status !== originalStatusRef.current
             ? { status: formData.status }
             : mode === 'create'
