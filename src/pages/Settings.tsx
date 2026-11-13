@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
     User, Settings as SettingsIcon, HardDrive, MonitorCog, Bell, Shield,
     ChevronLeft, Check, Loader2, ExternalLink, FolderOpen, Trash2, EyeOff,
-    Search, ArrowUpDown, Languages, Sparkles, Send, Github, MessageCircle
+    Search, ArrowUpDown, Languages, Sparkles, Send, Github
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1027,7 +1027,6 @@ function ApplicationSection() {
     const communityLinks = [
         { label: 'Telegram', url: 'https://t.me/NightCryptic', icon: <Send className="w-5 h-5 text-sky-400" /> },
         { label: 'GitHub', url: 'https://github.com/Chanomhub', icon: <Github className="w-5 h-5 text-zinc-300" /> },
-        { label: 'Discord', url: 'https://discord.gg/QTmeKmKf2w', icon: <MessageCircle className="w-5 h-5 text-indigo-400" /> },
     ];
 
     return (
