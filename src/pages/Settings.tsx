@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
     User, Settings as SettingsIcon, HardDrive, MonitorCog, Bell, Shield,
     ChevronLeft, Check, Loader2, ExternalLink, FolderOpen, Trash2, EyeOff,
-    Search, ArrowUpDown, Languages, Sparkles
+    Search, ArrowUpDown, Languages, Sparkles, Send, Github, MessageCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1024,10 +1024,43 @@ function ApplicationSection() {
         autoRedirectToDownloads, setAutoRedirectToDownloads
     } = useSettingsStore();
 
+    const communityLinks = [
+        { label: 'Telegram', url: 'https://t.me/NightCryptic', icon: <Send className="w-5 h-5 text-sky-400" /> },
+        { label: 'GitHub', url: 'https://github.com/Chanomhub', icon: <Github className="w-5 h-5 text-zinc-300" /> },
+        { label: 'Discord', url: 'https://discord.gg/QTmeKmKf2w', icon: <MessageCircle className="w-5 h-5 text-indigo-400" /> },
+    ];
+
     return (
         <div>
             <SectionHeader title={t('settings.application')} />
             <div className="space-y-4">
+                {/* Community Card */}
+                <Card className="bg-chanox-surface border-chanox-border">
+                    <CardContent className="pt-6">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-zinc-500/10 rounded-lg">
+                                <Sparkles className="w-5 h-5 text-zinc-300" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-zinc-100 font-medium mb-2">ChanomHub Community</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {communityLinks.map(({ label, url, icon }) => (
+                                        <button
+                                            key={label}
+                                            onClick={() => window.electronAPI?.openExternal(url)}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-700/60 border border-chanox-border text-xs text-zinc-300 hover:text-zinc-100 transition-colors"
+                                        >
+                                            {icon}
+                                            <span>{label}</span>
+                                            <ExternalLink className="w-3 h-3 opacity-50" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Discord Card */}
                 <Card className="bg-chanox-surface border-chanox-border">
                     <CardContent className="pt-6">
