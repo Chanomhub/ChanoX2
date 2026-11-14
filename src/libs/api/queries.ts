@@ -121,11 +121,16 @@ export const GET_TAGS = gql`
 // Get downloads for an article
 export const GET_DOWNLOADS = gql`
   query GetDownloads($articleId: Int!) {
-    downloads(articleId: $articleId) {
-      id
-      name
-      url
-      isActive
+    public {
+      article(id: $articleId) {
+        downloads {
+          id
+          name
+          url
+          isActive
+          platforms
+        }
+      }
     }
   }
 `;

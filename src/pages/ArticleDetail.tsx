@@ -39,7 +39,7 @@ const articleFetcher = async ([, slug, language]: [string, string, string]): Pro
 
     if (!article) return { article: null, downloads: [] };
 
-    // 2. Get downloads for this article using a separate root query
+    // 2. Get downloads for this article (field lives under public.article; root query was removed)
     try {
         const downloadsData = await client.request<DownloadsResponse>(
             GET_DOWNLOADS,
@@ -47,10 +47,10 @@ const articleFetcher = async ([, slug, language]: [string, string, string]): Pro
         );
 
         // Map types carefully to satisfy the SDK's ArticleWithDownloads interface
-        const downloads = (downloadsData.downloads || []).map(d => ({
+        const downloads = ((downloadsData as any).public?.article?.downloads || []).map((d: any) => ({
             ...d,
             name: d.name || '', // Ensure name is not null as required by SDK types
-            type: (d as any).type || 'DIRECT_FILE'
+            type: d.type || 'DIRECT_FILE'
         })) as Download[];
 
         return withDataTransform({
