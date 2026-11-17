@@ -79,6 +79,7 @@ class PatcherService {
     static findGameDirs(gameDir) {
         let dataDir = null;
         let fontsDir = null;
+        let langDir = null;
 
         if (fs.existsSync(path.join(gameDir, 'www', 'data'))) {
             dataDir = path.join(gameDir, 'www', 'data');
@@ -107,7 +108,13 @@ class PatcherService {
             fontsDir = path.join(gameDir, 'fonts');
         }
 
-        return { dataDir, fontsDir };
+        // GameMaker localization layout (e.g. Undertale-style games): lang/*.json
+        if (fs.existsSync(path.join(gameDir, 'lang')) &&
+            fs.readdirSync(path.join(gameDir, 'lang')).some(f => f.endsWith('.json'))) {
+            langDir = path.join(gameDir, 'lang');
+        }
+
+        return { dataDir, fontsDir, langDir };
     }
 
     /**
@@ -194,9 +201,16 @@ class PatcherService {
             throw new Error('Invalid patch package: missing or invalid entries list');
         }
 
-        const { dataDir, fontsDir } = this.findGameDirs(gamePath);
-        if (!dataDir) {
-            throw new Error(`Could not locate game data directory in ${gamePath}`);
+        const { dataDir, fontsDir, langDir } = this.findGameDirs(gamePath);
+        if (!dataDir && !langDir) {
+            throw new Error(`Could not locate game data or lang directory in ${gamePath}`);
+        }
+
+        // GameMaker layout: patch keys are flat lang.json keys; the source map
+        // is eng.json and the translated result overwrites tha.json (same
+        // behavior as `lingo apply-patch` generic parser)
+        if (!dataDir && langDir) {
+            return this.applyGamemakerPatch({ gamePath, langDir, pkg, modId });
         }
 
         // Prepare backup directory
@@ -341,6 +355,104 @@ class PatcherService {
             totalPatchedEntries,
             filesModified: patchedFiles.length,
             fontInjected
+        };
+    }
+
+    /**
+     * Apply a GameMaker (lang/*.json) patch: keys are flat lang.json keys,
+     * the source map is eng.json, and the translated result overwrites
+     * tha.json — mirrors lingo's generic parser Inject().
+     */
+    static applyGamemakerPatch({ gamePath, langDir, pkg, modId }) {
+        const sourcePath = path.join(langDir, 'eng.json');
+        const targetPath = path.join(langDir, 'tha.json');
+        if (!fs.existsSync(sourcePath)) {
+            throw new Error(`GameMaker patch requires ${sourcePath}`);
+        }
+
+        const timestamp = Date.now();
+        const backupId = `mod_${modId}_${timestamp}`;
+        const backupDir = path.join(gamePath, '.chanox2', 'backups', backupId);
+        fs.mkdirSync(backupDir, { recursive: true });
+
+        const translations = new Map();
+        for (const entry of pkg.entries) {
+            if (!entry.tgt || entry.tgt === entry.src) continue;
+            const key = entry.key || entry.src;
+            translations.set(key, entry.tgt);
+        }
+        if (translations.size === 0) {
+            throw new Error('Patch package contains no translatable entries');
+        }
+
+        const sourceMap = JSON.parse(fs.readFileSync(sourcePath, 'utf-8'));
+
+        let existing = {};
+        let backedUpFiles = [];
+        if (fs.existsSync(targetPath)) {
+            fs.copyFileSync(targetPath, path.join(backupDir, 'tha.json'));
+            backedUpFiles.push({
+                originalPath: targetPath,
+                backupPath: path.join(backupDir, 'tha.json'),
+                fileName: 'tha.json'
+            });
+            existing = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+        }
+
+        const out = {};
+        let patchedEntries = 0;
+        for (const [key, value] of Object.entries(sourceMap)) {
+            if (typeof value === 'string') {
+                if (translations.has(key)) {
+                    out[key] = translations.get(key);
+                    patchedEntries++;
+                } else {
+                    out[key] = value;
+                }
+            } else if (Array.isArray(value)) {
+                out[key] = value.map((item, idx) => {
+                    if (typeof item !== 'string') return item;
+                    const entryId = `${key}[${idx}]`;
+                    if (translations.has(entryId)) {
+                        patchedEntries++;
+                        return translations.get(entryId);
+                    }
+                    return item;
+                });
+            } else {
+                out[key] = value;
+            }
+        }
+
+        // Keys that exist only in the current target (game updates) survive
+        for (const [key, value] of Object.entries(existing)) {
+            if (!(key in out)) out[key] = value;
+        }
+
+        fs.writeFileSync(targetPath, JSON.stringify(out, null, 4), 'utf-8');
+        const patchedFiles = ['tha.json'];
+
+        const manifest = {
+            modId,
+            backupId,
+            timestamp,
+            gamePath,
+            patchPath: pkg._patchPath || null,
+            backedUpFiles,
+            patchedFiles,
+            totalPatchedEntries: patchedEntries,
+            fontInjected: false,
+            engine: 'gamemaker'
+        };
+        fs.writeFileSync(path.join(backupDir, 'backup-manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8');
+
+        console.log(`[Patcher] GameMaker patch applied: ${patchedEntries} entries -> tha.json. Backup: ${backupId}`);
+        return {
+            success: true,
+            backupId,
+            totalPatchedEntries: patchedEntries,
+            filesModified: patchedFiles.length,
+            fontInjected: false
         };
     }
 
