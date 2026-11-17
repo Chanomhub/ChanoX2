@@ -11,6 +11,7 @@ import ChatWindow from '@/components/features/chat/ChatWindow'
 import Layout from '@/components/common/Layout'
 import { usePendingGameLaunch } from '@/hooks/usePendingGameLaunch'
 import { useDeepLink } from '@/hooks/useDeepLink'
+import InstallModPage from '@/pages/InstallModPage'
 
 // Pages
 import Home from '@/pages/Home'
@@ -68,6 +69,11 @@ function DeepLinkHandler() {
             navigate(slug ? `/editor/${slug}` : '/editor');
         } else if (cleanUrl === 'chanox2://editor') {
             navigate('/editor');
+        } else if (cleanUrl.startsWith('chanox2://install/')) {
+            const rest = cleanUrl.substring('chanox2://install/'.length);
+            const [idPart, query] = rest.split('?');
+            const params = new URLSearchParams(query || '');
+            navigate(`/install-mod/${idPart}?${params.toString()}`);
         } else {
             console.warn('⚠️ App: Unrecognized deep link format:', cleanUrl);
         }
@@ -104,6 +110,7 @@ export default function App() {
                                             <Route path="/upload/games" element={<Navigate to="/editor" replace />} />
                                             <Route path="/downloads" element={<Downloads />} />
                                             <Route path="/library" element={<Library />} />
+                                            <Route path="/install-mod/:modId" element={<InstallModPage />} />
                                             <Route path="/search" element={<Navigate to="/" replace />} />
                                             <Route path="/settings" element={<Settings />} />
                                             <Route path="/profile/:username" element={<Profile />} />
