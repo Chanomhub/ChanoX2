@@ -42,6 +42,7 @@ import {
     Languages,
     Download as DownloadIcon,
     Check,
+    ArrowUpCircle,
     CheckCircle2,
     Image as ImageIcon
 } from 'lucide-react';
@@ -1151,6 +1152,13 @@ export default function LibraryGameDetail({ libraryItem, onBack, autoLaunch, onA
 function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articleId?: number | null, articleSlug?: string, gamePath?: string, onOpenStore?: () => void }) {
     const { token: authToken } = useAuth();
     const { installedMods, loading: loadingInstalled, addInstalledMod, removeInstalledMod, isInstalled } = useInstalledMods(gamePath);
+
+    // Steam-style update detection: any version difference = outdated
+    // (versions come from the same publisher via lingo, no semver needed)
+    const installedVersionOf = (mod: Mod) =>
+        installedMods.find(m => m.id === mod.id)?.version;
+    const isOutdated = (mod: Mod) =>
+        isInstalled(mod.id) && !!mod.version && installedVersionOf(mod) !== mod.version;
     const [installingModId, setInstallingModId] = useState<number | null>(null);
     const [modBackups, setModBackups] = useState<Record<number, any[]>>({});
     // Removed unused loadingBackups state
@@ -1505,10 +1513,16 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                         </span>
                                     </div>
                                     <div className="text-muted-foreground text-xs flex items-center gap-3">
-                                        {installed && (
+                                        {installed && !isOutdated(mod) && (
                                             <span className="text-emerald-400 font-medium flex items-center gap-1">
                                                 <Check className="w-3 h-3" />
                                                 Installed
+                                            </span>
+                                        )}
+                                        {isOutdated(mod) && (
+                                            <span className="text-amber-400 font-medium flex items-center gap-1">
+                                                <ArrowUpCircle className="w-3 h-3" />
+                                                มีเวอร์ชันใหม่ {installedVersionOf(mod)} → {mod.version}
                                             </span>
                                         )}
                                     </div>
@@ -1518,6 +1532,22 @@ function LibraryMods({ articleId, articleSlug, gamePath, onOpenStore }: { articl
                                     {installed ? (
                                         <div className="flex flex-col gap-2">
                                             <div className="flex items-center gap-2">
+                                                {isOutdated(mod) && (
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={() => handleInstall(mod)}
+                                                        disabled={installingModId === mod.id}
+                                                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium h-8"
+                                                    >
+                                                        {installingModId === mod.id ? (
+                                                            <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                                                        ) : (
+                                                            <DownloadIcon className="w-3 h-3 mr-1" />
+                                                        )}
+                                                        อัปเดตเป็น {mod.version}
+                                                    </Button>
+                                                )}
                                                 {mod.downloadLink.endsWith('.lpack') && (
                                                     <Button
                                                         variant="secondary"
