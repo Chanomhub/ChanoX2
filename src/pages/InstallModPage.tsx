@@ -87,6 +87,13 @@ export default function InstallModPage() {
                 installedAt: new Date().toISOString(),
                 filename: safeName,
             });
+            // subscribing = following updates for this mod
+            try {
+                await fetch(`${(window as any).__API_URL__ || 'https://api.chanomhub.com'}/api/mods/${mod.id}/subscribe`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                });
+            } catch { /* subscription is best-effort */ }
             setResult({ ok: true, message: `Installed ${mod.name} to ${game.title}` });
         } catch (err: any) {
             setResult({ ok: false, message: err?.message || 'Install failed' });
