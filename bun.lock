@@ -5,7 +5,7 @@
     "": {
       "name": "chanox2",
       "dependencies": {
-        "@chanomhub/sdk": "file:../sdks/typescript/chanomhub-sdk-1.4.0.tgz",
+        "@chanomhub/sdk": "file:vendor/chanomhub-sdk-1.4.0.tgz",
         "@tanstack/react-query": "^5.104.4",
         "@tensorflow/tfjs": "^4.22.0",
         "@tiptap/extension-image": "^3.32.0",
@@ -109,7 +109,7 @@
 
     "@babel/types": ["@babel/types@7.29.8", "", { "dependencies": { "@babel/helper-string-parser": "^7.29.7", "@babel/helper-validator-identifier": "^7.29.7" } }, "sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg=="],
 
-    "@chanomhub/sdk": ["@chanomhub/sdk@../sdks/typescript/chanomhub-sdk-1.4.0.tgz", { "hasInstallScript": true }, "sha512-Q5B0SxpCTGG+dDo+2vBaZ2CEu8dhg3V0sGxrHeSMrBa1PwR/yk10V3SMGOXf1krgwlWus53FTHeV1VDjzVIGSg=="],
+    "@chanomhub/sdk": ["@chanomhub/sdk@vendor/chanomhub-sdk-1.4.0.tgz", { "hasInstallScript": true }, "sha512-Q5B0SxpCTGG+dDo+2vBaZ2CEu8dhg3V0sGxrHeSMrBa1PwR/yk10V3SMGOXf1krgwlWus53FTHeV1VDjzVIGSg=="],
 
     "@commitlint/cli": ["@commitlint/cli@21.2.4", "", { "dependencies": { "@commitlint/config-conventional": "^21.2.4", "@commitlint/format": "^21.2.3", "@commitlint/lint": "^21.2.4", "@commitlint/load": "^21.2.4", "@commitlint/read": "^21.2.3", "@commitlint/types": "^21.2.3", "tinyexec": "^1.0.0", "yargs": "^18.0.0" }, "bin": { "commitlint": "cli.js" } }, "sha512-g3M/wrQdElqGH5vROIeL2QiYIxrzqUkhCgsDyDlWfKEyQdCt10OyMB28W2cJtpZ+VNGMvmaN923infr1hOfyrg=="],
 
